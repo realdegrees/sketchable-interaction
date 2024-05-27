@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import Toolbar from "@/ui/toolbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +17,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <main className="fixed inset-0">
+          {children}
+        </main>
+        <div id="Toolbar" className="absolute bottom-20 left-1/2 -translate-x-1/2">
+          <Toolbar />
+        </div>
+      </body>
     </html>
   );
 }
