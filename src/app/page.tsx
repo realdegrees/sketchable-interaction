@@ -1,6 +1,6 @@
 'use client';
 
-import { DefaultToolbar, TLComponents, TLStateNodeConstructor, TLUiOverrides, Tldraw, TldrawUiMenuItem, useEditor, useIsToolSelected, useTools } from "tldraw";
+import { DefaultToolbar, TLComponents, TLStateNodeConstructor, TLUiOverrides, TLUiToolItem, Tldraw, TldrawUiMenuItem, useIsToolSelected, useTools } from "tldraw";
 import { useEffect, useState } from "react";
 
 const activeTools: string[] = ['folder'];
@@ -13,8 +13,9 @@ const toolLoader = Promise.all<TLStateNodeConstructor>(activeTools.map(async (to
 
 const uiOverrides: TLUiOverrides = {
   tools(editor, tools) {
-    activeTools.forEach((name) => {
-      tools[name] = {
+    console.log(tools);
+    
+    const customTools: TLUiToolItem[] = activeTools.map((name) => ({
         id: name,
         icon: `${name}-icon`,
         label: name,
@@ -22,9 +23,13 @@ const uiOverrides: TLUiOverrides = {
         onSelect: () => {
           editor.setCurrentTool(name);
         },
-      };
-    });
-    return tools;
+      }))
+    const usableTools: Record<string, TLUiToolItem> = {
+      'hand': tools['hand'],
+      'select': tools['select'],
+    }
+    customTools.forEach((tool) => (usableTools[tool.id] = tool))
+    return usableTools;
   },
 };
 const components: TLComponents = {
