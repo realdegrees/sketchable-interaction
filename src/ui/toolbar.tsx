@@ -3,11 +3,11 @@ import dynamic from "next/dynamic";
 import path from "path"
 import { lazy } from "react";
 
-const pluginDir = path.join(process.cwd(), 'src/plugins');
+const pluginDir = path.join(process.cwd(), 'src/tools');
 const plugins = readdirSync(pluginDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => ({
-        DynamicComponent: dynamic(() => import(`../plugins/${dirent.name}/plugin`), { ssr: false, loading: () => <p>Loading Plugin</p> }),
+        DynamicComponent: dynamic(() => import(`../tools/${dirent.name}/tool`), { ssr: false, loading: () => <p>Loading Tool</p> }),
         name: dirent.name
     }));
 
