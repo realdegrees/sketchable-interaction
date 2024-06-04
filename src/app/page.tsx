@@ -13,6 +13,8 @@ const components: TLComponents = {
   ...defaultComponents,
   Toolbar: (props) => {
     const tools = useTools();
+    console.log(tools);
+
     return (
       <DefaultToolbar {...props}>
         {Object.keys(tools).map((id) => <TldrawUiMenuItem key={id} {...tools[id]} isSelected={useIsToolSelected.call(undefined, tools[id])} />)}
@@ -21,15 +23,15 @@ const components: TLComponents = {
   }, // https://tldraw.dev/examples/ui/add-tool-to-toolbar
 }
 
-const getUiOverrides = (tools: Tool[]): TLUiOverrides => ({
+const getUiOverrides = (ids: string[]): TLUiOverrides => ({
   tools(editor, toolsContext) {
-    const customTools: TLUiToolItem[] = tools.map(({ properties: { label } }) => ({
-      id: label,
-      icon: `${label}-icon`,
-      label,
-      kbd: label.charAt(0),
+    const customTools: TLUiToolItem[] = ids.map((id) => ({
+      id,
+      icon: `${id}-icon`,
+      label: id,
+      kbd: id.charAt(0),
       onSelect: () => {
-        editor.setCurrentTool(label);
+        editor.setCurrentTool(id);
       },
     }))
     const usableTools: Record<string, TLUiToolItem> = {
@@ -41,6 +43,10 @@ const getUiOverrides = (tools: Tool[]): TLUiOverrides => ({
   }
 });
 
+const loadTools = (ids: string[]): Promise<Tool[]> => {
+  return Promise.all<Tool>(ids.map(async (id) => (await import(`../app/tools/${id}/tool`)).default));
+}
+
 const Main = () => {
   const [tools, setTools] = useState<Tool[]>([]);
   const [uiOverrides, setUiOverrides] = useState<TLUiOverrides>();
@@ -49,12 +55,12 @@ const Main = () => {
     // Use IIFE here because useEffect hook does not allow async/await
     (async () => {
       // Load available tools from API
-      const tools: Tool[] = await fetch('/api/tools').then((res) => res.json());
-      setTools(tools as unknown as Tool[]);
-      console.log(`Tools loaded: ${tools.map(({ properties: { label } }) => label)}`);
+      const toolIDs: string[] = await fetch('/api/tools').then((res) => res.json());
+      const tools = await loadTools(toolIDs);
+      setTools(tools);
 
       // Create UiOverrides from tools
-      const uiOverride: TLUiOverrides = getUiOverrides(tools);
+      const uiOverride: TLUiOverrides = getUiOverrides(toolIDs);
       setUiOverrides(uiOverride);
     })();
   }, []);

@@ -2,8 +2,9 @@ import { TLPointerEvent, TLUiToolItem, TldrawUiMenuItem } from "tldraw"
 import Tool from "../base";
 
 export default class Folder extends Tool {
-    public properties: Required<Pick<TLUiToolItem<string, string>, "icon" | "kbd">> & { label: string; defaultTool?: string } = {
+    public properties: Required<Pick<TLUiToolItem<string, string>, "icon" | "kbd" | 'id'>> & { label: string; defaultTool?: string } = {
         icon: '',
+        id: 'folder',
         kbd: 'f',
         label: 'Folder'
     };
