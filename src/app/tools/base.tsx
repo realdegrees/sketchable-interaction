@@ -1,4 +1,4 @@
-import { DrawShapeTool, TLPointerEvent, TLUiToolItem } from "tldraw";
+import { DrawShapeTool, TLUiToolItem } from "tldraw";
 
 export default abstract class Tool extends DrawShapeTool {
     public abstract properties: Required<Pick<TLUiToolItem, 'icon' | 'kbd'>> & { label: string; defaultTool?: string };
