@@ -1,76 +1,81 @@
 'use client';
 
-import { DefaultToolbar, TLComponents, TLStateNodeConstructor, TLUiOverrides, TLUiToolItem, Tldraw, TldrawUiMenuItem, useIsToolSelected, useTools } from "tldraw";
-import { useEffect, useState } from "react";
-import Tool from "./tools/base";
-
-const defaultComponents: TLComponents = {
-  MainMenu: null, // https://tldraw.dev/examples/ui/custom-main-menu
-  PageMenu: null, // https://tldraw.dev/examples/ui/custom-page-menu
-  StylePanel: null, // https://tldraw.dev/examples/ui/custom-style-panel
-}
-const components: TLComponents = {
-  ...defaultComponents,
-  Toolbar: (props) => {
-    const tools = useTools();
-    console.log(tools);
-
-    return (
-      <DefaultToolbar {...props}>
-        {Object.keys(tools).map((id) => <TldrawUiMenuItem key={id} {...tools[id]} isSelected={useIsToolSelected.call(undefined, tools[id])} />)}
-      </DefaultToolbar>
-    )
-  }, // https://tldraw.dev/examples/ui/add-tool-to-toolbar
-}
-
-const getUiOverrides = (ids: string[]): TLUiOverrides => ({
-  tools(editor, toolsContext) {
-    const customTools: TLUiToolItem[] = ids.map((id) => ({
-      id,
-      icon: `${id}-icon`,
-      label: id,
-      kbd: id.charAt(0),
-      onSelect: () => {
-        editor.setCurrentTool(id);
-      },
-    }))
-    const usableTools: Record<string, TLUiToolItem> = {
-      'hand': toolsContext['hand'],
-      'select': toolsContext['select'],
-    }
-    customTools.forEach((tool) => (usableTools[tool.id] = tool))
-    return usableTools;
-  }
-});
-
-const loadTools = (ids: string[]): Promise<Tool[]> => {
-  return Promise.all<Tool>(ids.map(async (id) => (await import(`../app/tools/${id}/tool`)).default));
-}
+import PluginBar from "@/components/pluginbar";
+import Toolbar from "@/components/toolbar";
+import { usePluginStore } from "@/stores/plugin";
+import { TLDrawShape, Tldraw } from "tldraw";
 
 const Main = () => {
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [uiOverrides, setUiOverrides] = useState<TLUiOverrides>();
-
-  useEffect(() => {
-    // Use IIFE here because useEffect hook does not allow async/await
-    (async () => {
-      // Load available tools from API
-      const toolIDs: string[] = await fetch('/api/tools').then((res) => res.json());
-      const tools = await loadTools(toolIDs);
-      setTools(tools);
-
-      // Create UiOverrides from tools
-      const uiOverride: TLUiOverrides = getUiOverrides(toolIDs);
-      setUiOverrides(uiOverride);
-    })();
-  }, []);
-
   return (
     <main className="w-full h-full">
-      <Tldraw inferDarkMode
-        components={components}
-        overrides={uiOverrides}
-        tools={tools as unknown as TLStateNodeConstructor[]} />
+      <div className="fixed inset-0">
+        <Tldraw
+          components={{
+            Toolbar
+          }}
+          onMount={(editor) => {            
+            /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
+                https://tldraw.dev/docs/shapes#Meta-information   */
+            editor.getInitialMetaForShape = () => ({
+              plugin: usePluginStore.getState().selected
+            });
+
+            /* https://tldraw.dev/examples/editor-api/store-events */
+            editor.store.listen(({ changes: { updated, removed } }) => {
+              // Updated
+              for (const [from, to] of Object.values(updated)) {
+                if (to.typeName === 'shape' && (to.type !== 'draw' || (to.type === 'draw' && (to as TLDrawShape).props.isComplete))) {
+                  //console.log(to);
+                }
+              }
+            })
+
+            /* https://tldraw.dev/docs/editor#Side-effects */
+            // editor.sideEffects.registerAfterCreateHandler('shape', (shape) => {
+            //   if (shape.type === 'draw') {
+            //     shapeIDs.push(shape.id);
+            //   }
+            // })
+
+            /* https://tldraw.dev/examples/editor-api/canvas-events*/
+            editor.on('event', ({ type, name }) => {
+              if (type === 'pointer' && name === 'pointer_up') {
+
+                // Retrieve all shapes from the current page
+                const allShapes = editor.getCurrentPageShapesSorted();
+
+                // Filter only shapes that are currently on screen
+                // TODO might have to remove filter if e.g. conveyor belt is supposed to function outside of view
+                const viewportBounds = editor.getViewportPageBounds()
+                const shapesinViewport = allShapes.filter((shape) => {
+                  const shapeBounds = editor.getShapePageBounds(shape);
+                  return shapeBounds && viewportBounds.collides(shapeBounds);
+                });
+
+                // Simple collision check between all shapes with bounding box
+                // TODO if required this can be moved to a store update event (filter shape updates) to detect collision while moving
+                /* Regarding usability the above todo sounds counter intuitive though as I wouldn't want to delete something by accident just because I dragged it over the other box
+                  Ideally keep collision checks to pointer up events AND to shape update events with conveyer belt meta tag
+                */
+                // ! find a way to reduce the complexity of this operation, find literature on runtime complexity in collision detection
+                // TODO this won't work with paths e.g. conveyor belt, in order to keep performance clean maybe replace conveyor belt line with small (relatively) rectangles while drawing and rotate them to resemble a line and group them afterwards
+                shapesinViewport.forEach((shape) => {
+                  const shapeBounds = editor.getShapePageBounds(shape);
+                  shapesinViewport.forEach((compareShape) => {
+                    if(shape === compareShape) return;
+
+                    const compareShapeBounds = editor.getShapePageBounds(compareShape);
+                    if(shapeBounds && compareShapeBounds?.collides(shapeBounds)){
+                      // TODO if the shape has a conveyor belt plugin meta tag then give the colliding shape a corresponding meta tag that indicates it's currently being moved. These items can then be filtered in store events to reduce performance impact
+                      console.log(`Collision detected\n${shape.id}\n-> ${shape.meta['plugin']}\n${compareShape.id}\n-> ${compareShape.meta['plugin']}`);
+                    }
+                  })
+                })
+              }
+            })
+          }} />
+      </div>
+      <PluginBar />
     </main>
   );
 }
