@@ -1,7 +1,9 @@
 import { usePluginStore } from "@/stores/plugin";
 
+// ! TODO: Dynamically adjust available tools when selecting a plugin (e.g. only rectangle for folder tool or only (customized-)draw tool for conveyor belt)
 const PluginBar = () => {
     const { selected, setPlugin } = usePluginStore();
+    // TODO get editor reference (might have to put PluginBar inside of tldraw context)
 
     return (
         <div id="pluginbar" className="absolute bottom-20 left-1/2 -translate-x-1/2 flex">

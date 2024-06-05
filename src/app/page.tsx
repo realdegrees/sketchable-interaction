@@ -11,9 +11,12 @@ const Main = () => {
       <div className="fixed inset-0">
         <Tldraw
           components={{
-            Toolbar
+            Toolbar 
+            // TODO override color/shape component as well to remove several options
           }}
-          onMount={(editor) => {            
+          onMount={(editor) => { 
+            
+            // TODO do the same but for color, background etc. to set default behaviours for shapes depending the select plugin
             /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                 https://tldraw.dev/docs/shapes#Meta-information   */
             editor.getInitialMetaForShape = () => ({
