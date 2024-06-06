@@ -5,6 +5,8 @@ import { Tldraw, TLDrawShape } from "tldraw";
 import Toolbar from "./toolbar";
 
 const Tlwrap = () => {
+    const getPlugin = usePluginStore(({getPlugin}) => getPlugin);
+
     return (
         <div className="fixed inset-0">
             <Tldraw
@@ -16,10 +18,12 @@ const Tlwrap = () => {
 
                     // TODO do the same but for color, background etc. to set default behaviours for shapes depending the select plugin
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
+                        Also inform the plugin that a shape has been created
                         https://tldraw.dev/docs/shapes#Meta-information   */
-                    editor.getInitialMetaForShape = () => {
-                        const selectedPlugin = usePluginStore.getState().selected?.id;
-                        return selectedPlugin ? { plugin: selectedPlugin } : {};
+                    editor.getInitialMetaForShape = (shape) => {
+                        const selectedPlugin = usePluginStore.getState().selected;
+                        selectedPlugin?.onCreate(shape);
+                        return selectedPlugin ? { plugin: selectedPlugin.id } : {};
                     }
 
                     /* https://tldraw.dev/examples/editor-api/store-events */
@@ -68,9 +72,23 @@ const Tlwrap = () => {
 
                                     const compareShapeBounds = editor.getShapePageBounds(compareShape);
                                     if (shapeBounds && compareShapeBounds?.collides(shapeBounds)) {
-                                        // ! TODO get plugin id from shape meta and retrieve the corresponding plugin instance from the global plugin store to operate on it
+                                        // Get the plugin id from the shape's meta object
+                                        const pluginId = shape.meta['plugin']?.toString();
+                                        if(!pluginId){
+                                            console.warn(`No plugin attached to ${shape.id}`);
+                                            return;
+                                        }
+                                        // Retrieve the corresponding plugin from the global plugin store
+                                        const plugin = getPlugin(pluginId);
+                                        if (!plugin) {
+                                            console.warn(`Tried to access plugin ${pluginId} for ${shape.id} but it doesn't exist!`);
+                                            return;
+                                        }
+
+                                        // Let the plugin handle the collision
+                                        plugin.onCollision(shape, compareShape);
+
                                         // TODO if the shape has a conveyor belt plugin meta tag then give the colliding shape a corresponding meta tag that indicates it's currently being moved. These items can then be filtered in store events to reduce performance impact
-                                        console.log(`Collision detected\n${shape.id}\n-> ${shape.meta['plugin']}\n${compareShape.id}\n-> ${compareShape.meta['plugin']}`);
                                     }
                                 })
                             })
