@@ -15,12 +15,14 @@ const pluginPaths = readdirSync(pluginDir, { withFileTypes: true })
 const PluginBar = () => {
     // TODO get editor reference (might have to put PluginBar inside of tldraw context)
     return (
-        <div id="pluginbar" className="absolute bottom-20 left-1/2 -translate-x-1/2 flex">
+        <div className="flex flex-col absolute bottom-28 left-1/2 -translate-x-1/2 ">
             <CurrentPluginDisplay />
-            {
-                // ! Can pass funcion references here if needed as passing the entire instance is not supported in react
-                pluginPaths.map((name) => <Plugin key={name} name={name} />)
-            }
+            <div id="pluginbar" className="flex bg-zinc-900 rounded-lg border border-opacity-25 border-zinc-100">
+                {
+                    // ! Can pass funcion references here if needed as passing the entire instance is not supported in react
+                    pluginPaths.map((name) => <Plugin key={name} name={name} />)
+                }
+            </div>
         </div>
     )
 }
