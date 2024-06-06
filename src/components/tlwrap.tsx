@@ -1,7 +1,7 @@
 'use client'
 
 import { usePluginStore } from "@/stores/plugin";
-import { Tldraw, TLDrawShape } from "tldraw";
+import { Tldraw, TLDrawShape, TLShape } from "tldraw";
 import Toolbar from "./toolbar";
 
 const Tlwrap = () => {
@@ -27,12 +27,23 @@ const Tlwrap = () => {
                     }
 
                     /* https://tldraw.dev/examples/editor-api/store-events */
-                    editor.store.listen(({ changes: { updated, removed } }) => {
+                    editor.store.listen(({ changes: { updated, removed, added } }) => {
                         // Updated
                         for (const [from, to] of Object.values(updated)) {
                             if (to.typeName === 'shape' && (to.type !== 'draw' || (to.type === 'draw' && (to as TLDrawShape).props.isComplete))) {
                                 //console.log(to);
                             }
+                        }
+                        // Added
+                        for (const {id, meta, typeName} of Object.values(added)) {
+                            if(typeName !== 'shape') continue;
+
+                            const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
+                            // TODO retrieve properties from plugin defined in meta, generate shape styles from them, apply styles to shape
+                            
+                            console.log(id);
+                            console.log(typeName);
+                            console.log(meta);
                         }
                     })
 
@@ -64,8 +75,10 @@ const Tlwrap = () => {
                               Ideally keep collision checks to pointer up events AND to shape update events with conveyer belt meta tag
                             */
                             // ! find a way to reduce the complexity of this operation, find literature on runtime complexity in collision detection
+                            
                             // TODO this won't work with paths e.g. conveyor belt, in order to keep performance clean maybe replace conveyor belt line with small (relatively) rectangles while drawing and rotate them to resemble a line and group them afterwards
                             shapesinViewport.forEach((shape) => {
+                                // ! comparing every shape to every other shape will not be necessary if collision is only tested on mouse up (only compare dragged shape to every other shape O(N²) vs O(N))
                                 const shapeBounds = editor.getShapePageBounds(shape);
                                 shapesinViewport.forEach((compareShape) => {
                                     if (shape === compareShape) return;

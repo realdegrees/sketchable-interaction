@@ -11,6 +11,7 @@ const pluginPaths = readdirSync(pluginDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
 
+// ! This could also be represented as a custom styles panelin tldraw https://github.com/tldraw/tldraw/blob/main/apps/examples/src/examples/shape-with-custom-styles/ShapeWithCustomStylesExample.tsx
 // ! TODO: Dynamically adjust available tools when selecting a plugin (e.g. only rectangle for folder tool or only (customized-)draw tool for conveyor belt)
 const PluginBar = () => {
     // TODO get editor reference (might have to put PluginBar inside of tldraw context)

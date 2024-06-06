@@ -1,5 +1,5 @@
 import { useTools, DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, useIsToolSelected } from "tldraw"
-const toolList: string[] = ['select', 'eraser', 'rectangle', 'ellipse']
+const toolList: string[] = ['select', 'eraser', 'draw', 'rectangle', 'ellipse']
 
 // ! TODO: create custom tool for conveyor belt that creates grouped rectangles along the mouse path
 const Toolbar = () => {
