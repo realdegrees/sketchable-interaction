@@ -3,27 +3,36 @@
 import { usePluginStore } from "@/stores/plugin";
 import { Tldraw, TLDrawShape, TLShape } from "tldraw";
 import Toolbar from "./toolbar";
+import RectShapeUtil from "@/shapes/rect";
+import { setTimeout } from "timers";
 
 const Tlwrap = () => {
-    const getPlugin = usePluginStore(({getPlugin}) => getPlugin);
+    const getPlugin = usePluginStore(({ getPlugin: getPlugin }) => getPlugin);
 
     return (
         <div className="fixed inset-0">
             <Tldraw
+                shapeUtils={[RectShapeUtil]} // TODO Add toolbar buttons for shapes
                 components={{
                     Toolbar
                     // TODO override color/shape component as well to remove several options
                 }}
                 onMount={(editor) => {
+                    setTimeout(() => {
+                        editor.createShapes([{ type: 'rect' }]);
 
-                    // TODO do the same but for color, background etc. to set default behaviours for shapes depending the select plugin
+                    }, 5000)
+                    // ! This can be removed when not needed as reference anymore, plugin properties are now stored in the shapes properties directly
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                         Also inform the plugin that a shape has been created
                         https://tldraw.dev/docs/shapes#Meta-information   */
                     editor.getInitialMetaForShape = (shape) => {
-                        const selectedPlugin = usePluginStore.getState().selected;
-                        selectedPlugin?.onCreate(shape);
-                        return selectedPlugin ? { plugin: selectedPlugin.id } : {};
+                        const { selected, getPlugin } = usePluginStore.getState();
+                        const { plugin, properties } = getPlugin(selected) ?? {};
+                        console.log(shape);
+
+                        plugin?.onCreate(shape);
+                        return properties ? { plugin: properties.id } : {};
                     }
 
                     /* https://tldraw.dev/examples/editor-api/store-events */
@@ -35,15 +44,14 @@ const Tlwrap = () => {
                             }
                         }
                         // Added
-                        for (const {id, meta, typeName} of Object.values(added)) {
-                            if(typeName !== 'shape') continue;
+                        for (const { id, meta, typeName } of Object.values(added)) {
+                            if (typeName !== 'shape') continue;
 
                             const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
                             // TODO retrieve properties from plugin defined in meta, generate shape styles from them, apply styles to shape
-                            
-                            console.log(id);
-                            console.log(typeName);
-                            console.log(meta);
+
+                            console.log(shape.props);
+
                         }
                     })
 
@@ -75,7 +83,7 @@ const Tlwrap = () => {
                               Ideally keep collision checks to pointer up events AND to shape update events with conveyer belt meta tag
                             */
                             // ! find a way to reduce the complexity of this operation, find literature on runtime complexity in collision detection
-                            
+
                             // TODO this won't work with paths e.g. conveyor belt, in order to keep performance clean maybe replace conveyor belt line with small (relatively) rectangles while drawing and rotate them to resemble a line and group them afterwards
                             shapesinViewport.forEach((shape) => {
                                 // ! comparing every shape to every other shape will not be necessary if collision is only tested on mouse up (only compare dragged shape to every other shape O(N²) vs O(N))
@@ -87,7 +95,7 @@ const Tlwrap = () => {
                                     if (shapeBounds && compareShapeBounds?.collides(shapeBounds)) {
                                         // Get the plugin id from the shape's meta object
                                         const pluginId = shape.meta['plugin']?.toString();
-                                        if(!pluginId){
+                                        if (!pluginId) {
                                             console.warn(`No plugin attached to ${shape.id}`);
                                             return;
                                         }
@@ -99,7 +107,7 @@ const Tlwrap = () => {
                                         }
 
                                         // Let the plugin handle the collision
-                                        plugin.onCollision(shape, compareShape);
+                                        plugin.logic.onCollision(shape, compareShape, 'user');
 
                                         // TODO if the shape has a conveyor belt plugin meta tag then give the colliding shape a corresponding meta tag that indicates it's currently being moved. These items can then be filtered in store events to reduce performance impact
                                     }

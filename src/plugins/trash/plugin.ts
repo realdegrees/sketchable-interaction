@@ -1,13 +1,12 @@
 import { TLShape } from "tldraw";
-import BasePlugin, { PluginProps } from "../base";
+import BasePlugin from "../base";
+import properties from "./properties";
 
-const properties: PluginProps = {
-  id: "trash",
-};
 
 class Trash extends BasePlugin {
-  public onCollision(pluginShape: TLShape, collidingShape: TLShape): void {
+  onCollision(pluginShape: TLShape, collidingShape: TLShape): void {
     console.log("Collision");
   }
 }
+
 export default new Trash(properties);

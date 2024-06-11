@@ -1,31 +1,40 @@
 'use client'
 
-import BasePlugin from "@/plugins/base";
+import BasePlugin, { PluginProps } from "@/plugins/base";
 import { usePluginStore } from "@/stores/plugin";
-import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { lazy, useEffect, useState } from "react";
 
 const Plugin = ({ name }: { name: string }) => {
     const { setSelected, register } = usePluginStore();
-    const [plugin, setPlugin] = useState<BasePlugin>();
+    const [pluginProps, setPluginProps] = useState<PluginProps>();
 
-    // Loads the plugin module's default export and registers it to the pluginStore and local state
     useEffect(() => {
-        import(`../plugins/${name}/plugin`)
-            .then(({ default: plugin }) => {
-                register(plugin);
-                setPlugin(plugin);
-            });
-    }, [name, register, setPlugin])
+        Promise.all([
+            import(`../plugins/${name}/plugin`), // Load the plugin instance
+            import(`../plugins/${name}/properties`) // Load plugin properties
+        ]).then(([{ default: plugin }, {default: properties}]: [{ default: BasePlugin }, { default: PluginProps }]) => {
+            // Load plugin component
+            const component = lazy(() => import(`../plugins/${name}/component`));
 
-    if (!plugin) {
+            register({
+                properties,
+                plugin,
+                component
+            });
+            setPluginProps(properties);
+        })
+    }, [name, register, setPluginProps])
+
+    if (!pluginProps) {
         return <p>{`Loading\n${name}`}</p>
-    } else if (!(plugin instanceof BasePlugin)) {
-        return <p>{`Unable to load\n${name}`}</p>
-    };
-    const { id, label } = plugin.properties;
+    }
+    const { id, label } = pluginProps;
 
     return (
         <div id={`plugin-${id}`} className="flex justify-center items-center w-14 h-14 rounded overflow-hidden hover:brightness-125" onClick={() => {
+            console.log(`Setting plugin to ${id}`);
+            
             setSelected(id);
         }}>
             <p className="text-ellipsis absolute bottom-1 max-w-full overflow-hidden pointer-events-none">
