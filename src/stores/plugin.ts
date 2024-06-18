@@ -8,7 +8,7 @@ interface PluginStore {
   plugin: BasePlugin;
   component?: ComponentType;
 }
-export interface PluginData {
+export interface PluginStoreData {
   selected?: string;
   plugins: PluginStore[];
   getPlugin: (pluginId?: string) => PluginStore | undefined;
@@ -17,7 +17,7 @@ export interface PluginData {
 }
 
 // TODO adjust plugin store to not only store the id of the currently selected plugin but also a reference to all plugin instances
-export const usePluginStore = create<PluginData>((set, get) => ({
+export const usePluginStore = create<PluginStoreData>((set, get) => ({
   plugins: [],
   getPlugin: (pluginId) =>
     get().plugins.find(({ properties: { id } }) => id === pluginId),
@@ -30,6 +30,7 @@ export const usePluginStore = create<PluginData>((set, get) => ({
   register: (plugin) =>
     set((state) => ({
       ...state,
+      selected: state.selected ?? plugin.properties.id, // Set the first registered plugin as default
       plugins: [...state.plugins, plugin],
     })),
 }));

@@ -11,7 +11,6 @@ type Shape = TLBaseShape<
         w: number,
         h: number,
         color: TLDefaultColorStyle,
-        pluginProps?: PluginProps
     }
 >
 
@@ -22,10 +21,7 @@ export default class RectShapeUtil extends ShapeUtil<Shape> {
         return {
             w: 200,
             h: 200,
-            color: 'black',
-            pluginProps: {
-                id: 'none'
-            }
+            color: 'black'
         }
     }
     getGeometry(shape: Shape): Geometry2d {
@@ -40,20 +36,21 @@ export default class RectShapeUtil extends ShapeUtil<Shape> {
 
         const { getPlugin, selected } = usePluginStore();
         const plugin = getPlugin(selected);
-        const editor = useEditor();
+        // const editor = useEditor();
 
+        // ?  Not necessary anymore since props can't be accessed after shape deletion but plugin properties need to be accessed in the remove event (done via meta now)
+        // useEffect(() => {
+        //     editor.updateShape<Shape>({
+        //         ...shape,
+        //         props: {
+        //             ...shape.props,
+        //             pluginProps: plugin?.properties
+        //         }
+        //     });
+        // }, [editor, plugin?.properties, shape])
 
-        useEffect(() => {
-            editor.updateShape<Shape>({
-                ...shape,
-                props: {
-                    ...shape.props,
-                    pluginProps: plugin?.properties
-                }
-            });
-        }, [editor, plugin?.properties, shape])
-
-        console.log(shape);
+        // TODO check if plugin has a custom component, if component exists then put the component in the center and
+        // TODO the logo somewhere outside of the shape, if component not exists then put logo in center
 
         // * Adjust style to filter which tldraw styling panel options are available
         // ? https://tldraw.dev/examples/shapes/tools/shape-with-tldraw-styles

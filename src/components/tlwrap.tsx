@@ -5,6 +5,15 @@ import { Tldraw, TLDrawShape, TLShape } from "tldraw";
 import Toolbar from "./toolbar";
 import RectShapeUtil from "@/shapes/rect";
 import { setTimeout } from "timers";
+import { PluginDataSchema, PluginPropsSchema } from "@/plugins/base";
+import { z } from "zod";
+import { unwrapShape } from "@/util/pluginUtil";
+
+export const ShapeMetaSchema = z.object({
+    props: PluginPropsSchema,
+    data: PluginDataSchema
+});
+export type ShapeMeta = z.infer<typeof ShapeMetaSchema>;
 
 const Tlwrap = () => {
     const getPlugin = usePluginStore(({ getPlugin: getPlugin }) => getPlugin);
@@ -29,10 +38,23 @@ const Tlwrap = () => {
                     editor.getInitialMetaForShape = (shape) => {
                         const { selected, getPlugin } = usePluginStore.getState();
                         const { plugin, properties } = getPlugin(selected) ?? {};
-                        console.log(shape);
+
+                        if (!plugin || !properties) {
+                            console.warn('Unable to get current plugin info during shape creation!');
+                            return {};
+                        }
 
                         plugin?.onCreate(shape);
-                        return properties ? { plugin: properties.id } : {};
+
+                        const meta: ShapeMeta = {
+                            props: properties,
+                            data: {}
+                        };
+
+                        console.log(`Creating shape with plugin: ${properties.id}`);
+                        console.log(meta);
+                        
+                        return meta;
                     }
 
                     /* https://tldraw.dev/examples/editor-api/store-events */
@@ -51,6 +73,21 @@ const Tlwrap = () => {
                             // TODO retrieve properties from plugin defined in meta, generate shape styles from them, apply styles to shape
 
                             console.log(shape.props);
+
+                        }
+                        // Removed
+                        for (const { id, meta, typeName } of Object.values(removed)) {
+                            if (typeName !== 'shape') continue;
+
+                            const unwrappedShape = unwrapShape({ meta });
+
+                            if (!unwrappedShape) {
+                                console.warn(`Deleted shape did not have an associated plugin`);
+                                return;
+                            }
+      
+
+                            unwrappedShape.plugin.onDelete(unwrappedShape.data);
 
                         }
                     })
@@ -88,26 +125,32 @@ const Tlwrap = () => {
                             shapesinViewport.forEach((shape) => {
                                 // ! comparing every shape to every other shape will not be necessary if collision is only tested on mouse up (only compare dragged shape to every other shape O(N²) vs O(N))
                                 const shapeBounds = editor.getShapePageBounds(shape);
+                                
+                                // Unwrap shape
+                                const unwrappedShape = unwrapShape(shape);
+                                if (!unwrappedShape) {
+                                    return;
+                                }
+
                                 shapesinViewport.forEach((compareShape) => {
                                     if (shape === compareShape) return;
 
                                     const compareShapeBounds = editor.getShapePageBounds(compareShape);
                                     if (shapeBounds && compareShapeBounds?.collides(shapeBounds)) {
-                                        // Get the plugin id from the shape's meta object
-                                        const pluginId = shape.meta['plugin']?.toString();
-                                        if (!pluginId) {
-                                            console.warn(`No plugin attached to ${shape.id}`);
-                                            return;
-                                        }
-                                        // Retrieve the corresponding plugin from the global plugin store
-                                        const plugin = getPlugin(pluginId);
-                                        if (!plugin) {
-                                            console.warn(`Tried to access plugin ${pluginId} for ${shape.id} but it doesn't exist!`);
+                                        // Unwrap compare shape
+                                        const unwrappedCompareShape = unwrapShape(shape);
+                                        if (!unwrappedCompareShape) {
                                             return;
                                         }
 
                                         // Let the plugin handle the collision
-                                        plugin.logic.onCollision(shape, compareShape, 'user');
+                                        unwrappedShape.plugin.onCollision(editor, {
+                                            data: unwrappedShape.data,
+                                            shape
+                                        }, {
+                                            data: unwrappedCompareShape.data,
+                                            shape: compareShape
+                                        }, 'user');
 
                                         // TODO if the shape has a conveyor belt plugin meta tag then give the colliding shape a corresponding meta tag that indicates it's currently being moved. These items can then be filtered in store events to reduce performance impact
                                     }
