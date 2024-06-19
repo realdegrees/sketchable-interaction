@@ -1,5 +1,5 @@
 import BasePlugin, { PluginProps } from "@/plugins/base";
-import { getDefineEnvPlugin } from "next/dist/build/webpack/plugins/define-env-plugin";
+import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import { ComponentType } from "react";
 import { create } from "zustand";
 
@@ -7,6 +7,7 @@ interface PluginStore {
   properties: PluginProps;
   plugin: BasePlugin;
   component?: ComponentType;
+  icon?: StaticImport;
 }
 export interface PluginStoreData {
   selected?: string;

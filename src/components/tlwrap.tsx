@@ -30,7 +30,7 @@ const Tlwrap = () => {
                     setTimeout(() => {
                         editor.createShapes([{ type: 'rect' }]);
 
-                    }, 5000)
+                    }, 1000)
                     // ! This can be removed when not needed as reference anymore, plugin properties are now stored in the shapes properties directly
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                         Also inform the plugin that a shape has been created

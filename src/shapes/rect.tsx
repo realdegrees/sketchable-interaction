@@ -1,8 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */ // ESLint thinks this is a class component but it's not according to tldraw documentation
 
-import { PluginProps } from "@/plugins/base";
 import { usePluginStore } from "@/stores/plugin";
-import { ComponentType, useEffect, useState } from "react";
+import Image from "next/image";
 import { TLBaseShape, TLDefaultColorStyle, ShapeUtil, Geometry2d, Rectangle2d, HTMLContainer, getDefaultColorTheme, useEditor, TLOnResizeHandler, resizeBox } from "tldraw";
 
 type Shape = TLBaseShape<
@@ -51,6 +50,7 @@ export default class RectShapeUtil extends ShapeUtil<Shape> {
 
         // TODO check if plugin has a custom component, if component exists then put the component in the center and
         // TODO the logo somewhere outside of the shape, if component not exists then put logo in center
+        // ! TODO adjust css so that: the inner div stretches across the entire shape, the custom component is centered in inner div, icon shows below shape
 
         // * Adjust style to filter which tldraw styling panel options are available
         // ? https://tldraw.dev/examples/shapes/tools/shape-with-tldraw-styles
@@ -60,17 +60,22 @@ export default class RectShapeUtil extends ShapeUtil<Shape> {
                 className="flex flex-col items-center justify-center"
                 style={{
                     border: '1px solid black',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     pointerEvents: 'all',
                     backgroundColor: theme[shape.props.color].semi,
                     color: theme[shape.props.color].solid,
                 }}
             >
-                {/* Add custom component in the shape's context if it exists */}
-                {plugin?.component && <plugin.component />}
+                <div className="!w-full !h-full relative self-stretch justify-self-stretch">
+                    {/* Add custom component in the shape's context if it exists */}
+                    {
+                        plugin?.component ?
+                            <plugin.component /> :
+                            plugin?.icon && <Image src={plugin.icon} alt="logo" loading="lazy" />
+                    }
+                    {
+                        plugin?.component && plugin.icon && <Image src={plugin.icon} alt="logo" className="absolute  left-0 bottom-0 w-1/6 h-1/6" />
+                    }
+                </div>
             </HTMLContainer>
         )
     }
