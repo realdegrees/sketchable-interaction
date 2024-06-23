@@ -6,11 +6,14 @@ import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import Image from "next/image";
 import { ComponentType, lazy, useEffect, useState } from "react";
 import "@/util/string.extensions";
+import SvgSpinnersBarsFade from '~icons/svg-spinners/bars-fade';
+import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
 
 const Plugin = ({ name }: { name: string }) => {
     const { setSelected, register } = usePluginStore();
     const [pluginProps, setPluginProps] = useState<PluginProps>();
     const [pluginIcon, setPluginIcon] = useState<StaticImport>();
+    const [pluginState, setPluginState] = useState<'loading' | 'error'>('loading');
 
     useEffect(() => {
         // Loads a plugin and - if loaded correctly - register it with the PluginStore
@@ -59,6 +62,7 @@ const Plugin = ({ name }: { name: string }) => {
 
             // Verbose Error messages were logged above so we just abort here
             if (!properties || !plugin) {
+                setPluginState('error');
                 return;
             }
 
@@ -74,27 +78,30 @@ const Plugin = ({ name }: { name: string }) => {
             setPluginProps(properties);
             setPluginIcon(icon);
         })
-    }, [name, register, setPluginProps, setPluginIcon])
+    }, [name, register, setPluginProps, setPluginIcon, setPluginState])
 
     if (!pluginProps) {
-        return <div className=" w-14 h-14 m-1 flex items-center justify-center">
-            <p className="text-center">
-                Loading<br />
-                {`'${name}'`}</p>
+        return <div className=" w-10 h-10 m-1 flex flex-col items-center justify-center" title={pluginState === 'error' ? 'Failed to load plugin! Check console for more information.' : ''}>
+            {pluginState === 'loading' ?
+                <SvgSpinnersBarsFade />
+                : <LineMdAlertCircleTwotoneLoop />}
+            <p className="text-center text-xs pointer-events-none">{name.toPascalCase()}</p>
         </div>
     }
-    const { id, label } = pluginProps;
+    const { id } = pluginProps;
+    const label = (pluginProps.label ?? id).toPascalCase()
 
     return (
         <div
             id={`plugin-${id}`}
-            className={`flex justify-center items-center w-14 h-14 overflow-hidden hover:brightness-125 m-1 rounded-xl bg-zinc-700 
+            title={label}
+            className={`flex justify-center items-center w-10 h-10 overflow-hidden hover:brightness-125 m-1 rounded-xl bg-zinc-700 
                 ${usePluginStore.getState().selected === pluginProps.id ? 'brightness-125' : ''}`}
             onClick={() => setSelected(id)}
         >
             {pluginIcon ?
                 <Image src={pluginIcon} alt={label ?? id} loading="lazy" />
-                : (label ?? id).toPascalCase()}
+                : label}
         </div>
     )
 }
