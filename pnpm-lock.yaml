@@ -20,6 +20,9 @@ importers:
       tldraw:
         specifier: ^2.1.4
         version: 2.1.4(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      use-file-system:
+        specifier: ^0.0.6
+        version: 0.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -2465,6 +2468,13 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  use-file-system@0.0.6:
+    resolution: {integrity: sha512-/o8ZqH5jP6+hgbgrw50OPCP0vZ2jodZ3xtZCIEuGQG1Dr160FiFZg/sgUP8BXqyGSyzzc5+33d7HwuQtfJHVew==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      react: '>=17'
+      react-dom: '>=17'
 
   use-sidecar@1.1.2:
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
@@ -5286,6 +5296,12 @@ snapshots:
       tslib: 2.6.2
     optionalDependencies:
       '@types/react': 18.3.3
+
+  use-file-system@0.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      ignore: 5.3.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   use-sidecar@1.1.2(@types/react@18.3.3)(react@18.3.1):
     dependencies:

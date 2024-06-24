@@ -1,13 +1,15 @@
 'use client'
 
 import { usePluginStore } from "@/stores/plugin";
-import { Tldraw, TLDrawShape, TLShape } from "tldraw";
+import { Tldraw, TLDrawShape, TLShape, TLUiOverrides } from "tldraw";
 import Toolbar from "./toolbar";
 import RectShapeUtil from "@/shapes/rect";
 import { setTimeout } from "timers";
 import { PluginDataSchema, PluginPropsSchema } from "@/plugins/base";
 import { z } from "zod";
 import { unwrapShape } from "@/util/pluginUtil";
+import { RectShapeTool } from "./tools";
+import { uiOverrides } from "./uiOverrides";
 
 export const ShapeMetaSchema = z.object({
     props: PluginPropsSchema,
@@ -16,21 +18,19 @@ export const ShapeMetaSchema = z.object({
 export type ShapeMeta = z.infer<typeof ShapeMetaSchema>;
 
 const Tlwrap = () => {
-    const getPlugin = usePluginStore(({ getPlugin: getPlugin }) => getPlugin);
+    const {selected, plugins} = usePluginStore();
 
     return (
         <div className="fixed inset-0">
             <Tldraw
                 shapeUtils={[RectShapeUtil]} // TODO Add toolbar buttons for shapes
+                tools={[RectShapeTool]}
+                overrides={uiOverrides}
                 components={{
                     Toolbar
                     // TODO override color/shape component as well to remove several options
                 }}
                 onMount={(editor) => {
-                    setTimeout(() => {
-                        editor.createShapes([{ type: 'rect' }]);
-
-                    }, 1000)
                     // ! This can be removed when not needed as reference anymore, plugin properties are now stored in the shapes properties directly
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                         Also inform the plugin that a shape has been created
@@ -44,7 +44,6 @@ const Tlwrap = () => {
                             return {};
                         }
 
-                        plugin?.onCreate(shape);
 
                         const meta: ShapeMeta = {
                             props: properties,
@@ -52,8 +51,6 @@ const Tlwrap = () => {
                         };
 
                         console.log(`Creating shape with plugin: ${properties.id}`);
-                        console.log(meta);
-                        
                         return meta;
                     }
 
@@ -68,12 +65,9 @@ const Tlwrap = () => {
                         // Added
                         for (const { id, meta, typeName } of Object.values(added)) {
                             if (typeName !== 'shape') continue;
-
                             const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
-                            // TODO retrieve properties from plugin defined in meta, generate shape styles from them, apply styles to shape
-
-                            console.log(shape.props);
-
+                            const { plugin } = unwrapShape(shape) ?? {};
+                            plugin?.onCreate(editor, shape);
                         }
                         // Removed
                         for (const { id, meta, typeName } of Object.values(removed)) {
@@ -85,7 +79,7 @@ const Tlwrap = () => {
                                 console.warn(`Deleted shape did not have an associated plugin`);
                                 return;
                             }
-      
+
 
                             unwrappedShape.plugin.onDelete(unwrappedShape.data);
 
@@ -125,7 +119,7 @@ const Tlwrap = () => {
                             shapesinViewport.forEach((shape) => {
                                 // ! comparing every shape to every other shape will not be necessary if collision is only tested on mouse up (only compare dragged shape to every other shape O(N²) vs O(N))
                                 const shapeBounds = editor.getShapePageBounds(shape);
-                                
+
                                 // Unwrap shape
                                 const unwrappedShape = unwrapShape(shape);
                                 if (!unwrappedShape) {

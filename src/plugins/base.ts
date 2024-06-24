@@ -8,12 +8,20 @@ export const PluginPropsSchema = z.object({
   id: z.string(),
   label: z.string().optional(),
   color: z.string().optional(),
+  availableShapes: z.array(z.union([z.string(), z.enum(["rect"])])),
   continousCollision: z.boolean().optional(),
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
 export const PluginDataSchema = z.object({
-  files: z.string().array().optional(),
+  attachments: z
+    .object({
+      // TODO Adjust filetypes to reflect all possible filetypes provided by the filesystem API
+      type: z.union([z.literal("file"), z.literal("none")]),
+      path: z.string(),
+    })
+    .array()
+    .optional(),
 });
 export type PluginData = z.infer<typeof PluginDataSchema>;
 
@@ -41,8 +49,8 @@ export default abstract class BasePlugin {
       shape: TLShape;
       data?: PluginData;
     },
-    source: "user" | "tool"
+    source: "user" | "plugin"
   ): void;
-  public abstract onCreate(shape: TLShape): void;
+  public abstract onCreate(editor: Editor, shape: TLShape): void;
   public abstract onDelete(data?: PluginData): void;
 }

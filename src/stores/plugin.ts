@@ -1,12 +1,14 @@
-import BasePlugin, { PluginProps } from "@/plugins/base";
+import BasePlugin, { PluginData, PluginProps } from "@/plugins/base";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import { ComponentType } from "react";
+import { TLShape } from "tldraw";
 import { create } from "zustand";
 
-interface PluginStore {
+export type PluginComponent = ComponentType<{shape: TLShape, data?: PluginData}>;
+export interface PluginStore {
   properties: PluginProps;
   plugin: BasePlugin;
-  component?: ComponentType;
+  component?: PluginComponent;
   icon?: StaticImport;
 }
 export interface PluginStoreData {

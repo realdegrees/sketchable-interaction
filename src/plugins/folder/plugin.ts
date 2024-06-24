@@ -2,7 +2,7 @@ import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import properties from "./properties";
 
-class Trash extends BasePlugin {
+class Folder extends BasePlugin {
   public onCollision(
     editor: Editor,
     self: {
@@ -15,11 +15,12 @@ class Trash extends BasePlugin {
     },
     source: "user" | "tool"
   ): void {
-    // ? Just delete the shape, everything else like file deletion will be handled by the plugin associated with the deleted shape which receives an onDelete event
-    editor.deleteShape(colliding.shape);
+    
   }
-  public onCreate(editor: Editor, shape: TLShape): void {}
+  public onCreate(editor: Editor, shape: TLShape): void {
+    
+  }
   public onDelete(data?: PluginData): void {}
 }
 
-export default new Trash(properties);
+export default new Folder(properties);

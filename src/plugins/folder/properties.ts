@@ -1,7 +1,7 @@
 import { PluginProps } from "../base";
 
 const properties: PluginProps = {
-  id: "trash",
-  availableShapes: []
+  id: "folder",
+  availableShapes: ['rect']
 };
 export default properties;

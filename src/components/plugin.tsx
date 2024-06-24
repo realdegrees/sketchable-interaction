@@ -1,7 +1,7 @@
 'use client'
 
-import BasePlugin, { PluginProps, PluginPropsSchema } from "@/plugins/base";
-import { usePluginStore } from "@/stores/plugin";
+import BasePlugin, { PluginData, PluginProps, PluginPropsSchema } from "@/plugins/base";
+import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import Image from "next/image";
 import { ComponentType, lazy, useEffect, useState } from "react";
@@ -26,7 +26,7 @@ const Plugin = ({ name }: { name: string }) => {
             let plugin: BasePlugin | undefined
             let properties: PluginProps | undefined;
             let icon: StaticImport | undefined;
-            let component: ComponentType | undefined;
+            let component: PluginComponent | undefined;
 
             // Checks if the plugin logic was loaded and if it was implemented correctly
             if (pluginResult.status === 'fulfilled') {
@@ -95,8 +95,8 @@ const Plugin = ({ name }: { name: string }) => {
         <div
             id={`plugin-${id}`}
             title={label}
-            className={`flex justify-center items-center w-10 h-10 overflow-hidden hover:brightness-125 m-1 rounded-xl bg-zinc-700 
-                ${usePluginStore.getState().selected === pluginProps.id ? 'brightness-125' : ''}`}
+            className={`flex justify-center items-center w-10 h-10 overflow-hidden hover:brightness-125 m-1 rounded-xl bg-zinc-700 border-white
+                ${usePluginStore.getState().selected === pluginProps.id ? 'brightness-125 border' : ''}`}
             onClick={() => setSelected(id)}
         >
             {pluginIcon ?

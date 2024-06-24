@@ -6,6 +6,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  mode: "jit",
   theme: {
     extend: {
       backgroundImage: {
@@ -16,5 +17,17 @@ const config: Config = {
     },
   },
   plugins: [],
+  safelist: [
+    {
+      pattern: /(bg|text|border)-(zinc|blue|red|yellow|green)-{400|500|600}/,
+      variants: ["!"],
+    },
+    { pattern: /opacity-[\d]{1,3}/, variants: ["!"] },
+    { pattern: /w-[\d]{1,3}/, variants: ["!"] },
+    { pattern: /h-[\d]{1,3}/, variants: ["!"] },
+    { pattern: /grid-.+/, variants: ["!"] },
+    "grid",
+    "text-ellipsis"
+  ],
 };
 export default config;
