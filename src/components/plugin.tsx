@@ -1,13 +1,14 @@
 'use client'
 
-import BasePlugin, { PluginData, PluginProps, PluginPropsSchema } from "@/plugins/base";
+import BasePlugin, { PluginProps, PluginPropsSchema } from "@/plugins/base";
 import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import Image from "next/image";
-import { ComponentType, lazy, useEffect, useState } from "react";
+import React, { createElement, isValidElement, lazy, useEffect, useState } from "react";
 import "@/util/string.extensions";
 import SvgSpinnersBarsFade from '~icons/svg-spinners/bars-fade';
 import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
+
 
 const Plugin = ({ name }: { name: string }) => {
     const { setSelected, register } = usePluginStore();
@@ -21,12 +22,12 @@ const Plugin = ({ name }: { name: string }) => {
             import(`../plugins/${name}/plugin`), // Load plugin instance
             import(`../plugins/${name}/properties`), // Load plugin properties
             import(`../plugins/${name}/icon.svg`), // Load plugin icon
-            lazy(() => import(`../plugins/${name}/component`)), // Load plugin component
+            import(`../plugins/${name}/component`), // ? Load component but only to check if it exists or not
         ]).then(async ([pluginResult, propertiesResult, iconResult, componentResult]) => {
             let plugin: BasePlugin | undefined
             let properties: PluginProps | undefined;
             let icon: StaticImport | undefined;
-            let component: PluginComponent | undefined;
+            let Component: PluginComponent | undefined; // PascalCase due to react component naming conventions
 
             // Checks if the plugin logic was loaded and if it was implemented correctly
             if (pluginResult.status === 'fulfilled') {
@@ -55,9 +56,24 @@ const Plugin = ({ name }: { name: string }) => {
             if (iconResult.status === 'fulfilled') {
                 icon = iconResult.value;
             }
+
             // Load optional component for plugin
             if (componentResult.status === 'fulfilled') {
-                component = componentResult.value;
+                const warn = () => console.warn(`Unable to load 'component.tsx' in 'plugins/${name}'.\nNot a valid react coponent!`);
+
+                // Check if the loaded component is a react component
+                // ? checking for function type also covers class components as valid
+                if (typeof componentResult.value.default === 'function') {
+                    try {
+                        createElement(componentResult.value.default); // Check if the loaded component is a valid react component
+                        Component = lazy(() => Promise.resolve(componentResult.value)); // Load plugin component
+                    } catch (e) {
+                        warn();
+                    }
+                } else {
+                    warn();
+                }
+
             }
 
             // Verbose Error messages were logged above so we just abort here
@@ -70,7 +86,7 @@ const Plugin = ({ name }: { name: string }) => {
             register({
                 properties,
                 plugin,
-                component,
+                Component,
                 icon
             });
 

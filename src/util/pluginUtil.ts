@@ -1,26 +1,17 @@
-import { ShapeMeta, ShapeMetaSchema } from "@/components/tlwrap";
+import { ShapeMetaSchema } from "@/components/tlwrap";
 import BasePlugin, { PluginData, PluginProps } from "@/plugins/base";
-import { PluginComponent, usePluginStore } from "@/stores/plugin";
-import { ComponentType } from "react";
+import { PluginComponent, PluginStore, usePluginStore } from "@/stores/plugin";
 import { JsonObject, TLShape } from "tldraw";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
 export const unwrapShape = (
   shape?: Partial<TLShape> & { meta: JsonObject }
-):
-  | {
-      plugin: BasePlugin;
-      properties: PluginProps;
-      component?: PluginComponent;
-      data?: PluginData;
-      icon?: StaticImport;
-    }
-  | undefined => {
+): (PluginStore & { data?: PluginData }) | undefined => {
   const { getPlugin } = usePluginStore.getState();
-    
+
   const { data, props } = ShapeMetaSchema.safeParse(shape?.meta).data ?? {};
 
-  const { plugin, properties, component, icon } = getPlugin(props?.id) ?? {};
+  const { plugin, properties, Component, icon } = getPlugin(props?.id) ?? {};
 
   if (!plugin || !properties) {
     console.error(
@@ -32,8 +23,8 @@ export const unwrapShape = (
   return {
     plugin,
     properties,
-    component,
+    Component,
     data,
-    icon
+    icon,
   };
 };

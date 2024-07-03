@@ -8,7 +8,7 @@ export type PluginComponent = ComponentType<{shape: TLShape, data?: PluginData}>
 export interface PluginStore {
   properties: PluginProps;
   plugin: BasePlugin;
-  component?: PluginComponent;
+  Component?: PluginComponent;
   icon?: StaticImport;
 }
 export interface PluginStoreData {
