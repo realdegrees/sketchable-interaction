@@ -13,7 +13,7 @@ class Trash extends BasePlugin {
       shape: TLShape;
       data?: PluginData;
     },
-    source: "user" | "tool"
+    source: "user" | "plugin"
   ): void {
     // ? Just delete the shape, everything else like file deletion will be handled by the plugin associated with the deleted shape which receives an onDelete event
     editor.deleteShape(colliding.shape);

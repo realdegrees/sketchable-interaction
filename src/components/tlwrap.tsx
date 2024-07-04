@@ -41,7 +41,10 @@ const Tlwrap = () => {
 
                         if (!plugin || !properties) {
                             console.warn('Unable to get current plugin info during shape creation!');
-                            return {};
+                            return shape.meta;
+                        }
+                        if (Object.keys(shape.meta).length > 0){
+                            return shape.meta;
                         }
 
 

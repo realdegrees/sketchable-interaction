@@ -3,6 +3,8 @@ import { PluginData } from "../base";
 import { commonFilters, useFileSystem } from "use-file-system";
 import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
 import { TLShape, useEditor } from "tldraw";
+import { ShapeMeta } from "@/components/tlwrap";
+import filePluginProperties from "../file/properties";
 
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
@@ -43,16 +45,49 @@ const Component = (shape: TLShape, data?: PluginData) => {
                     Open Folder
                 </button>}
 
-            <div className="overflow-y-auto w-full max-h-full h-full">
-                <div className="grid col-auto w-full max-h-full h-full">
-                {Array.from(files).map(([filePath, fileString]) => {
-                    const fileName = filePath.split('/').findLast(() => true);
-                    return (
-                        <div key={filePath} className="w-12 h-12 rounded-sm bg-zinc-500">
-                            <p className="text-ellipsis">{fileName}</p>
-                        </div>
-                    )
-                })}
+            <div className="overflow-y-auto w-full max-h-full h-full mt-4">
+                <div className="grid grid-cols-5 gap-2 w-full max-h-full h-full">
+                    {Array.from(files).map(([filePath, fileString]) => {
+                        const fileName = filePath.split('/').findLast(() => true);
+                        return (
+                            <div
+                                key={filePath}
+                                className="w-12 h-12 rounded-sm bg-zinc-500"
+                                onDragStart={() => {
+                                    console.log(`Drag ${fileName}`);
+
+                                }}
+                                onPointerDown={(e) => {
+                                    e.stopPropagation();
+                                    const fileShape = editor.createShape({
+                                        type: 'rect',
+                                        x: e.clientX - 20,
+                                        y: e.clientY - 20,
+                                        meta: {
+                                            data: {
+                                                attachments: [{
+                                                    path: filePath,
+                                                    type: 'file'
+                                                }]
+                                            },
+                                            props: filePluginProperties
+                                        } as ShapeMeta
+                                    }).getShapeAtPoint({
+                                        x: e.clientX,
+                                        y: e.clientY,
+                                    });
+
+                                    if (fileShape) {
+                                        editor.setSelectedShapes([fileShape]);
+                                        editor.setCroppingShape(fileShape)
+                                    }
+
+                                }}
+                            >
+                                <p className="text-ellipsis">{fileName}</p>
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
 

@@ -2,7 +2,7 @@ import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import properties from "./properties";
 
-class Folder extends BasePlugin {
+class File extends BasePlugin {
   public onCollision(
     editor: Editor,
     self: {
@@ -23,4 +23,4 @@ class Folder extends BasePlugin {
   public onDelete(data?: PluginData): void {}
 }
 
-export default new Folder(properties);
+export default new File(properties);
