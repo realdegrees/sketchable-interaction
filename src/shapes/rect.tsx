@@ -34,7 +34,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
     }
     component(shape: Shape) {
         const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() })
-
+        
         const {plugin, Component, icon, data} = unwrapShape(shape) ?? {};
         const fallback = icon ? <Image src={icon} alt="logo" loading="lazy" /> : <p>{plugin?.properties.label ?? plugin?.properties.id ?? 'Unable to load icon or component'}</p>;
         // * Adjust style to filter which tldraw styling panel options are available

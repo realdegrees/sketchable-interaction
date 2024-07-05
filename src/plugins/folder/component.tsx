@@ -1,35 +1,52 @@
 import { useEffect, useState } from "react";
-import { FileTypeSchema, PluginData } from "../base";
+import { FileTypeSchema, PluginData, PluginFile } from "../base";
 import { commonFilters, useFileSystem } from "use-file-system";
 import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
-import { TLShape, useEditor } from "tldraw";
+import { TLShape, TLShapeId, useEditor } from "tldraw";
 import { ShapeMeta } from "@/components/tlwrap";
 import plugin from "./plugin";
 import FilePlugin from "@/plugins/file/plugin";
+import { unwrapShape } from "@/util/pluginUtil";
 
+// TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component = (shape: TLShape, data?: PluginData) => {
-    // TODO save all files that were clicked in state and filter them from the displayed list
+const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
+    // TODO save all files that were clicked in state and filter them from the displayed list (or grey them out and make them non-clickable)
     const editor = useEditor();
     const { isBrowserSupported, files, onDirectorySelection, handles } = useFileSystem({
         onFilesAdded: (newFiles, previousFiles) => {
-            console.log('onFilesAdded', newFiles, previousFiles);
+            // console.log('onFilesAdded', newFiles, previousFiles);
         },
         onFilesChanged: (changedFiles, previousFiles) => {
-            console.log('onFilesChanged', changedFiles, previousFiles);
+            // console.log('onFilesChanged', changedFiles, previousFiles);
         },
         onFilesDeleted: (deletedFiles, previousFiles) => {
-            console.log('onFilesDeleted', deletedFiles, previousFiles);
+            // console.log('onFilesDeleted', deletedFiles, previousFiles);
         },
         filters: commonFilters
     });
     plugin.registerHandles(shape.id, handles); // Stores the handles in the plugin instance for other plugins to use
 
+    // Finds all files - that are currently detached from this folder - in the FilePlugin
+    const detachedFiles = Array.from(FilePlugin.activeShapes.values())
+        .map((shapeId) => {
+            const shape = editor.getShape(shapeId);
+            const { data } = unwrapShape(shape) ?? {};
+
+            return data?.files?.[0];
+        })
+        .filter((file): file is PluginFile => !!file)
+        .filter(({ sourceShape }) => sourceShape === shape.id);
+
     // TODO when directory is selected register all handles and files with the plugin logic file
     
+    if(detachedFiles.length > 0){
+        console.log(detachedFiles);
+        
+    }
 
     if (!isBrowserSupported) {
         return (
@@ -58,11 +75,11 @@ const Component = (shape: TLShape, data?: PluginData) => {
                         return (
                             <div
                                 key={filePath}
-                                className="w-12 h-12 rounded-sm bg-zinc-500"
+                                className={`w-12 h-12 rounded-sm  ${detachedFiles.find(({ name }) => name === fileName) ? 'pointer-events-none bg-zinc-700' : 'bg-zinc-500'}`}
                                 onPointerDown={(e) => {
                                     e.stopPropagation();
                                     const handle = handles.get(filePath);
-                                    if(!handle){
+                                    if (!handle) {
                                         console.warn(`Unable to get handle for file ${fileName}`);
                                         return;
                                     }
@@ -75,14 +92,14 @@ const Component = (shape: TLShape, data?: PluginData) => {
                                             files: [{
                                                 name: fileName,
                                                 type: FileTypeSchema.parse(fileType),
-                                                sourceShape: shape.id
+                                                sourceShape: shape.id ?? null
                                             }]
                                         },
                                         props: FilePlugin.properties
                                     };
                                     console.log('Creating file shape with meta');
                                     console.log(meta);
-                                    
+
                                     const fileShape = editor.createShape({
                                         type: 'rect',
                                         x: e.clientX - 20,

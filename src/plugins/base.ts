@@ -1,5 +1,5 @@
 import { Component } from "react";
-import { Editor, TLShape } from "tldraw";
+import { Editor, TLShape, TLShapeId } from "tldraw";
 import z from "zod";
 
 // ! TODO: create react component for each plugin that gets loaded in the plugin component and saved to the plugin library so that it can be attached to shapes for custom UI ona  per-plugin basis
@@ -14,23 +14,30 @@ export const PluginPropsSchema = z.object({
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
-export const FileTypeSchema = z.union([
-  z.literal("file"),
-  z.literal("jpg"),
-  z.literal("txt"),
-  z.literal("png"),
-]).default('file');
+export const FileTypeSchema = z
+  .union([
+    z.literal("file"),
+    z.literal("jpg"),
+    z.literal("txt"),
+    z.literal("png"),
+  ])
+  .default("file");
 export type FileType = z.infer<typeof FileTypeSchema>;
 
+export const PluginFileSchema = z.object({
+  // TODO Adjust filetypes to reflect all possible filetypes provided by the filesystem API
+  type: FileTypeSchema,
+  name: z.string(),
+  sourceShape: z.string(),
+});
+export type PluginFile = z.infer<typeof PluginFileSchema>;
+
 export const PluginDataSchema = z.object({
-  files: z
+  files: PluginFileSchema.array().optional(),
+  state: z
     .object({
-      // TODO Adjust filetypes to reflect all possible filetypes provided by the filesystem API
-      type: FileTypeSchema,
-      name: z.string(),
-      sourceShape: z.string()
+      interactable: z.boolean().default(true),
     })
-    .array()
     .optional(),
 });
 export type PluginData = z.infer<typeof PluginDataSchema>;
@@ -38,7 +45,7 @@ export type PluginData = z.infer<typeof PluginDataSchema>;
 // ? possibly add an array that holds references to all shapes of the plugin type (maintained in onCreate and onDelete)
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
 export default abstract class BasePlugin {
-  public activeShapes: Set<string> = new Set();
+  public activeShapes: Set<TLShapeId> = new Set();
   constructor(protected props: PluginProps) {}
 
   public get id(): string {
@@ -48,10 +55,10 @@ export default abstract class BasePlugin {
   public get properties(): PluginProps {
     return { ...this.props };
   }
-  public registerShape(shapeId: string): void {
-    this.activeShapes.add(shapeId)
+  public registerShape(shapeId: TLShapeId): void {
+    this.activeShapes.add(shapeId);
   }
-  public unregisterShape(shapeId: string): void {
+  public unregisterShape(shapeId: TLShapeId): void {
     this.activeShapes.delete(shapeId);
   }
   // ! might need to pass a reference to the editor as well here (probably for all methods)
