@@ -19,7 +19,8 @@ class Plugin extends BasePlugin {
   public onCreate(editor: Editor, shape: TLShape): void {
     
   }
-  public onDelete(shapeId: string, data?: PluginData): void {}
+  public onDelete(shapeId: string, data?: PluginData): void {
+  }
 }
 
 export default new Plugin({

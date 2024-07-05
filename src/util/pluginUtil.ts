@@ -7,6 +7,8 @@ import { StaticImport } from "next/dist/shared/lib/get-img-props";
 export const unwrapShape = (
   shape?: Partial<TLShape> & { meta: JsonObject }
 ): (PluginStore & { data?: PluginData }) | undefined => {
+  if(!shape) return undefined;
+  
   const { getPlugin } = usePluginStore.getState();
 
   const { data, props } = ShapeMetaSchema.safeParse(shape?.meta).data ?? {};

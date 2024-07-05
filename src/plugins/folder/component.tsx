@@ -14,8 +14,23 @@ import { unwrapShape } from "@/util/pluginUtil";
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
-    // TODO save all files that were clicked in state and filter them from the displayed list (or grey them out and make them non-clickable)
     const editor = useEditor();
+    
+    // Finds all files - that are currently detached from this folder - in the FilePlugin
+    // Implemented as a function to be used in callbacks when live data is required
+    const getDetachedFiles = () => Array.from(FilePlugin.activeShapes.values())
+        .map((shapeId) => {
+            const shape = editor.getShape(shapeId);
+            const { data } = unwrapShape(shape) ?? {};
+
+            return { shape, file: data?.files?.[0] };
+        })
+        .filter((file): file is { shape: TLShape, file: PluginFile } => !!file.shape)
+        .filter(({ file: { sourceShape } }) => sourceShape === shape.id);
+    const detachedFiles = getDetachedFiles();
+
+        
+    // TODO save all files that were clicked in state and filter them from the displayed list (or grey them out and make them non-clickable)
     const { isBrowserSupported, files, onDirectorySelection, handles } = useFileSystem({
         onFilesAdded: (newFiles, previousFiles) => {
             // console.log('onFilesAdded', newFiles, previousFiles);
@@ -24,29 +39,25 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             // console.log('onFilesChanged', changedFiles, previousFiles);
         },
         onFilesDeleted: (deletedFiles, previousFiles) => {
-            // console.log('onFilesDeleted', deletedFiles, previousFiles);
+            
+            // Deletes any detached file shapes if the file in the folder is deleted
+            const deletedFileNames = Array.from(deletedFiles.keys()).map((path) => path.split('/').findLast(() => true)?.split('.')?.[0]);
+            console.log(deletedFileNames);
+            console.log(getDetachedFiles());
+            const deletedDetachedFiles = getDetachedFiles().filter(({ file: { name } }) => deletedFileNames.includes(name));
+            console.log(deletedDetachedFiles);
+            
+            deletedDetachedFiles.forEach(({shape}) => {
+                editor.deleteShape(shape);
+            })
         },
         filters: commonFilters
     });
     plugin.registerHandles(shape.id, handles); // Stores the handles in the plugin instance for other plugins to use
 
-    // Finds all files - that are currently detached from this folder - in the FilePlugin
-    const detachedFiles = Array.from(FilePlugin.activeShapes.values())
-        .map((shapeId) => {
-            const shape = editor.getShape(shapeId);
-            const { data } = unwrapShape(shape) ?? {};
-
-            return data?.files?.[0];
-        })
-        .filter((file): file is PluginFile => !!file)
-        .filter(({ sourceShape }) => sourceShape === shape.id);
-
-    // TODO when directory is selected register all handles and files with the plugin logic file
+    console.log(handles);
     
-    if(detachedFiles.length > 0){
-        console.log(detachedFiles);
-        
-    }
+
 
     if (!isBrowserSupported) {
         return (
@@ -75,7 +86,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                         return (
                             <div
                                 key={filePath}
-                                className={`w-12 h-12 rounded-sm  ${detachedFiles.find(({ name }) => name === fileName) ? 'pointer-events-none bg-zinc-700' : 'bg-zinc-500'}`}
+                                className={`w-12 h-12 rounded-sm  ${detachedFiles.find(({ file: { name } }) => name === fileName) ? 'pointer-events-none bg-zinc-700 animate-ping' : 'bg-zinc-500'}`}
                                 onPointerDown={(e) => {
                                     e.stopPropagation();
                                     const handle = handles.get(filePath);

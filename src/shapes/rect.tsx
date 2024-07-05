@@ -36,7 +36,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
         const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() })
         
         const {plugin, Component, icon, data} = unwrapShape(shape) ?? {};
-        const fallback = icon ? <Image src={icon} alt="logo" loading="lazy" /> : <p>{plugin?.properties.label ?? plugin?.properties.id ?? 'Unable to load icon or component'}</p>;
+        const fallback = icon ? <Image src={icon} alt="logo" loading="lazy" className="pointer-events-none"/> : <p>{plugin?.properties.label ?? plugin?.properties.id ?? 'Unable to load icon or component'}</p>;
         // * Adjust style to filter which tldraw styling panel options are available
         // ? https://tldraw.dev/examples/shapes/tools/shape-with-tldraw-styles
         return (
@@ -56,7 +56,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
                     </ErrorBoundary> : fallback}
                 </div>
                 {
-                    Component && icon && <Image src={icon} alt="logo" className="absolute left-0 bottom-0 w-12 h-12" />
+                    Component && icon && <Image src={icon} alt="logo" className="absolute left-0 bottom-0 w-12 h-12 pointer-events-none" />
                 }
             </HTMLContainer >
         )
