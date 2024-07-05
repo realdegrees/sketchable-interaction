@@ -11,18 +11,17 @@ export const unwrapShape = (
 
   const { data, props } = ShapeMetaSchema.safeParse(shape?.meta).data ?? {};
 
-  const { plugin, properties, Component, icon } = getPlugin(props?.id) ?? {};
+  const { plugin, Component, icon } = getPlugin(props?.id) ?? {};
 
-  if (!plugin || !properties) {
+  if (!plugin) {
     console.error(
-      `Unable to find attached plugin\nShape: ${shape?.id}\nPlugin: ${properties?.id}`
+      `Unable to find attached plugin\nShape: ${shape?.id}`
     );
     return;
   }
 
   return {
     plugin,
-    properties,
     Component,
     data,
     icon,

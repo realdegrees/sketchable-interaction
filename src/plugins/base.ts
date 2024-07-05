@@ -39,7 +39,7 @@ export type PluginData = z.infer<typeof PluginDataSchema>;
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
 export default abstract class BasePlugin {
   public activeShapes: Set<string> = new Set();
-  constructor(public props: PluginProps) {}
+  constructor(protected props: PluginProps) {}
 
   public get id(): string {
     return this.props.id;

@@ -4,9 +4,8 @@ import { commonFilters, useFileSystem } from "use-file-system";
 import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
 import { TLShape, useEditor } from "tldraw";
 import { ShapeMeta } from "@/components/tlwrap";
-import filePluginProperties from "../file/properties";
 import plugin from "./plugin";
-import z from "zod";
+import FilePlugin from "@/plugins/file/plugin";
 
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
@@ -79,8 +78,11 @@ const Component = (shape: TLShape, data?: PluginData) => {
                                                 sourceShape: shape.id
                                             }]
                                         },
-                                        props: filePluginProperties
-                                    }
+                                        props: FilePlugin.properties
+                                    };
+                                    console.log('Creating file shape with meta');
+                                    console.log(meta);
+                                    
                                     const fileShape = editor.createShape({
                                         type: 'rect',
                                         x: e.clientX - 20,

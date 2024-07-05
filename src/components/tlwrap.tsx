@@ -1,7 +1,7 @@
 'use client'
 
 import { usePluginStore } from "@/stores/plugin";
-import { Tldraw, TLDrawShape, TLShape, TLUiOverrides } from "tldraw";
+import { Tldraw, TLDrawShape, TLShape } from "tldraw";
 import Toolbar from "./toolbar";
 import RectShapeUtil from "@/shapes/rect";
 import { setTimeout } from "timers";
@@ -18,8 +18,6 @@ export const ShapeMetaSchema = z.object({
 export type ShapeMeta = z.infer<typeof ShapeMetaSchema>;
 
 const Tlwrap = () => {
-    const {selected, plugins} = usePluginStore();
-
     return (
         <div className="fixed inset-0">
             <Tldraw
@@ -37,9 +35,9 @@ const Tlwrap = () => {
                         https://tldraw.dev/docs/shapes#Meta-information   */
                     editor.getInitialMetaForShape = (shape) => {
                         const { selected, getPlugin } = usePluginStore.getState();
-                        const { plugin, properties } = getPlugin(selected) ?? {};
+                        const { plugin } = getPlugin(selected) ?? {};
 
-                        if (!plugin || !properties) {
+                        if (!plugin) {
                             console.warn('Unable to get current plugin info during shape creation!');
                             return shape.meta;
                         }
@@ -49,11 +47,11 @@ const Tlwrap = () => {
 
 
                         const meta: ShapeMeta = {
-                            props: properties,
+                            props: plugin.properties,
                             data: {}
                         };
 
-                        console.log(`Creating shape with plugin: ${properties.id}`);
+                        console.log(`Creating shape with plugin: ${plugin.properties.id}`);
                         return meta;
                     }
 
@@ -77,16 +75,16 @@ const Tlwrap = () => {
                         for (const { id, meta, typeName } of Object.values(removed)) {
                             if (typeName !== 'shape') continue;
 
-                            const unwrappedShape = unwrapShape({ meta });
+                            const {plugin, data} = unwrapShape({ meta }) ?? {};
 
-                            if (!unwrappedShape) {
+                            if (!plugin) {
                                 console.warn(`Deleted shape did not have an associated plugin`);
                                 return;
                             }
 
 
-                            unwrappedShape.plugin.onDelete(id, unwrappedShape.data);
-                            unwrappedShape.plugin.unregisterShape(id);
+                            plugin.onDelete(id, data);
+                            plugin.unregisterShape(id);
 
                         }
                     })
@@ -148,6 +146,7 @@ const Tlwrap = () => {
                                             shape
                                         }, {
                                             data: unwrappedCompareShape.data,
+                                            plugin: unwrappedCompareShape.plugin,
                                             shape: compareShape
                                         }, 'user');
 

@@ -1,10 +1,10 @@
 'use client'
 
-import BasePlugin, { PluginProps, PluginPropsSchema } from "@/plugins/base";
+import BasePlugin, { PluginProps } from "@/plugins/base";
 import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import Image from "next/image";
-import React, { createElement, isValidElement, lazy, useEffect, useState } from "react";
+import React, { createElement, lazy, useEffect, useState } from "react";
 import "@/util/string.extensions";
 import SvgSpinnersBarsFade from '~icons/svg-spinners/bars-fade';
 import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
@@ -20,12 +20,10 @@ const Plugin = ({ name }: { name: string }) => {
         // Loads a plugin and - if loaded correctly - register it with the PluginStore
         Promise.allSettled([
             import(`../plugins/${name}/plugin`), // Load plugin instance
-            import(`../plugins/${name}/properties`), // Load plugin properties // TODO MAYBE properties don't need to be loaded but can instead be retrieved directly from the plugin
             import(`../plugins/${name}/icon.svg`), // Load plugin icon
-            import(`../plugins/${name}/component`), // ? Load component but only to check if it exists or not
-        ]).then(async ([pluginResult, propertiesResult, iconResult, componentResult]) => {
+            import(`../plugins/${name}/component`), // Load component
+        ]).then(async ([pluginResult, iconResult, componentResult]) => {
             let plugin: BasePlugin | undefined
-            let properties: PluginProps | undefined;
             let icon: StaticImport | undefined;
             let Component: PluginComponent | undefined; // PascalCase due to react component naming conventions
 
@@ -40,18 +38,6 @@ const Plugin = ({ name }: { name: string }) => {
                 console.warn(`Unable to find 'plugin.ts' in 'plugins/${name}'.\nLoading of '${name}' plugin was skipped!`);
             }
 
-            // Checks if properties was loaded correctly and if it fits the schema
-            if (propertiesResult.status === 'fulfilled') {
-                const propertiesParseResult = PluginPropsSchema.safeParse(propertiesResult.value.default);
-                if (!propertiesParseResult.success) {
-                    console.warn(`Exported properties for plugin '${name}' are invalid.\nMake sure the properties object validates against 'PluginPropsSchema' in 'plugins/base.ts'.\nLoading of '${name}' plugin was skipped!`);
-                } else {
-                    properties = propertiesParseResult.data;
-                }
-            } else {
-                console.warn(`Unable to find 'properties.ts' in 'plugins/${name}'.\nLoading of '${name}' plugin was skipped!`);
-            }
-
             // Load optional icon for plugin
             if (iconResult.status === 'fulfilled') {
                 icon = iconResult.value;
@@ -59,7 +45,7 @@ const Plugin = ({ name }: { name: string }) => {
 
             // Load optional component for plugin
             if (componentResult.status === 'fulfilled') {
-                const warn = () => console.warn(`Unable to load 'component.tsx' in 'plugins/${name}'.\nNot a valid react coponent!`);
+                const warn = () => console.warn(`Unable to load 'component.tsx' in 'plugins/${name}'.\nNot a valid react component!`);
 
                 // Check if the loaded component is a react component
                 // ? checking for function type also covers class components as valid
@@ -77,21 +63,20 @@ const Plugin = ({ name }: { name: string }) => {
             }
 
             // Verbose Error messages were logged above so we just abort here
-            if (!properties || !plugin) {
+            if (!plugin) {
                 setPluginState('error');
                 return;
             }
 
             // Plugin loading successful -> Register it with the store
             register({
-                properties,
                 plugin,
                 Component,
                 icon
             });
 
             // Assign states for the plugin-tool component to use
-            setPluginProps(properties);
+            setPluginProps(plugin.properties);
             setPluginIcon(icon);
         })
     }, [name, register, setPluginProps, setPluginIcon, setPluginState])

@@ -4,9 +4,11 @@ import { ComponentType } from "react";
 import { TLShape } from "tldraw";
 import { create } from "zustand";
 
-export type PluginComponent = ComponentType<{shape: TLShape, data?: PluginData}>;
+export type PluginComponent = ComponentType<{
+  shape: TLShape;
+  data?: PluginData;
+}>;
 export interface PluginStore {
-  properties: PluginProps;
   plugin: BasePlugin;
   Component?: PluginComponent;
   icon?: StaticImport;
@@ -23,17 +25,28 @@ export interface PluginStoreData {
 export const usePluginStore = create<PluginStoreData>((set, get) => ({
   plugins: [],
   getPlugin: (pluginId) =>
-    get().plugins.find(({ properties: { id } }) => id === pluginId),
+    get().plugins.find(
+      ({
+        plugin: {
+          properties: { id },
+        },
+      }) => id === pluginId
+    ),
   setSelected: (pluginId) =>
     set((state) => ({
       ...state,
-      selected: state.plugins.find(({ properties: { id } }) => id === pluginId)
-        ?.properties.id,
+      selected: state.plugins.find(
+        ({
+          plugin: {
+            properties: { id },
+          },
+        }) => id === pluginId
+      )?.plugin.properties.id,
     })),
-  register: (plugin) =>
+  register: (pluginStore) =>
     set((state) => ({
       ...state,
-      selected: state.selected ?? plugin.properties.id, // Set the first registered plugin as default
-      plugins: [...state.plugins, plugin],
+      selected: state.selected ?? pluginStore.plugin.properties.id, // Set the first registered plugin as default
+      plugins: [...state.plugins, pluginStore],
     })),
 }));

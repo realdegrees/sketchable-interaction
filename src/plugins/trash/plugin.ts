@@ -1,8 +1,7 @@
 import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
-import properties from "./properties";
 
-class Trash extends BasePlugin {
+class Plugin extends BasePlugin {
   public onCollision(
     editor: Editor,
     self: {
@@ -19,7 +18,11 @@ class Trash extends BasePlugin {
     editor.deleteShape(colliding.shape);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(data?: PluginData): void {}
+  public onDelete(shapeId: string, data?: PluginData): void {}
 }
 
-export default new Trash(properties);
+export default new Plugin({
+  id: "trash",
+  availableShapes: ["rect"],
+  selectable: true,
+});
