@@ -71,6 +71,7 @@ const Tlwrap = () => {
                             const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
                             const { plugin } = unwrapShape(shape) ?? {};
                             plugin?.onCreate(editor, shape);
+                            plugin?.registerShape(id);
                         }
                         // Removed
                         for (const { id, meta, typeName } of Object.values(removed)) {
@@ -84,7 +85,8 @@ const Tlwrap = () => {
                             }
 
 
-                            unwrappedShape.plugin.onDelete(unwrappedShape.data);
+                            unwrappedShape.plugin.onDelete(id, unwrappedShape.data);
+                            unwrappedShape.plugin.unregisterShape(id);
 
                         }
                     })

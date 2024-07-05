@@ -20,7 +20,7 @@ const Plugin = ({ name }: { name: string }) => {
         // Loads a plugin and - if loaded correctly - register it with the PluginStore
         Promise.allSettled([
             import(`../plugins/${name}/plugin`), // Load plugin instance
-            import(`../plugins/${name}/properties`), // Load plugin properties
+            import(`../plugins/${name}/properties`), // Load plugin properties // TODO MAYBE properties don't need to be loaded but can instead be retrieved directly from the plugin
             import(`../plugins/${name}/icon.svg`), // Load plugin icon
             import(`../plugins/${name}/component`), // ? Load component but only to check if it exists or not
         ]).then(async ([pluginResult, propertiesResult, iconResult, componentResult]) => {
@@ -104,10 +104,10 @@ const Plugin = ({ name }: { name: string }) => {
             <p className="text-center text-xs pointer-events-none">{name.toPascalCase()}</p>
         </div>
     }
-    const { id } = pluginProps;
+    const { id, selectable } = pluginProps;
     const label = (pluginProps.label ?? id).toPascalCase()
 
-    return (
+    return selectable ? (
         <div
             id={`plugin-${id}`}
             title={label}
@@ -119,6 +119,6 @@ const Plugin = ({ name }: { name: string }) => {
                 <Image src={pluginIcon} alt={label ?? id} loading="lazy" />
                 : label}
         </div>
-    )
+    ) : <></>
 }
 export default Plugin;

@@ -2,7 +2,10 @@ import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import properties from "./properties";
 
+type ShapeID = string;
+// TODO add code to receive and store handles for each existing
 class Folder extends BasePlugin {
+  private handles: Map<ShapeID, Map<string, FileSystemHandle>> = new Map();
   public onCollision(
     editor: Editor,
     self: {
@@ -17,10 +20,20 @@ class Folder extends BasePlugin {
   ): void {
     
   }
-  public onCreate(editor: Editor, shape: TLShape): void {
-    
+
+  public registerHandles(
+    shapeId: ShapeID,
+    handles: Map<string, FileSystemHandle>
+  ): void {
+    this.handles.set(shapeId, handles);
+  };
+
+  // TODO add methods to delete/create/etc files via shapeId and filename (find the corresponding handle and manipulate the file)
+  public unregisterHandles(shapeId: ShapeID): void {
+    this.handles.delete(shapeId);
   }
-  public onDelete(data?: PluginData): void {}
+  public onCreate(editor: Editor, shape: TLShape): void {}
+  public onDelete(shapeId: string, data?: PluginData): void {}
 }
 
 export default new Folder(properties);

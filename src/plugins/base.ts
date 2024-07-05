@@ -10,15 +10,25 @@ export const PluginPropsSchema = z.object({
   color: z.string().optional(),
   availableShapes: z.array(z.union([z.string(), z.enum(["rect"])])),
   continousCollision: z.boolean().optional(),
+  selectable: z.boolean().default(true),
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
+export const FileTypeSchema = z.union([
+  z.literal("file"),
+  z.literal("jpg"),
+  z.literal("txt"),
+  z.literal("png"),
+]).default('file');
+export type FileType = z.infer<typeof FileTypeSchema>;
+
 export const PluginDataSchema = z.object({
-  attachments: z
+  files: z
     .object({
       // TODO Adjust filetypes to reflect all possible filetypes provided by the filesystem API
-      type: z.union([z.literal("file"), z.literal("none")]),
-      path: z.string(),
+      type: FileTypeSchema,
+      name: z.string(),
+      sourceShape: z.string()
     })
     .array()
     .optional(),
@@ -28,7 +38,8 @@ export type PluginData = z.infer<typeof PluginDataSchema>;
 // ? possibly add an array that holds references to all shapes of the plugin type (maintained in onCreate and onDelete)
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
 export default abstract class BasePlugin {
-  constructor(protected props: PluginProps) {}
+  public activeShapes: Set<string> = new Set();
+  constructor(public props: PluginProps) {}
 
   public get id(): string {
     return this.props.id;
@@ -37,7 +48,12 @@ export default abstract class BasePlugin {
   public get properties(): PluginProps {
     return { ...this.props };
   }
-
+  public registerShape(shapeId: string): void {
+    this.activeShapes.add(shapeId)
+  }
+  public unregisterShape(shapeId: string): void {
+    this.activeShapes.delete(shapeId);
+  }
   // ! might need to pass a reference to the editor as well here (probably for all methods)
   public abstract onCollision(
     editor: Editor,
@@ -47,10 +63,11 @@ export default abstract class BasePlugin {
     },
     colliding: {
       shape: TLShape;
+      plugin: BasePlugin;
       data?: PluginData;
     },
     source: "user" | "plugin"
   ): void;
   public abstract onCreate(editor: Editor, shape: TLShape): void;
-  public abstract onDelete(data?: PluginData): void;
+  public abstract onDelete(shapeId: string, data?: PluginData): void;
 }
