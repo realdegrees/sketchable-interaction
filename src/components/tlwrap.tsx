@@ -24,6 +24,7 @@ const Tlwrap = () => {
                 shapeUtils={[RectShapeUtil]} // TODO Add toolbar buttons for shapes
                 tools={[RectShapeTool]}
                 overrides={uiOverrides}
+                persistenceKey="testkey"
                 components={{
                     Toolbar
                     // TODO override color/shape component as well to remove several options
@@ -135,7 +136,7 @@ const Tlwrap = () => {
                                     const compareShapeBounds = editor.getShapePageBounds(compareShape);
                                     if (shapeBounds && compareShapeBounds?.collides(shapeBounds)) {
                                         // Unwrap compare shape
-                                        const unwrappedCompareShape = unwrapShape(shape);
+                                        const unwrappedCompareShape = unwrapShape(compareShape);
                                         if (!unwrappedCompareShape) {
                                             return;
                                         }

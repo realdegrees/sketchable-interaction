@@ -4,31 +4,23 @@ import z from "zod";
 
 // ! TODO: create react component for each plugin that gets loaded in the plugin component and saved to the plugin library so that it can be attached to shapes for custom UI ona  per-plugin basis
 // TODO implement basic functions like deletability
+// TODO add tldraw's props type as Partial for default props like color, border, font etc. so they can be inserted directly at shape creation
 export const PluginPropsSchema = z.object({
   id: z.string(),
   label: z.string().optional(),
   color: z.string().optional(),
   availableShapes: z.array(z.union([z.string(), z.enum(["rect"])])),
   continousCollision: z.boolean().optional(),
-  selectable: z.boolean().default(true),
+  useableAsTool: z.boolean().default(true),
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
-export const FileTypeSchema = z
-  .union([
-    z.literal("file"),
-    z.literal("jpg"),
-    z.literal("txt"),
-    z.literal("png"),
-  ])
-  .default("file");
-export type FileType = z.infer<typeof FileTypeSchema>;
-
 export const PluginFileSchema = z.object({
-  // TODO Adjust filetypes to reflect all possible filetypes provided by the filesystem API
-  type: FileTypeSchema,
+  mimeType: z.string(),
+  fullPath: z.string(),
+  extension: z.string(),
   name: z.string(),
-  sourceShape: z.string(),
+  sourceShape: z.custom<TLShapeId>(),
 });
 export type PluginFile = z.infer<typeof PluginFileSchema>;
 

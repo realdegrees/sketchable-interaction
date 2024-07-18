@@ -25,7 +25,12 @@ const config: Config = {
     { pattern: /opacity-[\d]{1,3}/, variants: ["!"] },
     { pattern: /w-[\d]{1,3}/, variants: ["!"] },
     { pattern: /h-[\d]{1,3}/, variants: ["!"] },
+    { pattern: /-?m(t|b|r|l)?-[\d]{1,3}/, variants: ["!"] },
+    { pattern: /-?p(t|b|r|l)?-[\d]{1,3}/, variants: ["!"] },
     { pattern: /grid-.+/, variants: ["!"] },
+    { pattern: /rounded-.+/, variants: ["!"] },
+    { pattern: /text-(xl|lg)/, variants: ["!"] },
+    { pattern: /font-(bold)/, variants: ["!"] },
     "grid",
     "text-ellipsis"
   ],

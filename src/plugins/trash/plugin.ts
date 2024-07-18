@@ -24,5 +24,5 @@ class Plugin extends BasePlugin {
 export default new Plugin({
   id: "trash",
   availableShapes: ["rect"],
-  selectable: true,
+  useableAsTool: true,
 });

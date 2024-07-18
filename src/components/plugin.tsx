@@ -7,7 +7,7 @@ import Image from "next/image";
 import React, { createElement, lazy, useEffect, useState } from "react";
 import "@/util/string.extensions";
 import SvgSpinnersBarsFade from '~icons/svg-spinners/bars-fade';
-import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
+import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop';
 
 
 const Plugin = ({ name }: { name: string }) => {
@@ -85,11 +85,11 @@ const Plugin = ({ name }: { name: string }) => {
         return <div className=" w-10 h-10 m-1 flex flex-col items-center justify-center" title={pluginState === 'error' ? 'Failed to load plugin! Check console for more information.' : ''}>
             {pluginState === 'loading' ?
                 <SvgSpinnersBarsFade />
-                : <LineMdAlertCircleTwotoneLoop />}
+                : <LoadingIcon />}
             <p className="text-center text-xs pointer-events-none">{name.toPascalCase()}</p>
         </div>
     }
-    const { id, selectable } = pluginProps;
+    const { id, useableAsTool: selectable } = pluginProps;
     const label = (pluginProps.label ?? id).toPascalCase()
 
     return selectable ? (

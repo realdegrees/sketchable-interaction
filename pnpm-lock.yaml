@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      ignore:
+        specifier: ^5.3.1
+        version: 5.3.1
+      mime-types:
+        specifier: ^2.1.35
+        version: 2.1.35
       next:
         specifier: 14.2.3
         version: 14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -23,9 +29,6 @@ importers:
       tldraw:
         specifier: ^2.1.4
         version: 2.1.4(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      use-file-system:
-        specifier: ^0.0.6
-        version: 0.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -36,15 +39,27 @@ importers:
       '@iconify-json/line-md':
         specifier: ^1.1.38
         version: 1.1.38
+      '@iconify-json/material-symbols':
+        specifier: ^1.1.83
+        version: 1.1.83
+      '@iconify-json/mingcute':
+        specifier: ^1.1.18
+        version: 1.1.18
       '@iconify-json/svg-spinners':
         specifier: ^1.1.2
         version: 1.1.2
+      '@iconify-json/tdesign':
+        specifier: ^1.1.7
+        version: 1.1.7
       '@svgr/core':
         specifier: ^8.1.0
         version: 8.1.0(typescript@5.4.5)
       '@svgr/plugin-jsx':
         specifier: ^8.1.0
         version: 8.1.0(@svgr/core@8.1.0(typescript@5.4.5))
+      '@types/mime-types':
+        specifier: ^2.1.4
+        version: 2.1.4
       '@types/node':
         specifier: ^20
         version: 20.12.12
@@ -233,8 +248,17 @@ packages:
   '@iconify-json/line-md@1.1.38':
     resolution: {integrity: sha512-W+y4G/7QqO1sTGUypwsm0UUwjbGt/BjRg4kZylek7BwH5EG8f1uUJgcZwRASjsH4xGL+LVQbw6FAGbQ1UHNCow==}
 
+  '@iconify-json/material-symbols@1.1.83':
+    resolution: {integrity: sha512-CBO1pPp6YRzqkM8XwRmWY9Vi19wYpkl7lS8XhLDUssDnjQaaYbmE4O1SWCBr1AVn1x48qmCWXLk4HKWLvvQpvA==}
+
+  '@iconify-json/mingcute@1.1.18':
+    resolution: {integrity: sha512-P5szgBqUMv8XVjZpbVT5eG1XtqpRPgfvZWxOR/uSqBwmVroHpxN5+nbLTHj9HJxL16msMsNbA294b69MNEQzaw==}
+
   '@iconify-json/svg-spinners@1.1.2':
     resolution: {integrity: sha512-Aab6SqkORaTJ1W+ooufn6C8BsBitrn3uk8iRQLPA6pjhyvQAhkKCGMctyXIL5ZjrycnoFVsZ4mx7KnwEMra8qg==}
+
+  '@iconify-json/tdesign@1.1.7':
+    resolution: {integrity: sha512-Oq5Olm7ZHPEQZHxTE3fUWx/W41d/Q1630g0JHyTJgBhj4ROzDyPAFEDE81c9l2AZjXyVxRDDDqI6BYjX0OmXkg==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -878,6 +902,9 @@ packages:
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/mime-types@2.1.4':
+    resolution: {integrity: sha512-lfU4b34HOri+kAY5UheuFMWPDOI+OPceBSHZKp69gEyTL/mmJ4cnU6Y/rlme3UL3GyOn6Y42hyIEw0/q8sWx5w==}
 
   '@types/node@20.12.12':
     resolution: {integrity: sha512-eWLDGF/FOSPtAvEqeRAQ4C8LSA7M1I7i0ky1I8U7kD1J5ITyW3AsRhQrKVoWf5pFKZ2kILsEGJhsI9r93PYnOw==}
@@ -1858,6 +1885,14 @@ packages:
     resolution: {integrity: sha512-LPP/3KorzCwBxfeUuZmaR6bG2kdeHSbe0P2tY3FLRU4vYrjYz5hI4QZwV0njUx3jeuKe67YukQ1LSPZBKDqO/Q==}
     engines: {node: '>=8.6'}
 
+  mime-db@1.52.0:
+    resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
+    engines: {node: '>= 0.6'}
+
+  mime-types@2.1.35:
+    resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
+    engines: {node: '>= 0.6'}
+
   mimic-fn@2.1.0:
     resolution: {integrity: sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==}
     engines: {node: '>=6'}
@@ -2477,13 +2512,6 @@ packages:
       '@types/react':
         optional: true
 
-  use-file-system@0.0.6:
-    resolution: {integrity: sha512-/o8ZqH5jP6+hgbgrw50OPCP0vZ2jodZ3xtZCIEuGQG1Dr160FiFZg/sgUP8BXqyGSyzzc5+33d7HwuQtfJHVew==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=17'
-      react-dom: '>=17'
-
   use-sidecar@1.1.2:
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
     engines: {node: '>=10'}
@@ -2787,7 +2815,19 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
+  '@iconify-json/material-symbols@1.1.83':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/mingcute@1.1.18':
+    dependencies:
+      '@iconify/types': 2.0.0
+
   '@iconify-json/svg-spinners@1.1.2':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/tdesign@1.1.7':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -3497,6 +3537,8 @@ snapshots:
   '@types/core-js@2.5.8': {}
 
   '@types/json5@0.0.29': {}
+
+  '@types/mime-types@2.1.4': {}
 
   '@types/node@20.12.12':
     dependencies:
@@ -4634,6 +4676,12 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.1
 
+  mime-db@1.52.0: {}
+
+  mime-types@2.1.35:
+    dependencies:
+      mime-db: 1.52.0
+
   mimic-fn@2.1.0: {}
 
   minimatch@3.1.2:
@@ -5309,12 +5357,6 @@ snapshots:
       tslib: 2.6.2
     optionalDependencies:
       '@types/react': 18.3.3
-
-  use-file-system@0.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      ignore: 5.3.1
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
 
   use-sidecar@1.1.2(@types/react@18.3.3)(react@18.3.1):
     dependencies:

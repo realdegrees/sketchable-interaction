@@ -26,5 +26,5 @@ class Plugin extends BasePlugin {
 export default new Plugin({
   id: "file",
   availableShapes: ["rect"],
-  selectable: false,
+  useableAsTool: false,
 });
