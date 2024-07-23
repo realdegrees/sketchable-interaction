@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@iconify-json/line-md": "^1.1.38",
+    "@iconify-json/lucide": "^1.1.199",
     "@iconify-json/material-symbols": "^1.1.83",
     "@iconify-json/mingcute": "^1.1.18",
     "@iconify-json/svg-spinners": "^1.1.2",

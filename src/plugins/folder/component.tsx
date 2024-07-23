@@ -132,7 +132,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                         meta,
                                         props: {
                                             w: 100,
-                                            h: 100
+                                            h: 125
                                         }
                                     }).getShapeAtPoint({
                                         x: e.clientX,

@@ -33,7 +33,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     const [hovered, setHovered] = useState<boolean>();
     const [selected, setSelected] = useState<boolean>();
 
-    
     const editor = useEditor();
     useEffect(() => {
         (async () => {
@@ -43,7 +42,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             setDataUrl(dataUrl);
         })();
 
-
         setSelected(!!editor.getSelectedShapes().find(({ id }) => id === shape.id));
         setHovered(!shape || editor.getHoveredShapeId() === shape.id);
     }, [setDataUrl, editor, shape, setSelected, setHovered, sourceShape, fullPath])
@@ -51,61 +49,37 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     if (!fullPath) return <p className="bg-red-500">No file attached!</p>;
     if (!dataUrl) return <LoadingIcon className="w-2/3 h-2/3" />;
-    
-    // Show something different for each MIME category
+
+    // Defines a preview of the file based on the mimeType
     const mimeCategory = mimeType?.split('/')[0];
-    const htmlContent = () => {
-        return <FileIcon extension={extension ?? 'unknown'} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)}/>
-        // switch (mimeCategory) {
-        //     case 'image': {               
-        //         if (hovered || selected) {
-        //             if (!selected) { // Shape is ONLY hovered
-        //                 return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none"/>;
-        //             } else { // Shape IS selected
-        //                 // TODO possibly add some sort of image editing functionality
-        //                 return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none" />;
-        //             }
-        //         } else { // Shape is neither hovered nor selected
-        //             return <ImageIcon className="w-2/3 h-2/3" />;
-        //         }
-        //     }
-        //     case 'text': {
-        //         if (hovered || selected) {
-        //             if (!selected) { // Shape is ONLY hovered
-        //                 return <p>{name}</p>;
-        //             } else { // Shape IS selected
-        //                 // TODO possibly add some sort of text editing functionality
-        //                 return <p>{name}</p>;
-        //             }
-        //         } else { // Shape is neither hovered nor selected
-        //             return <TextIcon className="w-2/3 h-2/3"/>;
-        //         }
-        //     }
-        //     case 'audio': {
-        //         if (hovered || selected) { // Shape is either selected or hovered
-        //             return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} />;
-        //         } else { // Shape is neither hovered nor selected
-        //             return <AudioIcon className="w-2/3 h-2/3" />;
-        //         }
-        //     }
-        //     case 'video': {
-        //         if (hovered || selected) { // Shape is either selected or hovered
-        //             return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} />;
-        //         } else { // Shape is neither hovered nor selected
-        //             return <VideoIcon className="w-2/3 h-2/3" />;
-        //         }
-        //     }
-        //     case 'application': {
-        //         return <AppIcon className="w-2/3 h-2/3" />;
-        //     }
-        //     case 'model': {
-        //         return <ModelIcon className="w-2/3 h-2/3" />;
-        //     }
-        //     default: {
-        //         return <p className="bg-orange-500">File cannot be displayed!</p>
-        //     }
-        // }
-    }
+    const hoverContent = (() => {
+        switch (mimeCategory) {
+            case 'image': {
+                return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none" />;
+            }
+            case 'text': {
+                return <TextIcon className="w-2/3 h-2/3" />;
+            }
+            case 'audio': {
+                return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
+                    currentTarget.volume = 0.05;
+                }} />;
+
+            }
+            case 'video': {
+                return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
+                    currentTarget.volume = 0.05;
+                }} />;
+            }
+            case 'model': {
+                return <ModelIcon className="w-2/3 h-2/3" />; // TODO maybe add a nice 3d model viewer if there are any for react
+            }
+            default: {
+                return undefined;
+            }
+        }
+    })();
+
     return <div
         onMouseEnter={() => {
             setHovered(true);
@@ -113,8 +87,18 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         onMouseLeave={() => {
             setHovered(false);
         }}
-        className="w-full h-full flex items-center justify-center"
-    >{htmlContent()}</div>
+        title={name}
+        className="w-full h-full flex items-center justify-center relative"
+    >
+        {   // Shows the files preview content above the file
+            (hovered || data?.state?.effectEnabled) &&
+            !!hoverContent &&
+            <div className="absolute top-0 left-0  -translate-y-full animate-bounce">
+                {hoverContent}
+            </div>
+        }
+        <FileIcon extension={hovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!hovered} />
+    </div>
 
 }
 export default Component;
