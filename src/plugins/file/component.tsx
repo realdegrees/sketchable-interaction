@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { PluginData } from "../base";
-import { commonFilters, useFileSystem } from "use-file-system";
 import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
 import { TLShape, useEditor } from "tldraw";
 import { ShapeMeta } from "@/components/tlwrap";
@@ -17,6 +16,8 @@ import ModelIcon from '~icons/mingcute/cube-3d-line';
 import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop';
 import { fromBlob, toDataUrl } from "@/util/blob";
 import folderPlugin from "@/plugins/folder/plugin";
+import { DefaultExtensionType, FileIcon, defaultStyles } from 'react-file-icon';
+import { unknown } from "zod";
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
 
@@ -26,7 +27,7 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
-    const { mimeType, sourceShape, fullPath, name } = data?.files?.[0] ?? {};
+    const { mimeType, sourceShape, fullPath, name, extension } = data?.files?.[0] ?? {};
 
     const [dataUrl, setDataUrl] = useState<string>();
     const [hovered, setHovered] = useState<boolean>();
@@ -54,55 +55,56 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     // Show something different for each MIME category
     const mimeCategory = mimeType?.split('/')[0];
     const htmlContent = () => {
-        switch (mimeCategory) {
-            case 'image': {               
-                if (hovered || selected) {
-                    if (!selected) { // Shape is ONLY hovered
-                        return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none"/>;
-                    } else { // Shape IS selected
-                        // TODO possibly add some sort of image editing functionality
-                        return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none" />;
-                    }
-                } else { // Shape is neither hovered nor selected
-                    return <ImageIcon className="w-2/3 h-2/3" />;
-                }
-            }
-            case 'text': {
-                if (hovered || selected) {
-                    if (!selected) { // Shape is ONLY hovered
-                        return <p>{name}</p>;
-                    } else { // Shape IS selected
-                        // TODO possibly add some sort of text editing functionality
-                        return <p>{name}</p>;
-                    }
-                } else { // Shape is neither hovered nor selected
-                    return <TextIcon className="w-2/3 h-2/3"/>;
-                }
-            }
-            case 'audio': {
-                if (hovered || selected) { // Shape is either selected or hovered
-                    return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} />;
-                } else { // Shape is neither hovered nor selected
-                    return <AudioIcon className="w-2/3 h-2/3" />;
-                }
-            }
-            case 'video': {
-                if (hovered || selected) { // Shape is either selected or hovered
-                    return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} />;
-                } else { // Shape is neither hovered nor selected
-                    return <VideoIcon className="w-2/3 h-2/3" />;
-                }
-            }
-            case 'application': {
-                return <AppIcon className="w-2/3 h-2/3" />;
-            }
-            case 'model': {
-                return <ModelIcon className="w-2/3 h-2/3" />;
-            }
-            default: {
-                return <p className="bg-orange-500">File cannot be displayed!</p>
-            }
-        }
+        return <FileIcon extension={extension ?? 'unknown'} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)}/>
+        // switch (mimeCategory) {
+        //     case 'image': {               
+        //         if (hovered || selected) {
+        //             if (!selected) { // Shape is ONLY hovered
+        //                 return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none"/>;
+        //             } else { // Shape IS selected
+        //                 // TODO possibly add some sort of image editing functionality
+        //                 return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none" />;
+        //             }
+        //         } else { // Shape is neither hovered nor selected
+        //             return <ImageIcon className="w-2/3 h-2/3" />;
+        //         }
+        //     }
+        //     case 'text': {
+        //         if (hovered || selected) {
+        //             if (!selected) { // Shape is ONLY hovered
+        //                 return <p>{name}</p>;
+        //             } else { // Shape IS selected
+        //                 // TODO possibly add some sort of text editing functionality
+        //                 return <p>{name}</p>;
+        //             }
+        //         } else { // Shape is neither hovered nor selected
+        //             return <TextIcon className="w-2/3 h-2/3"/>;
+        //         }
+        //     }
+        //     case 'audio': {
+        //         if (hovered || selected) { // Shape is either selected or hovered
+        //             return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} />;
+        //         } else { // Shape is neither hovered nor selected
+        //             return <AudioIcon className="w-2/3 h-2/3" />;
+        //         }
+        //     }
+        //     case 'video': {
+        //         if (hovered || selected) { // Shape is either selected or hovered
+        //             return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} />;
+        //         } else { // Shape is neither hovered nor selected
+        //             return <VideoIcon className="w-2/3 h-2/3" />;
+        //         }
+        //     }
+        //     case 'application': {
+        //         return <AppIcon className="w-2/3 h-2/3" />;
+        //     }
+        //     case 'model': {
+        //         return <ModelIcon className="w-2/3 h-2/3" />;
+        //     }
+        //     default: {
+        //         return <p className="bg-orange-500">File cannot be displayed!</p>
+        //     }
+        // }
     }
     return <div
         onMouseEnter={() => {

@@ -11,7 +11,7 @@ type Shape = TLBaseShape<
     {
         w: number,
         h: number,
-        color: TLDefaultColorStyle,
+        color: TLDefaultColorStyle
     }
 >
 
@@ -42,11 +42,12 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
         return (
             <HTMLContainer
                 id={shape.id}
-                className="border border-black relative"
+                className="border relative"
                 style={{
                     pointerEvents: 'all',
-                    backgroundColor: theme[shape.props.color].semi,
-                    color: theme[shape.props.color].solid,
+                    backgroundColor: plugin?.properties.onlyCustomComponent ? 'transparent' : theme[shape.props.color].semi,
+                    border: plugin?.properties.onlyCustomComponent ? 'none' : undefined,
+                    color:  theme[shape.props.color].solid,
                 }}
             >
                 <div className="w-full h-full flex flex-col justify-center items-center m-1/12  overflow-hidden max-h-full">

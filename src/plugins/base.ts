@@ -12,6 +12,7 @@ export const PluginPropsSchema = z.object({
   availableShapes: z.array(z.union([z.string(), z.enum(["rect"])])),
   continousCollision: z.boolean().optional(),
   useableAsTool: z.boolean().default(true),
+  onlyCustomComponent: z.boolean().optional()
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 

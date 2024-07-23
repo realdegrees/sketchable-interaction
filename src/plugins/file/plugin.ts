@@ -27,4 +27,5 @@ export default new Plugin({
   id: "file",
   availableShapes: ["rect"],
   useableAsTool: false,
+  onlyCustomComponent: true
 });
