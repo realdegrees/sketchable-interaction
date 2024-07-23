@@ -29,7 +29,7 @@ export const PluginDataSchema = z.object({
   files: PluginFileSchema.array().optional(),
   state: z
     .object({
-      interactable: z.boolean().default(true),
+      effectEnabled: z.boolean().optional()
     })
     .optional(),
 });
