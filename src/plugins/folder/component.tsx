@@ -92,7 +92,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                         return (
                             <div
                                 key={filePath}
-                                className={`w-12 h-12 rounded-lg m-2  ${detachedFiles.find(({ name }) => name === fileName) ? 'pointer-events-none bg-zinc-700 animate-ping' : 'bg-zinc-500'}`}
+                                className={`w-12 h-12 rounded-lg m-2  ${detachedFiles.find(({ fullPath }) => fullPath === filePath) ? 'pointer-events-none bg-zinc-700 animate-ping' : 'bg-zinc-500'}`}
                                 onPointerDown={(e) => {
                                     e.stopPropagation();
 
