@@ -2,32 +2,57 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-undef */
 import {
+    useCallback,
     useEffect,
     useRef,
-    useState,
-    useCallback,
+    useState
 } from 'react';
+import { useUnmount } from './useUnmount';
 
+// TODO add 'flatten' arg to optionally flatten all subfolders and return all files
 export const useFileSystem = ({
-    pollInterval = 500
+    pollInterval = 500,
+    onChange
 }: {
-    pollInterval: number;
+    pollInterval?: number;
+    onChange?: (previous: {
+        files: FileSystemFileHandle[],
+        directories: FileSystemDirectoryHandle[]
+    }, current: {
+        files: FileSystemFileHandle[],
+        directories: FileSystemDirectoryHandle[]
+    }) => void;
 }) => {
     const directoryHandle = useRef<FileSystemDirectoryHandle | undefined>(undefined);
     const pollingInterval = useRef<NodeJS.Timeout | undefined>(undefined);
+
     const [files, setFiles] = useState<FileSystemFileHandle[]>([]);
+    const filesRef = useRef<FileSystemFileHandle[]>([]);
     const [directories, setDirectories] = useState<FileSystemDirectoryHandle[]>([]);
+    const directoriesRef = useRef<FileSystemDirectoryHandle[]>([]);
+
+    // Synchronize refs with state
+    useEffect(() => {
+        filesRef.current = files;
+        directoriesRef.current = directories;
+    }, [files, directories]);
+
 
     const startPolling = useCallback(() => {
+        console.log(`Started polling: ${directoryHandle.current?.name}`);
+
         // Start watching the directory for changes
-        pollingInterval.current = setInterval(() => {
+        pollingInterval.current = setInterval(async () => {
             try {
                 // Iterate the directoryHandle and gather all subdirectories and files
                 const currentDirectories: FileSystemDirectoryHandle[] = [];
                 const currentFiles: FileSystemFileHandle[] = [];
+                const prevFiles = filesRef.current;
+                const prevDirectories = directoriesRef.current;
 
+                // TODO find a way to run this async iterator in parallel
                 // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/values
-                for (const handle of directoryHandle.current.values()) {
+                for await (const handle of directoryHandle.current.values()) {
                     if (handle instanceof FileSystemDirectoryHandle) {
                         currentDirectories.push(handle);
                     } else if (handle instanceof FileSystemFileHandle) {
@@ -37,23 +62,44 @@ export const useFileSystem = ({
 
                 // TODO possibly add an option to check for deep file content changes
                 // Check if there are any differences in file or directory names compared to the previous poll state
-                const hasFileChanges = files.length === currentFiles.length && files.every(({ name }) => currentFiles.find(({ name: cname }) => name === cname));
-                const hasDirectoryChanges = directories.length === currentDirectories.length && directories.every(({ name }) => currentDirectories.find(({ name: cdname }) => name === cdname));
+                const hasFileChanges = prevFiles.length !== currentFiles.length
+                    || (prevFiles.length === currentFiles.length
+                        && !prevFiles.every(({ name }) => currentFiles.find(({ name: cname }) => name === cname)));
+                const hasDirectoryChanges = prevDirectories.length !== currentDirectories.length
+                    || (prevDirectories.length === currentDirectories.length
+                        && !prevDirectories.every(({ name }) => currentDirectories.find(({ name: cdname }) => name === cdname)));
 
-                // Update state if any changes occured
-                if (hasFileChanges) setFiles(currentFiles);
-                if (hasDirectoryChanges) setDirectories(currentDirectories);
+                if (hasFileChanges || hasDirectoryChanges) {
+                    // Fire onChange event with previous and current values
+                    onChange?.({
+                        files,
+                        directories
+                    }, {
+                        files: currentFiles,
+                        directories: currentDirectories
+                    });
+
+                    // Update state if any changes occured
+                    if (hasFileChanges) setFiles(currentFiles);
+                    if (hasDirectoryChanges) setDirectories(currentDirectories);
+                }
             } catch (e) {
+                console.log(`Error polling: ${directoryHandle.current?.name}`);
+                console.log(e);
+
                 clearInterval(pollingInterval.current);
                 setFiles([]);
                 setDirectories([]);
                 directoryHandle.current = undefined;
             }
         }, pollInterval)
-    }, [files, directories, pollInterval]);
+    }, [directories, files, onChange, pollInterval]);
 
     // Clear the interval when the component is destroyed
-    useEffect(() => () => clearInterval(pollingInterval.current));
+    useUnmount(() => () => {
+        console.log(`Stopping polling: ${directoryHandle.current?.name}`);
+        clearInterval(pollingInterval.current);
+    });
 
     // should be called when the suer wants the directory picker dialogue to show
     const showDirectoryPicker = async () => {
@@ -68,5 +114,11 @@ export const useFileSystem = ({
         if (directoryHandle.current) startPolling();
     };
 
-    return { files, directories, directoryHandle, showDirectoryPicker }
+    return {
+        files,
+        directories,
+        directoryHandle: directoryHandle.current,
+        showDirectoryPicker,
+        isDirectoryPickerSupported: window !== undefined && 'showDirectoryPicker' in window
+    }
 };
