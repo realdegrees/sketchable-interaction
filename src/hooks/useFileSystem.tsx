@@ -96,7 +96,7 @@ export const useFileSystem = ({
     }, [directories, files, onChange, pollInterval]);
 
     // Clear the interval when the component is destroyed
-    useUnmount(() => () => {
+    useUnmount(() => {
         console.log(`Stopping polling: ${directoryHandle.current?.name}`);
         clearInterval(pollingInterval.current);
     });
