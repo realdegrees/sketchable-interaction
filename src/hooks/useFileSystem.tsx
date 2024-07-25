@@ -68,5 +68,5 @@ export const useFileSystem = ({
         if (directoryHandle.current) startPolling();
     };
 
-    return { files, directories, showDirectoryPicker }
+    return { files, directories, directoryHandle, showDirectoryPicker }
 };
