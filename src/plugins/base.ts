@@ -17,8 +17,7 @@ export const PluginPropsSchema = z.object({
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
 export const PluginFileSchema = z.object({
-  mimeType: z.string(),
-  fullPath: z.string(),
+  dir: z.string(),
   extension: z.string(),
   name: z.string(),
   sourceShape: z.custom<TLShapeId>(),

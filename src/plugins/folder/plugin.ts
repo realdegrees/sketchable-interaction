@@ -7,10 +7,12 @@ class Plugin extends BasePlugin {
   private handles: Map<
     TLShapeId,
     {
-      files: Map<string, FileSystemFileHandle>;
+      files: FileSystemFileHandle[];
+      directories: FileSystemDirectoryHandle[];
       directory: FileSystemDirectoryHandle;
     }
   > = new Map();
+
   public async onCollision(
     editor: Editor,
     self: {
@@ -26,7 +28,7 @@ class Plugin extends BasePlugin {
   ): Promise<void> {
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
-    const { sourceShape, fullPath, extension, name } =
+    const { sourceShape, dir, extension, name } =
       colliding.data?.files?.[0] ?? {};
 
     if (sourceShape === self.shape.id) return; // Ignore own fileshapes
@@ -36,10 +38,10 @@ class Plugin extends BasePlugin {
     const collidingDirectoryHandle = sourceShape
       ? this.handles.get(sourceShape)?.directory
       : undefined;
-    const file = fullPath && sourceShape
-      ? await this.handles.get(sourceShape)?.files.get(fullPath)?.getFile()
-      : undefined;
-
+    const file =
+      dir && sourceShape
+        ? await this.handles.get(sourceShape)?.files.find(({name: fname}) => name === fname)?.getFile()
+        : undefined;
 
     if (
       !file ||
@@ -51,7 +53,7 @@ class Plugin extends BasePlugin {
       console.warn("Unable to handle file movement!");
       return;
     }
-    
+
     const newFileHandle = await selfDirectoryHandle.getFileHandle(
       `${name}.${extension}`,
       {
@@ -67,26 +69,56 @@ class Plugin extends BasePlugin {
     editor.deleteShape(colliding.shape.id);
   }
 
-  public getFileHandle(
-    shapeId?: TLShapeId,
-    path?: string
-  ): FileSystemFileHandle | undefined {
-    return this.handles
-      .get(shapeId ?? ("" as TLShapeId))
-      ?.files.get(path ?? "");
+  // Signature for getting the parent directory handle
+  public getHandle(shapeId: TLShapeId): FileSystemDirectoryHandle | undefined;
+  // Signature for getting a subdirectory handle
+  public getHandle(
+    shapeId: TLShapeId,
+    name?: string
+  ): FileSystemDirectoryHandle | undefined;
+  // Signature for getting a file handle
+  public getHandle(
+    shapeId: TLShapeId,
+    name: string | undefined,
+    extension: string | undefined
+  ): FileSystemFileHandle | undefined;
+  // Implementation
+  public getHandle(
+    shapeId: TLShapeId,
+    name?: string,
+    extension?: string
+  ): FileSystemHandle | undefined {
+    console.log(`Searching handles for ${shapeId}`);
+    console.log(this.handles);
+    
+    const { directories, files, directory } =
+      this.handles.get(shapeId ?? ("" as TLShapeId)) ?? {};
+
+
+    if (!name) return directory;
+
+    // merge directories and files and return the  filehandle that matches the arguments
+    return [...(directories ?? []), ...(files ?? [])].find(
+      ({ name: hname }) => {
+        const [handleName, handleExtension] = hname.split('.');
+        return (
+          handleName === name && (!extension || extension === handleExtension)
+        );
+      }
+    );
   }
-  public getDirectoryHandle(
-    shapeId?: TLShapeId
-  ): FileSystemDirectoryHandle | undefined {
-    return this.handles.get(shapeId ?? ("" as TLShapeId))?.directory;
-  }
+
   public registerHandles(
     shapeId: TLShapeId,
-    handles: Map<string, FileSystemFileHandle>,
+    handles: {
+      files: FileSystemFileHandle[];
+      directories: FileSystemDirectoryHandle[];
+    },
     directoryHandle: FileSystemDirectoryHandle
-  ): void {
+  ): void {    
     this.handles.set(shapeId, {
-      files: handles,
+      files: handles.files,
+      directories: handles.directories,
       directory: directoryHandle,
     });
   }

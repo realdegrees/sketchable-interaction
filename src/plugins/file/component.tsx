@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { PluginData } from "../base";
-import LineMdAlertCircleTwotoneLoop from '~icons/line-md/alert-circle-twotone-loop';
 import { TLShape, useEditor } from "tldraw";
 import { ShapeMeta } from "@/components/tlwrap";
 import plugin from "./plugin";
@@ -13,11 +12,13 @@ import AudioIcon from '~icons/material-symbols/audio-file-outline';
 import VideoIcon from '~icons/ph/video';
 import AppIcon from '~icons/tdesign/app';
 import ModelIcon from '~icons/mingcute/cube-3d-line';
-import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop';
+import AlertIcon from '~icons/line-md/alert-circle-twotone-loop';
+import LoadingIcon from '~icons/svg-spinners/90-ring-with-bg';
 import { fromBlob, toDataUrl } from "@/util/blob";
 import folderPlugin from "@/plugins/folder/plugin";
 import { DefaultExtensionType, FileIcon, defaultStyles } from 'react-file-icon';
-import { unknown } from "zod";
+import { lookup } from "mime-types";
+import { getMimeType } from "@/util/getMimeType";
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
 
@@ -27,7 +28,7 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
-    const { mimeType, sourceShape, fullPath, name, extension } = data?.files?.[0] ?? {};
+    const { sourceShape, dir, name, extension } = data?.files?.[0] ?? {};
 
     const [dataUrl, setDataUrl] = useState<string>();
     const [hovered, setHovered] = useState<boolean>();
@@ -36,7 +37,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     const editor = useEditor();
     useEffect(() => {
         (async () => {
-            const fileHandle = folderPlugin.getFileHandle(sourceShape, fullPath);
+            const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
+            
             const file = await fileHandle?.getFile();
             const dataUrl = file ? await toDataUrl(file) : undefined;
             setDataUrl(dataUrl);
@@ -44,18 +46,17 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
         setSelected(!!editor.getSelectedShapes().find(({ id }) => id === shape.id));
         setHovered(!shape || editor.getHoveredShapeId() === shape.id);
-    }, [setDataUrl, editor, shape, setSelected, setHovered, sourceShape, fullPath])
+    }, [setDataUrl, editor, shape, setSelected, setHovered, sourceShape, extension, name])
 
-
-    if (!fullPath) return <p className="bg-red-500">No file attached!</p>;
+    if (!dir || !extension || !name) return <AlertIcon className="w-2/3 h-2/3" />;
     if (!dataUrl) return <LoadingIcon className="w-2/3 h-2/3" />;
 
     // Defines a preview of the file based on the mimeType
-    const mimeCategory = mimeType?.split('/')[0];
+    const mimeCategory = getMimeType(extension)?.split('/')[0];
     const hoverContent = (() => {
         switch (mimeCategory) {
             case 'image': {
-                return <Image src={dataUrl} alt={`${fullPath} image`} width={5000} height={5000} className="pointer-events-none" />;
+                return <Image src={dataUrl} alt={[name, extension].join('.')} width={5000} height={5000} className="pointer-events-none" />;
             }
             case 'text': {
                 return <TextIcon className="w-2/3 h-2/3" />;
@@ -64,7 +65,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                 return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
                     currentTarget.volume = 0.05;
                 }} />;
-
             }
             case 'video': {
                 return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
