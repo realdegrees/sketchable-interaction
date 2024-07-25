@@ -38,6 +38,8 @@ export type PluginData = z.infer<typeof PluginDataSchema>;
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
 export default abstract class BasePlugin {
   public activeShapes: Set<TLShapeId> = new Set();
+  public connectedShapes: Set<TLShapeId> = new Set();
+
   constructor(protected props: PluginProps) {}
 
   public get id(): string {
@@ -52,6 +54,13 @@ export default abstract class BasePlugin {
   }
   public unregisterShape(shapeId: TLShapeId): void {
     this.activeShapes.delete(shapeId);
+  }
+  
+  public connectShape(shapeId: TLShapeId): void {
+    this.connectedShapes.add(shapeId);
+  }
+  public disconnectShape(shapeId: TLShapeId): void {
+    this.connectedShapes.delete(shapeId);
   }
   // ! might need to pass a reference to the editor as well here (probably for all methods)
   public abstract onCollision(
