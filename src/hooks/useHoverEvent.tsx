@@ -1,6 +1,6 @@
 import { unwrapShape } from "@/util/pluginUtil";
 import { useEffect, useRef, useState } from "react";
-import { Editor, TLShape } from "tldraw";
+import { Editor, TLEventInfo, TLShape } from "tldraw";
 
 /**
  * Rerenders the shape whenever it's hovered and notifies the attached plugin about the hover state
@@ -9,14 +9,24 @@ import { Editor, TLShape } from "tldraw";
  */
 export const useHoverEvent = (editor: Editor, shape: TLShape) => {
     const [isHovered, setHovered] = useState<boolean>(false);
+    const isPointerDown = useRef(false);
     const { plugin } = unwrapShape(shape) ?? {};
 
     useEffect(() => {
         if (!plugin) return;
 
-        return editor.store.listen(({ changes: { updated } }) => {
-            const hoveredShape = editor.getHoveredShape();
+        const pointerListener = (e: TLEventInfo) => {
+            if (e.name === 'pointer_down') {
+                isPointerDown.current = true;
+            }
+            else if (e.name === 'pointer_up') {
+                isPointerDown.current = false;
+            }
+        };
+        const changeListener = () => {
+            if(isPointerDown.current) return;
 
+            const hoveredShape = editor.getHoveredShape();
             if (!isHovered && hoveredShape?.id === shape.id) {
                 plugin.onShapeHovered(shape.id, editor);
                 setHovered(true);
@@ -26,6 +36,13 @@ export const useHoverEvent = (editor: Editor, shape: TLShape) => {
                 setHovered(false);
             }
 
-        });
-    }, [editor, plugin, shape.id, isHovered])
+        }
+        editor.on('event', pointerListener);
+        editor.on('change', changeListener);
+
+        return () => {
+            editor.removeListener('event', pointerListener);
+            editor.removeListener('change', changeListener);
+        }
+    }, [editor, plugin, shape.id, isHovered, isPointerDown])
 };
