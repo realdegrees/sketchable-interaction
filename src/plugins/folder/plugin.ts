@@ -29,7 +29,7 @@ class Plugin extends BasePlugin {
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
     const { sourceShape, dir, extension, name } =
-      colliding.data?.files?.[0] ?? {};
+      colliding.data?.attachments?.[0] ?? {};
 
     if (sourceShape === self.shape.id) return; // Ignore own fileshapes
 
@@ -40,7 +40,10 @@ class Plugin extends BasePlugin {
       : undefined;
     const file =
       dir && sourceShape
-        ? await this.handles.get(sourceShape)?.files.find(({name: fname}) => name === fname)?.getFile()
+        ? await this.handles
+            .get(sourceShape)
+            ?.files.find(({ name: fname }) => name === fname)
+            ?.getFile()
         : undefined;
 
     if (
@@ -88,19 +91,15 @@ class Plugin extends BasePlugin {
     name?: string,
     extension?: string
   ): FileSystemHandle | undefined {
-    console.log(`Searching handles for ${shapeId}`);
-    console.log(this.handles);
-    
     const { directories, files, directory } =
       this.handles.get(shapeId ?? ("" as TLShapeId)) ?? {};
-
 
     if (!name) return directory;
 
     // merge directories and files and return the  filehandle that matches the arguments
     return [...(directories ?? []), ...(files ?? [])].find(
       ({ name: hname }) => {
-        const [handleName, handleExtension] = hname.split('.');
+        const [handleName, handleExtension] = hname.split(".");
         return (
           handleName === name && (!extension || extension === handleExtension)
         );
@@ -115,7 +114,7 @@ class Plugin extends BasePlugin {
       directories: FileSystemDirectoryHandle[];
     },
     directoryHandle: FileSystemDirectoryHandle
-  ): void {    
+  ): void {
     this.handles.set(shapeId, {
       files: handles.files,
       directories: handles.directories,

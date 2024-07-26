@@ -28,13 +28,12 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
-    const { sourceShape, dir, name, extension } = data?.files?.[0] ?? {};
+    const { sourceShape, dir, name, extension } = data?.attachments?.[0] ?? {};
 
     const [dataUrl, setDataUrl] = useState<string>();
-    const [hovered, setHovered] = useState<boolean>();
-    const [selected, setSelected] = useState<boolean>();
-
     const editor = useEditor();
+    const isHovered = editor.getHoveredShapeId() === shape.id;
+
     useEffect(() => {
         (async () => {
             const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
@@ -44,9 +43,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             setDataUrl(dataUrl);
         })();
 
-        setSelected(!!editor.getSelectedShapes().find(({ id }) => id === shape.id));
-        setHovered(!shape || editor.getHoveredShapeId() === shape.id);
-    }, [setDataUrl, editor, shape, setSelected, setHovered, sourceShape, extension, name])
+    }, [setDataUrl, editor, shape, sourceShape, extension, name])
 
     if (!dir || !extension || !name) return <AlertIcon className="w-2/3 h-2/3" />;
     if (!dataUrl) return <LoadingIcon className="w-2/3 h-2/3" />;
@@ -81,23 +78,17 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     })();
 
     return <div
-        onMouseEnter={() => {
-            setHovered(true);
-        }}
-        onMouseLeave={() => {
-            setHovered(false);
-        }}
         title={name}
-        className="w-full h-full flex items-center justify-center relative"
+        className="max-w-full max-h-full flex items-center justify-center relative overflow-hidden"
     >
         {   // Shows the files preview content above the file
-            (hovered || data?.state?.effectEnabled) &&
+            (isHovered || data?.state?.effectEnabled) &&
             !!hoverContent &&
             <div className="absolute top-0 left-0  -translate-y-full animate-bounce">
                 {hoverContent}
             </div>
         }
-        <FileIcon extension={hovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!hovered} />
+        <FileIcon extension={isHovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!isHovered} />
     </div>
 
 }

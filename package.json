@@ -21,6 +21,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@iconify-json/ic": "^1.1.17",
     "@iconify-json/line-md": "^1.1.38",
     "@iconify-json/lucide": "^1.1.199",
     "@iconify-json/material-symbols": "^1.1.83",
