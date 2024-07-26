@@ -24,6 +24,9 @@ export const PluginAttachment = z.object({
 });
 export type PluginAttachment = z.infer<typeof PluginAttachment>;
 
+// TODO maybe add some sort of plugindata map where a plugin can save plugin specific data to the shape without modifying the schema
+// something like Map<PluginName, any>
+// typing then just happens by retrieving the data and validating it
 export const PluginDataSchema = z.object({
   attachments: PluginAttachment.array().optional(),
   state: z

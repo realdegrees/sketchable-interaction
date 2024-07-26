@@ -43,7 +43,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         setDetached(detachedFiles);
     }, [editor, shape.id])
 
-    const startInHandle = data?.attachments?.[0].dir ? plugin.getHandle(data.attachments[0].sourceShape, data.attachments[0].dir) : undefined;    
+    const startInHandle = data?.attachments?.[0].dir ? plugin.getHandle(data.attachments[0].sourceShape, data.attachments[0].dir) : undefined;
     const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
         onChange: (previous, current) => {
             console.log('File change');
@@ -89,10 +89,10 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     return <div className="flex justify-center items-center w-full h-full">
         {rootHandle &&
-            <div className="overflow-y-auto w-full max-h-full h-full flex flex-col">
+            <div className="overflow-y-auto w-full h-full flex flex-col">
                 <p className="m-2 font-bold">{rootHandle.name}</p>
                 <hr></hr>
-                <div className="grid grid-cols-5 gap-2 m-1 w-full max-h-full h-full">
+                <div className="grid grid-cols-5 gap-2 m-1 w-full h-full">
                     {[
                         ...directories.map((directoryHandle) => {
                             // TODO use fileHandle to show preview of e.g. image files
@@ -101,7 +101,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                             return (
                                 <div
                                     key={directoryHandle.name}
-                                    className={`w-auto max-h-12 rounded-lg bg-zinc-500 ${isDetached && 'pointer-events-none opacity-20'}`}
+                                    className={`max-w-12 max-h-12 rounded-lg bg-zinc-500 ${isDetached && 'pointer-events-none opacity-20'}`}
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
@@ -121,12 +121,15 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                         console.log('Creating folder shape with meta');
                                         console.log(meta);
 
-                                        const id = ('shape:'+ Date.now() + directoryHandle.name) as TLShapeId;
+                                        const id = ('shape:' + Date.now() + directoryHandle.name) as TLShapeId;
+                                        const { x, y, props } = editor.getShape(shape) ?? { x: e.pageX, y: e.pageY, props: { w: 0 } };
+                                        const w = ('w' in props && props.w) || 0;
+
                                         const dirShape = editor.createShape({
                                             id,
                                             type: 'rect',
-                                            x: shape.x,
-                                            y: shape.y,
+                                            x: x + w,
+                                            y,
                                             meta,
                                             props: {
                                                 w: 200,
@@ -145,7 +148,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
                                     }}
                                 >
-                                    <FolderIcon className="w-full h-full"/>
+                                    <FolderIcon className="w-full h-full" />
                                     <p className="text-center">{directoryHandle.name}</p>
                                 </div>
                             )
@@ -158,7 +161,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                             return (
                                 <div
                                     key={name}
-                                    className={`w-auto max-h-12 ${isDetached && 'pointer-events-none opacity-20'}`}
+                                    className={`max-w-12 max-h-12 ${isDetached && 'pointer-events-none opacity-20'}`}
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
@@ -179,13 +182,15 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                         console.log('Creating file shape with meta');
                                         console.log(meta);
 
-                                        const w = ('w' in shape.props && shape.props.w) || 0;
+                                        const { x, y, props } = editor.getShape(shape) ?? { x: e.pageX, y: e.pageY, props: { w: 0 } };
+                                        const w = ('w' in props && props.w) || 0;
                                         const id = ('shape:' + Date.now() + name) as TLShapeId;
+
                                         const fileShape = editor.createShape({
                                             id,
                                             type: 'rect',
-                                            x: shape.x + w,
-                                            y: shape.y,
+                                            x: x + w,
+                                            y,
                                             meta,
                                             props: {
                                                 w: 100,

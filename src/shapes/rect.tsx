@@ -54,7 +54,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
                     color:  theme[shape.props.color].solid,
                 }}
             >
-                <div className="max-w-full max-h-full flex flex-col justify-center items-center">
+                <div className="w-full h-full flex flex-col justify-center items-center">
                     {/* Add custom component in the shape's context if it exists */}
                     {Component ? < ErrorBoundary fallback={fallback} onError={() => (console.warn(`Unable to load custom component for ${plugin?.properties.id}`))}>
                         <Component data={data} shape={shape} />

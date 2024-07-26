@@ -37,7 +37,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     useEffect(() => {
         (async () => {
             const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
-            
+
             const file = await fileHandle?.getFile();
             const dataUrl = file ? await toDataUrl(file) : undefined;
             setDataUrl(dataUrl);
@@ -79,16 +79,18 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     return <div
         title={name}
-        className="max-w-full max-h-full flex items-center justify-center relative overflow-hidden"
+        className={`flex items-center justify-center relative`}
     >
         {   // Shows the files preview content above the file
             (isHovered || data?.state?.effectEnabled) &&
             !!hoverContent &&
-            <div className="absolute top-0 left-0  -translate-y-full animate-bounce">
+            <div className={`absolute -top-2 left-0 -translate-y-full`}>
                 {hoverContent}
             </div>
         }
-        <FileIcon extension={isHovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!isHovered} />
+        <div className={`${isHovered && 'animate-pulse'}`}>
+            <FileIcon extension={isHovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!isHovered} />
+        </div>
     </div>
 
 }
