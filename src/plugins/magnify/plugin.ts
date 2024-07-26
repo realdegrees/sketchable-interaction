@@ -17,7 +17,7 @@ class Plugin extends BasePlugin {
   ): void {
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     meta.data.state = meta.data.state ?? {};
-    meta.data.state.effectEnabled = true;
+    meta.data.state.activeEffects = ['magnify', ...meta.data.state.activeEffects];
     editor.updateShape({
         ...colliding.shape,
         meta
@@ -37,7 +37,7 @@ class Plugin extends BasePlugin {
   ): void {
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     meta.data.state = meta.data.state ?? {};
-    meta.data.state.effectEnabled = false;
+    meta.data.state.activeEffects = meta.data.state.activeEffects.filter((v) => v !== 'magnify');
     editor.updateShape({
         ...colliding.shape,
         meta

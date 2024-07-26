@@ -1,6 +1,6 @@
 import { Component } from "react";
 import { Editor, TLArrowShape, TLShape, TLShapeId } from "tldraw";
-import z from "zod";
+import z, { TypeOf } from "zod";
 
 // ! TODO: create react component for each plugin that gets loaded in the plugin component and saved to the plugin library so that it can be attached to shapes for custom UI ona  per-plugin basis
 // TODO implement basic functions like deletability
@@ -24,6 +24,10 @@ export const PluginAttachment = z.object({
 });
 export type PluginAttachment = z.infer<typeof PluginAttachment>;
 
+// ! Possible effects that can be attached to plugin data, plugins can decide themselves what to do with it
+export const SIEffectsSchema = z.enum(["magnify", "invert"]);
+export type SIEffects = z.infer<typeof SIEffectsSchema>;
+
 // TODO maybe add some sort of plugindata map where a plugin can save plugin specific data to the shape without modifying the schema
 // something like Map<PluginName, any>
 // typing then just happens by retrieving the data and validating it
@@ -31,9 +35,8 @@ export const PluginDataSchema = z.object({
   attachments: PluginAttachment.array().optional(),
   state: z
     .object({
-      effectEnabled: z.boolean().optional(),
-    })
-    .optional(),
+      activeEffects: z.array(SIEffectsSchema),
+    }),
 });
 export type PluginData = z.infer<typeof PluginDataSchema>;
 export type ShapeDisconnectEvent = (

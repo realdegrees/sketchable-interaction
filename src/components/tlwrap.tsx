@@ -141,7 +141,11 @@ const Tlwrap = () => {
 
                         const meta: ShapeMeta = {
                             props: plugin.properties,
-                            data: {}
+                            data: {
+                                state: {
+                                    activeEffects: []
+                                }
+                            }
                         };
 
                         return meta;

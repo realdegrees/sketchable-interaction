@@ -29,6 +29,7 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     const { sourceShape, dir, name, extension } = data?.attachments?.[0] ?? {};
+    const isEffectEnabled = !!data?.state?.activeEffects.includes('magnify'); // is magnify effect enabled
 
     const [dataUrl, setDataUrl] = useState<string>();
     const editor = useEditor();
@@ -76,7 +77,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             }
         }
     })();
-    const showPreviewContent = data?.state?.effectEnabled;
+    const showPreviewContent = isEffectEnabled;
     return <div
         title={name}
         className={`flex items-center justify-center relative`}
