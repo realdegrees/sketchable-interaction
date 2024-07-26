@@ -33,7 +33,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     const [dataUrl, setDataUrl] = useState<string>();
     const editor = useEditor();
-    const isHovered = editor.getHoveredShapeId() === shape.id;
 
     useEffect(() => {
         (async () => {

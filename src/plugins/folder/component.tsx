@@ -115,7 +115,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                                     name: directoryHandle.name,
                                                     dir: directoryHandle.name,
                                                     sourceShape: shape.id ?? null
-                                                }]
+                                                }],
+                                                state: { activeEffects: [] }
                                             },
                                             props: plugin.properties
                                         };
@@ -176,7 +177,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                                     dir: rootHandle.name,
                                                     extension,
                                                     sourceShape: shape.id ?? null
-                                                }]
+                                                }],
+                                                state: { activeEffects: [] }
                                             },
                                             props: FilePlugin.properties
                                         };
