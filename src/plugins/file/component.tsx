@@ -76,20 +76,20 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             }
         }
     })();
-
+    const showPreviewContent = data?.state?.effectEnabled;
     return <div
         title={name}
         className={`flex items-center justify-center relative`}
     >
         {   // Shows the files preview content above the file
-            (isHovered || data?.state?.effectEnabled) &&
+            showPreviewContent &&
             !!hoverContent &&
             <div className={`absolute -top-2 left-0 -translate-y-full`}>
                 {hoverContent}
             </div>
         }
-        <div className={`${isHovered && 'animate-pulse'}`}>
-            <FileIcon extension={isHovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!isHovered} />
+        <div className={`${showPreviewContent && 'animate-pulse'}`}>
+            <FileIcon extension={showPreviewContent ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!showPreviewContent} />
         </div>
     </div>
 
