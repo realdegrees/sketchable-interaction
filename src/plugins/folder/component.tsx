@@ -81,6 +81,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         </button>
     }
 
+    // TODO instead of registering handles to the folder plugin, register them to the shapes that are created from folders (saved within either folder or file plugin)
     plugin.registerHandles(shape.id, {
         directories,
         files

@@ -53,19 +53,19 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     const hoverContent = (() => {
         switch (mimeCategory) {
             case 'image': {
-                return <Image src={dataUrl} alt={[name, extension].join('.')} width={5000} height={5000} className="pointer-events-none" />;
+                return <Image src={dataUrl} alt={name} width={500} height={500} />;
             }
             case 'text': {
                 return <TextIcon className="w-2/3 h-2/3" />;
             }
             case 'audio': {
                 return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
-                    currentTarget.volume = 0.05;
+                    currentTarget.volume = 0.03;
                 }} />;
             }
             case 'video': {
                 return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
-                    currentTarget.volume = 0.05;
+                    currentTarget.volume = 0.03;
                 }} />;
             }
             case 'model': {

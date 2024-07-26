@@ -2,7 +2,13 @@ import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 
 class Plugin extends BasePlugin {
-  public onCollision(
+  public onCollisionEnd(
+    editor: Editor,
+    self: { shape: TLShape; data?: PluginData },
+    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData },
+    source: "user" | "plugin"
+  ): void {}
+  public onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
@@ -13,12 +19,8 @@ class Plugin extends BasePlugin {
       data?: PluginData;
     },
     source: "user" | "plugin"
-  ): void {
-    
-  }
-  public onCreate(editor: Editor, shape: TLShape): void {
-    
-  }
+  ): void {}
+  public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(shapeId: string, data?: PluginData): void {
     // get folder plugin instance of the sourceshape prop of data
     // ? in base.ts create a system to reference "connected" shapes (e.g. files to folders)
@@ -31,5 +33,5 @@ export default new Plugin({
   id: "file",
   availableShapes: ["rect"],
   useableAsTool: false,
-  onlyCustomComponent: true
+  onlyCustomComponent: true,
 });

@@ -1,5 +1,6 @@
 import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
+import { ShapeMeta } from "@/components/tlwrap";
 
 class Plugin extends BasePlugin {
   public onCollisionStart(
@@ -14,8 +15,13 @@ class Plugin extends BasePlugin {
     },
     source: "user" | "plugin"
   ): void {
-    // ? Just delete the shape, everything else like file deletion will be handled by the plugin associated with the deleted shape which receives an onDelete event
-    editor.deleteShape(colliding.shape);
+    const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
+    meta.data.state = meta.data.state ?? {};
+    meta.data.state.effectEnabled = true;
+    editor.updateShape({
+        ...colliding.shape,
+        meta
+    })
   }
   public onCollisionEnd(
     editor: Editor,
@@ -28,13 +34,21 @@ class Plugin extends BasePlugin {
       data?: PluginData;
     },
     source: "user" | "plugin"
-  ): void {}
+  ): void {
+    const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
+    meta.data.state = meta.data.state ?? {};
+    meta.data.state.effectEnabled = false;
+    editor.updateShape({
+        ...colliding.shape,
+        meta
+    })
+  }
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(shapeId: string, data?: PluginData): void {}
 }
 
 export default new Plugin({
-  id: "trash",
+  id: "magnify",
   availableShapes: ["rect"],
   useableAsTool: true,
 });

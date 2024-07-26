@@ -4,6 +4,12 @@ import { readFile } from "fs/promises";
 
 // TODO add code to receive and store handles for each existing
 class Plugin extends BasePlugin {
+  public onCollisionEnd(
+    editor: Editor,
+    self: { shape: TLShape; data?: PluginData },
+    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData },
+    source: "user" | "plugin"
+  ): void {}
   private handles: Map<
     TLShapeId,
     {
@@ -13,7 +19,7 @@ class Plugin extends BasePlugin {
     }
   > = new Map();
 
-  public async onCollision(
+  public async onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
