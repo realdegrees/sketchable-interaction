@@ -114,7 +114,20 @@ export default abstract class BasePlugin {
     this.connectedShapes.delete(sourceShapeId);
   }
   // ! might need to pass a reference to the editor as well here (probably for all methods)
-  public abstract onCollision(
+  public abstract onCollisionStart(
+    editor: Editor,
+    self: {
+      shape: TLShape;
+      data?: PluginData;
+    },
+    colliding: {
+      shape: TLShape;
+      plugin: BasePlugin;
+      data?: PluginData;
+    },
+    source: "user" | "plugin"
+  ): void;
+  public abstract onCollisionEnd(
     editor: Editor,
     self: {
       shape: TLShape;

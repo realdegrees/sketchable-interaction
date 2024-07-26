@@ -10,7 +10,7 @@ import { z } from "zod";
 import { unwrapShape } from "@/util/pluginUtil";
 import { RectShapeTool } from "./tools";
 import { uiOverrides } from "./uiOverrides";
-import { useRef } from "react";
+import { MutableRefObject, useRef } from "react";
 
 export const ShapeMetaSchema = z.object({
     props: PluginPropsSchema,
@@ -18,7 +18,7 @@ export const ShapeMetaSchema = z.object({
 });
 export type ShapeMeta = z.infer<typeof ShapeMetaSchema>;
 
-const handleCollision = (editor: Editor) => {
+const handleCollision = (editor: Editor, collidingShapesRef: MutableRefObject<Map<TLShapeId, Set<TLShapeId>>>) => {
     // Retrieve all shapes from the current page
     const allShapes = editor.getCurrentPageShapesSorted();
 
@@ -47,30 +47,60 @@ const handleCollision = (editor: Editor) => {
         if (!unwrappedShape) {
             return;
         }
+        
+        const previousCollisions = collidingShapesRef.current.get(shape.id) ?? new Set<TLShapeId>();
 
-        shapesinViewport.forEach((compareShape) => {
-            if (shape === compareShape) return;
+        // Sort shapes into colliding and non-colliding
+        const colliding: TLShape[] = [];
+        const notColliding: TLShape[] = [];
+        for (const compareShape of shapesinViewport) {
+            if (shape === compareShape) continue;
 
             const compareShapeBounds = editor.getShapePageBounds(compareShape);
             if (shapeBounds && compareShapeBounds?.collides(shapeBounds)) {
-                // Unwrap compare shape
-                const unwrappedCompareShape = unwrapShape(compareShape);
-                if (!unwrappedCompareShape) {
-                    return;
-                }
-
-                // Let the plugin handle the collision
-                unwrappedShape.plugin.onCollision(editor, {
-                    data: unwrappedShape.data,
-                    shape
-                }, {
-                    data: unwrappedCompareShape.data,
-                    plugin: unwrappedCompareShape.plugin,
-                    shape: compareShape
-                }, 'user');
-
-                // TODO if the shape has a conveyor belt plugin meta tag then give the colliding shape a corresponding meta tag that indicates it's currently being moved. These items can then be filtered in store events to reduce performance impact
+                colliding.push(compareShape);
+            } else {
+                notColliding.push(compareShape);
             }
+        }
+
+        // Handle all collision start events
+        colliding.filter(({ id }) => !previousCollisions.has(id)).forEach((enteringShape) => {
+            const unwrappedEnteringShape = unwrapShape(enteringShape);
+            if (!unwrappedEnteringShape) {
+                return;
+            }
+            previousCollisions.add(enteringShape.id)
+            collidingShapesRef.current.set(shape.id, previousCollisions);
+            // Let the plugin handle the collision
+            unwrappedShape.plugin.onCollisionStart(editor, {
+                data: unwrappedShape.data,
+                shape
+            }, {
+                data: unwrappedEnteringShape.data,
+                plugin: unwrappedEnteringShape.plugin,
+                shape: enteringShape
+            }, 'user');
+
+            // TODO if the shape has a conveyor belt plugin meta tag then give the colliding shape a corresponding meta tag that indicates it's currently being moved. These items can then be filtered in store events to reduce performance impact
+        })
+
+        // Handle all collision end events
+        notColliding.filter(({id}) => previousCollisions.has(id)).forEach((leavingShape) => {
+            const unwrappedLeavingShape = unwrapShape(leavingShape);
+            if (!unwrappedLeavingShape) {
+                return;
+            }
+            previousCollisions.delete(leavingShape.id);
+            collidingShapesRef.current.set(shape.id, previousCollisions);
+            unwrappedShape.plugin.onCollisionEnd(editor, {
+                data: unwrappedShape.data,
+                shape
+            }, {
+                data: unwrappedLeavingShape.data,
+                plugin: unwrappedLeavingShape.plugin,
+                shape: leavingShape
+            }, 'user');
         })
     })
 }
@@ -79,6 +109,9 @@ const Tlwrap = () => {
         id: TLShapeId,
         plugin: BasePlugin
     } | undefined>(undefined);
+
+    const collidingShapesRef = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
+
     return (
         <div className="fixed inset-0">
             <Tldraw
@@ -116,7 +149,7 @@ const Tlwrap = () => {
 
                     /* https://tldraw.dev/examples/editor-api/store-events */
                     editor.store.listen(({ changes: { updated, removed, added } }) => {
-                        handleCollision(editor); // ! Might be too much of a performance hit here (move to pointer up if so)
+                        handleCollision(editor, collidingShapesRef); // ! Might be too much of a performance hit here (move to pointer up if so)
 
                         // Updated
                         for (const [, { typeName, id }] of Object.values(updated)) {
@@ -125,7 +158,7 @@ const Tlwrap = () => {
 
                             switch (shape.type) {
                                 // Delete when the anchors of a locked arrow change to non-binding
-                                case 'arrow': {                            
+                                case 'arrow': {
                                     const { isLocked, props } = shape as TLArrowShape;
                                     const [SType, EType] = [props.start.type, props.end.type];
                                     if (isLocked && (SType !== 'binding' || EType !== 'binding')) {
