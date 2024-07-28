@@ -33,6 +33,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     const [dataUrl, setDataUrl] = useState<string>();
     const editor = useEditor();
+    const isHovered = editor.getHoveredShapeId() === shape.id;
 
     useEffect(() => {
         (async () => {
@@ -50,7 +51,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     // Defines a preview of the file based on the mimeType
     const mimeCategory = getMimeType(extension)?.split('/')[0];
-    const hoverContent = (() => {
+    const previewContent = (() => {
         switch (mimeCategory) {
             case 'image': {
                 return <Image src={dataUrl} alt={name} width={500} height={500} />;
@@ -83,13 +84,13 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     >
         {   // Shows the files preview content above the file
             showPreviewContent &&
-            !!hoverContent &&
+            !!previewContent &&
             <div className={`absolute -top-2 left-0 -translate-y-full`}>
-                {hoverContent}
+                {previewContent}
             </div>
         }
         <div className={`${showPreviewContent && 'animate-pulse'}`}>
-            <FileIcon extension={showPreviewContent ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!showPreviewContent} />
+            <FileIcon extension={showPreviewContent || isHovered ? name : (extension ?? 'unknown')} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} fold={!showPreviewContent} />
         </div>
     </div>
 
