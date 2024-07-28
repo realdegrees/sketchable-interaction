@@ -176,12 +176,17 @@ const Tlwrap = () => {
                                 case 'arrow': {
                                     const { isLocked, props } = shape as TLArrowShape;
                                     const [SType, EType] = [props.start.type, props.end.type];
-                                    if (isLocked && (SType !== 'binding' || EType !== 'binding')) {
-                                        editor.updateShape({
-                                            ...shape,
-                                            isLocked: false
-                                        }).deleteShape(shape);
+                                    if (SType !== 'binding' || EType !== 'binding'){
+                                        if (isLocked) {
+                                            editor.updateShape({
+                                                ...shape,
+                                                isLocked: false
+                                            }).deleteShape(shape);
+                                        }else {
+                                            editor.sendToBack([shape]);
+                                        }
                                     }
+                                  
                                     break;
                                 }
                                 default: {
