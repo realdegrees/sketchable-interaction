@@ -96,8 +96,8 @@ const Plugin = ({ name }: { name: string }) => {
         <div
             id={`plugin-${id}`}
             title={label}
-            className={`flex justify-center items-center w-10 h-10 overflow-hidden hover:brightness-125 m-1 rounded-xl bg-zinc-700 border-white
-                ${usePluginStore.getState().selected === pluginProps.id ? 'brightness-125 border' : ''}`}
+            className={`flex justify-center items-center w-10 h-10 overflow-hidden m-1 rounded-lg bg-tldraw-tool-bg
+                ${usePluginStore.getState().selected === pluginProps.id ? 'bg-tldraw-tool-selected' : 'hover:brightness-125'}`}
             onClick={() => setSelected(id)}
         >
             {pluginIcon ?
