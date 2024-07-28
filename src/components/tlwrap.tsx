@@ -11,6 +11,7 @@ import { unwrapShape } from "@/util/pluginUtil";
 import { RectShapeTool } from "./tools";
 import { uiOverrides } from "./uiOverrides";
 import { MutableRefObject, useRef } from "react";
+import { useTldrawDarkModeObserver } from "@/hooks/useTldrawDarkmodeObserver";
 
 export const ShapeMetaSchema = z.object({
     props: PluginPropsSchema,
@@ -47,7 +48,7 @@ const handleCollision = (editor: Editor, collidingShapesRef: MutableRefObject<Ma
         if (!unwrappedShape) {
             return;
         }
-        
+
         const previousCollisions = collidingShapesRef.current.get(shape.id) ?? new Set<TLShapeId>();
 
         // Sort shapes into colliding and non-colliding
@@ -86,7 +87,7 @@ const handleCollision = (editor: Editor, collidingShapesRef: MutableRefObject<Ma
         })
 
         // Handle all collision end events
-        notColliding.filter(({id}) => previousCollisions.has(id)).forEach((leavingShape) => {
+        notColliding.filter(({ id }) => previousCollisions.has(id)).forEach((leavingShape) => {
             const unwrappedLeavingShape = unwrapShape(leavingShape);
             if (!unwrappedLeavingShape) {
                 return;
@@ -105,6 +106,13 @@ const handleCollision = (editor: Editor, collidingShapesRef: MutableRefObject<Ma
     })
 }
 const Tlwrap = () => {
+    const wrapperElRef = useRef<HTMLDivElement>(null);
+    const { onTldrawMount } = useTldrawDarkModeObserver(wrapperElRef);
+
+
+
+
+
     const hoveredShapeRef = useRef<{
         id: TLShapeId,
         plugin: BasePlugin
@@ -113,8 +121,9 @@ const Tlwrap = () => {
     const collidingShapesRef = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
 
     return (
-        <div className="fixed inset-0">
+        <div className="fixed inset-0" ref={wrapperElRef}>
             <Tldraw
+                inferDarkMode
                 shapeUtils={[RectShapeUtil]} // TODO Add toolbar buttons for shapes
                 tools={[RectShapeTool]}
                 overrides={uiOverrides}
@@ -123,6 +132,8 @@ const Tlwrap = () => {
                     // TODO override color/shape component as well to remove several options
                 }}
                 onMount={(editor) => {
+                    onTldrawMount();
+
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                         Also inform the plugin that a shape has been created
                         https://tldraw.dev/docs/shapes#Meta-information   */
