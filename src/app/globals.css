@@ -4,6 +4,17 @@
 
 @import url("tldraw/tldraw.css");
 
+@layer colors {
+	:root {
+		--tldraw-tool-selected: "#4387f4",
+    --tldraw-tool-bg: "#202025",
+	}
+	:root[class~='dark'] {
+		--tldraw-tool-selected: "#4387f4",
+    --tldraw-tool-bg: "#fcfcfc",
+	}
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;

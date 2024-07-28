@@ -4,9 +4,14 @@ const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   mode: "jit",
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "tldraw-tool-selected": "var(--tldraw-tool-selected)",
+        "tldraw-tool-bg": "var(--tldraw-tool-bg)",
+      },
+    },
   },
   plugins: [],
-  safelist: [  ],
+  safelist: [],
 };
 export default config;
