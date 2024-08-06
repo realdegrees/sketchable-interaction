@@ -27,7 +27,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
 
 
     // Retrieve all shapes from the current page
-    const allShapes = editor.getCurrentPageShapesSorted().filter(({type, opacity}) => type !== 'arrow' && opacity > 0);
+    const allShapes = editor.getCurrentPageShapesSorted().filter(({ type, opacity }) => type !== 'arrow' && opacity > 0);
     const collisionsWithCompareShape = collisionTable.get(compareShape.id) ?? new Set<TLShapeId>();
     const compareShapeBounds = editor.getShapePageBounds(compareShape);
 
@@ -48,7 +48,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
 
         const isColliding = compareShapeBounds && shapeBounds?.collides(compareShapeBounds);
         const wasColliding = collisionsWithCompareShape.has(shape.id) || collisionsWithShape.has(compareShape.id);
-        
+
         // Don't do anything if the shapes were already colliding and still are colliding
         if (wasColliding && isColliding) return;
         // Same if they were not colliding and still don't
@@ -177,7 +177,7 @@ const Tlwrap = () => {
                             const shapeResized = 'width' in from.props && 'width' in to.props && from.props.width !== to.props.width
                                 || 'height' in from.props && 'height' in to.props && from.props.height !== to.props.height;
 
-                            if (shapeMoved || shapeResized) {                                
+                            if (shapeMoved || shapeResized) {
                                 // If a shape's position is updated recheck collision state
                                 handleCollision(editor, shape, collisionTable.current); // ! Might be too much of a performance hit here (move to pointer up if so)
                             }
@@ -188,15 +188,15 @@ const Tlwrap = () => {
                                 case 'arrow': {
                                     const { isLocked, props } = shape as TLArrowShape;
                                     const [SType, EType] = [props.start.type, props.end.type];
+
+                                    if (!isLocked) break; // Don't meddle with unlocked arrows as they might be regular plugin shapes
+
+                                    editor.sendToBack([shape]);
                                     if (SType !== 'binding' || EType !== 'binding') {
-                                        if (isLocked) {
-                                            editor.updateShape({
-                                                ...shape,
-                                                isLocked: false
-                                            }).deleteShape(shape);
-                                        } else {
-                                            editor.sendToBack([shape]);
-                                        }
+                                        editor.updateShape({
+                                            ...shape,
+                                            isLocked: false
+                                        }).deleteShape(shape);
                                     }
 
                                     break;
