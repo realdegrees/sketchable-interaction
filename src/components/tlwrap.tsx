@@ -20,7 +20,6 @@ export const ShapeMetaSchema = z.object({
 export type ShapeMeta = z.infer<typeof ShapeMetaSchema>;
 
 const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: Map<TLShapeId, Set<TLShapeId>>) => {
-
     // Unwrap shape
     const compareShapePluginStore = unwrapShape(compareShape);
     if (!compareShapePluginStore) return;
@@ -222,6 +221,8 @@ const Tlwrap = () => {
                         for (const { id, meta, typeName } of Object.values(removed)) {
                             if (typeName !== 'shape') continue;
 
+                            handleCollision(editor, { id, meta } as TLShape, collisionTable.current);
+                            
                             // Get connected arrows, unlock them, delete them
                             const arrows = editor.getArrowsBoundTo(id).map(({ arrowId }) => arrowId);
                             console.log(arrows);
