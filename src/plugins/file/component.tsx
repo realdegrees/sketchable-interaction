@@ -28,8 +28,8 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
-    const { sourceShape, dir, name, extension } = data?.attachments?.[0] ?? {};
-    const isEffectEnabled = !!data?.state?.activeEffects.includes('magnify'); // is magnify effect enabled
+    const { sourceShape, dir, name, extension } = data?.attachments?.[0] ?? {};    
+    const isEffectEnabled = data?.state?.activeEffects?.includes('magnify') ?? false;
 
     const [dataUrl, setDataUrl] = useState<string>();
     const editor = useEditor();
