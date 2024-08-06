@@ -8,7 +8,7 @@ import plugin from "./plugin";
 import FilePlugin from "@/plugins/file/plugin";
 import { unwrapShape } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
-import FolderIcon from '~icons/ic/twotone-folder';
+import FolderIcon from '~icons/ic/twotone-folder.jsx';
 
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
