@@ -145,7 +145,7 @@ const Tlwrap = () => {
                             console.warn('Unable to get current plugin info during shape creation!');
                             return shape.meta;
                         }
-                        if (Object.keys(shape.meta).length > 0) {
+                        if (Object.keys(shape.meta).length > 0 || shape.type === 'arrow') {
                             return shape.meta;
                         }
 
