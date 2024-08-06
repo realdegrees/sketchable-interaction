@@ -19,7 +19,7 @@ export const ShapeMetaSchema = z.object({
 });
 export type ShapeMeta = z.infer<typeof ShapeMetaSchema>;
 
-const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: MutableRefObject<Map<TLShapeId, Set<TLShapeId>>>) => {
+const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: Map<TLShapeId, Set<TLShapeId>>) => {
 
     // Unwrap shape
     const compareShapePluginStore = unwrapShape(compareShape);
@@ -28,7 +28,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
 
     // Retrieve all shapes from the current page
     const allShapes = editor.getCurrentPageShapesSorted().filter(({type, opacity}) => type !== 'arrow' && opacity > 0);
-    const collisionsWithCompareShape = collisionTable.current.get(compareShape.id) ?? new Set<TLShapeId>();
+    const collisionsWithCompareShape = collisionTable.get(compareShape.id) ?? new Set<TLShapeId>();
     const compareShapeBounds = editor.getShapePageBounds(compareShape);
 
     // ! find a way to reduce the complexity of this operation, find literature on runtime complexity in collision detection
@@ -43,7 +43,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
         const shapePluginStore = unwrapShape(shape);
         if (!shapePluginStore) return;
 
-        const collisionsWithShape = collisionTable.current.get(shape.id) ?? new Set<TLShapeId>();
+        const collisionsWithShape = collisionTable.get(shape.id) ?? new Set<TLShapeId>();
         const shapeBounds = editor.getShapePageBounds(shape);
 
         const isColliding = compareShapeBounds && shapeBounds?.collides(compareShapeBounds);
@@ -102,8 +102,8 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
         }
 
         // Updates the collisiontable
-        collisionTable.current.set(shape.id, collisionsWithShape);
-        collisionTable.current.set(compareShape.id, collisionsWithCompareShape);
+        collisionTable.set(shape.id, collisionsWithShape);
+        collisionTable.set(compareShape.id, collisionsWithCompareShape);
     })
 }
 const Tlwrap = () => {
@@ -179,7 +179,7 @@ const Tlwrap = () => {
 
                             if (shapeMoved || shapeResized) {                                
                                 // If a shape's position is updated recheck collision state
-                                handleCollision(editor, shape, collisionTable); // ! Might be too much of a performance hit here (move to pointer up if so)
+                                handleCollision(editor, shape, collisionTable.current); // ! Might be too much of a performance hit here (move to pointer up if so)
                             }
 
 
