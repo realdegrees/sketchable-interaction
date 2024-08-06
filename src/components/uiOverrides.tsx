@@ -15,6 +15,15 @@ export const uiOverrides: TLUiOverrides = {
                 editor.setCurrentTool('rect')
             },
         }
+        tools.conveyor = {
+            id: 'conveyor',
+            icon: 'tool-arrow',
+            label: 'Conveyor Belt',
+            kbd: 'c',
+            onSelect: () => {
+                editor.setCurrentTool('conveyor')
+            },
+        }
         return tools
     },
 }

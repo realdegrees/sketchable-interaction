@@ -8,7 +8,7 @@ import { setTimeout } from "timers";
 import BasePlugin, { PluginDataSchema, PluginPropsSchema } from "@/plugins/base";
 import { z } from "zod";
 import { unwrapShape } from "@/util/pluginUtil";
-import { RectShapeTool } from "./tools";
+import { ConveyorShapeTool, RectShapeTool } from "./tools";
 import { uiOverrides } from "./uiOverrides";
 import { MutableRefObject, useRef } from "react";
 import { useTldrawDarkModeObserver } from "@/hooks/useTldrawDarkmodeObserver";
@@ -125,7 +125,7 @@ const Tlwrap = () => {
             <Tldraw
                 inferDarkMode
                 shapeUtils={[RectShapeUtil]} // TODO Add toolbar buttons for shapes
-                tools={[RectShapeTool]}
+                tools={[RectShapeTool, ConveyorShapeTool]}
                 overrides={uiOverrides}
                 components={{
                     Toolbar
@@ -145,7 +145,7 @@ const Tlwrap = () => {
                             console.warn('Unable to get current plugin info during shape creation!');
                             return shape.meta;
                         }
-                        if (Object.keys(shape.meta).length > 0 || shape.type === 'arrow') {
+                        if (Object.keys(shape.meta).length > 0) {
                             return shape.meta;
                         }
 
@@ -222,7 +222,7 @@ const Tlwrap = () => {
                             if (typeName !== 'shape') continue;
 
                             handleCollision(editor, { id, meta } as TLShape, collisionTable.current);
-                            
+
                             // Get connected arrows, unlock them, delete them
                             const arrows = editor.getArrowsBoundTo(id).map(({ arrowId }) => arrowId);
                             console.log(arrows);

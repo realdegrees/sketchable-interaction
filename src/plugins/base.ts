@@ -34,10 +34,9 @@ export type SIEffects = z.infer<typeof SIEffectsSchema>;
 // typing then just happens by retrieving the data and validating it
 export const PluginDataSchema = z.object({
   attachments: PluginAttachment.array().optional(),
-  state: z
-    .object({
-      activeEffects: z.array(SIEffectsSchema),
-    }),
+  state: z.object({
+    activeEffects: z.array(SIEffectsSchema),
+  }),
 });
 export type PluginData = z.infer<typeof PluginDataSchema>;
 export type ShapeDisconnectEvent = (
@@ -161,7 +160,8 @@ export default abstract class BasePlugin {
     const arrows = editor
       .getArrowsBoundTo(shapeId)
       .map(({ arrowId }) => editor.getShape(arrowId))
-      .filter((arrow): arrow is TLArrowShape => !!arrow);
+      .filter((arrow): arrow is TLArrowShape => !!arrow)
+      .filter(({ isLocked }) => isLocked);
 
     editor.updateShapes(
       arrows.map((arrow) => {

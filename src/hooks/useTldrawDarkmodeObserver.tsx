@@ -14,7 +14,6 @@ export const useTldrawDarkModeObserver = (parentRef: RefObject<HTMLDivElement>) 
                 root.classList.add('dark') :
                 root.classList.remove('dark');
         });
-        console.log(tldrawRoot);
 
         observerRef.current.observe(tldrawRoot, { attributes: true })
     }
