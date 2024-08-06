@@ -9,8 +9,6 @@ export const useTldrawDarkModeObserver = (parentRef: RefObject<HTMLDivElement>) 
 
         if (!tldrawRoot) return;
         observerRef.current = new MutationObserver(() => {
-            console.log('Changing dark mode');
-
             const darkMode = tldrawRoot.getAttribute('data-color-mode') === 'dark';
             darkMode ?
                 root.classList.add('dark') :
