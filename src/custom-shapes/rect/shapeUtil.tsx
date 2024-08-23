@@ -3,11 +3,10 @@
 import { useHoverEvent } from "@/hooks/useHoverEvent";
 import { unwrapShape } from "@/util/pluginUtil";
 import Image from "next/image";
-import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { TLBaseShape, TLDefaultColorStyle, Geometry2d, Rectangle2d, HTMLContainer, getDefaultColorTheme, BaseBoxShapeUtil, useEditor } from "tldraw";
 
-type Shape = TLBaseShape<
+type CustomRectShape = TLBaseShape<
     'rect',
     {
         w: number,
@@ -16,24 +15,24 @@ type Shape = TLBaseShape<
     }
 >
 
-export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
+export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
     static override type = 'rect' as const;
 
-    getDefaultProps(): Shape['props'] {
+    getDefaultProps(): CustomRectShape['props'] {
         return {
             w: 200,
             h: 200,
             color: 'black'
         }
     }
-    getGeometry(shape: Shape): Geometry2d {
+    getGeometry(shape: CustomRectShape): Geometry2d {
         return new Rectangle2d({
             width: shape.props.w,
             height: shape.props.h,
             isFilled: true,
         })
     }
-    component(shape: Shape) {
+    component(shape: CustomRectShape) {        
         const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() })
 
         const { plugin, Component, icon, data } = unwrapShape(shape) ?? {};
@@ -51,7 +50,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
                     pointerEvents: 'all',
                     backgroundColor: plugin?.properties.onlyCustomComponent ? 'transparent' : theme[shape.props.color].semi,
                     border: plugin?.properties.onlyCustomComponent ? 'none' : undefined,
-                    color:  theme[shape.props.color].solid,
+                    color: theme[shape.props.color].solid,
                 }}
             >
                 <div className="w-full h-full flex flex-col justify-center items-center">
@@ -66,7 +65,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<Shape> {
             </HTMLContainer >
         )
     }
-    indicator(shape: Shape) {
+    indicator(shape: CustomRectShape) {
         return <rect width={shape.props.w} height={shape.props.h} />
     }
 

@@ -5,8 +5,7 @@ class Plugin extends BasePlugin {
   public onCollisionEnd(
     editor: Editor,
     self: { shape: TLShape; data?: PluginData },
-    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData },
-    source: "user" | "plugin"
+    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData }
   ): void {}
   public onCollisionStart(
     editor: Editor,
@@ -17,8 +16,7 @@ class Plugin extends BasePlugin {
     colliding: {
       shape: TLShape;
       data?: PluginData;
-    },
-    source: "user" | "plugin"
+    }
   ): void {}
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(shapeId: string, data?: PluginData): void {
@@ -34,4 +32,6 @@ export default new Plugin({
   availableShapes: ["rect"],
   useableAsTool: false,
   onlyCustomComponent: true,
+  moveable: true,
+  deletable: true
 });

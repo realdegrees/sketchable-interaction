@@ -7,8 +7,8 @@ import { StaticImport } from "next/dist/shared/lib/get-img-props";
 export const unwrapShape = (
   shape?: Partial<TLShape> & { meta: JsonObject }
 ): (PluginStore & { data?: PluginData }) | undefined => {
-  if(!shape) return undefined;
-  
+  if (!shape) return undefined;
+
   const { getPlugin } = usePluginStore.getState();
 
   const { data, props } = ShapeMetaSchema.safeParse(shape?.meta).data ?? {};
@@ -16,9 +16,9 @@ export const unwrapShape = (
   const { plugin, Component, icon } = getPlugin(props?.id) ?? {};
 
   if (!plugin) {
-    console.error(
-      `Unable to find attached plugin\nShape: ${shape?.id}`
-    );
+    // console.error(
+    //   `Unable to find attached plugin\nShape: ${shape?.id}`
+    // );
     return;
   }
 
@@ -28,4 +28,10 @@ export const unwrapShape = (
     data,
     icon,
   };
+};
+
+export const isPluginShape: (
+  shape?: Partial<TLShape> & { meta: JsonObject }
+) => boolean = (shape) => {
+  return !!unwrapShape(shape);
 };

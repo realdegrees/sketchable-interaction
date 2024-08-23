@@ -1,17 +1,20 @@
 'use client'
 
-import { PluginStore, usePluginStore } from "@/stores/plugin";
-import { Editor, TLArrowShape, Tldraw, TLDrawShape, TLShape, TLShapeId } from "tldraw";
+import { PluginStore, PluginStoreData, usePluginStore } from "@/stores/plugin";
+import { Editor, TLArrowShape, Tldraw, TLShape, TLShapeId, TLUnknownShape } from "tldraw";
 import Toolbar from "./toolbar";
-import RectShapeUtil from "@/shapes/rect";
-import { setTimeout } from "timers";
-import BasePlugin, { PluginDataSchema, PluginPropsSchema } from "@/plugins/base";
+import RectShapeUtil from "@/custom-shapes/rect/shapeUtil";
+import ConveyorShapeUtil from "@/custom-shapes/conveyor/shapeUtil";
+import RectShapeTool from "@/custom-shapes/rect/tool";
+import ConveyorShapeTool from "@/custom-shapes/conveyor/tool";
+import BasePlugin, { PluginData, PluginDataSchema, PluginPropsSchema } from "@/plugins/base";
 import { z } from "zod";
 import { unwrapShape } from "@/util/pluginUtil";
-import { ConveyorShapeTool, RectShapeTool } from "./tools";
-import { uiOverrides } from "./uiOverrides";
-import { MutableRefObject, useRef } from "react";
+import { overrides } from "./overrides";
+import { useEffect, useRef } from "react";
 import { useTldrawDarkModeObserver } from "@/hooks/useTldrawDarkmodeObserver";
+import { RectOverride } from "@/custom-shapes/rect/override";
+import { ConveyorOverride } from "@/custom-shapes/conveyor/override";
 
 export const ShapeMetaSchema = z.object({
     props: PluginPropsSchema,
@@ -25,21 +28,27 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
     if (!compareShapePluginStore) return;
 
 
-    // Retrieve all shapes from the current page
-    const allShapes = editor.getCurrentPageShapesSorted().filter(({ type, opacity }) => type !== 'arrow' && opacity > 0);
+
+    // Retrieve all shapes from the current page (filter those without plugins)
+    const allShapes: [TLShape, (PluginStore & {
+        data?: PluginData;
+    }) | undefined][] = editor.getCurrentPageShapesSorted()
+        .map((shape) => [shape, unwrapShape(shape)])
+        .filter((f): f is [TLShape, (PluginStore & {
+            data?: PluginData;
+        })] => !!f[1]);
+
     const collisionsWithCompareShape = collisionTable.get(compareShape.id) ?? new Set<TLShapeId>();
     const compareShapeBounds = editor.getShapePageBounds(compareShape);
-
     // ! find a way to reduce the complexity of this operation, find literature on runtime complexity in collision detection
     // ? Found a way by only checking collision for shapes that were updated, complexity is O(x*n) where x = number of updated shapes and n is all shapes
 
 
     // Iterate all shapes and check if they collide with the compareShape
-    allShapes.forEach((shape) => {
+    allShapes.forEach(([shape, shapePluginStore]) => {
         if (shape.id === compareShape.id) return;
 
         // Unwrap shape
-        const shapePluginStore = unwrapShape(shape);
         if (!shapePluginStore) return;
 
         const collisionsWithShape = collisionTable.get(shape.id) ?? new Set<TLShapeId>();
@@ -60,21 +69,21 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
 
             compareShapePluginStore.plugin.onCollisionStart(editor, {
                 data: compareShapePluginStore.data,
-                shape
+                shape: compareShape
             }, {
                 data: shapePluginStore.data,
                 plugin: shapePluginStore.plugin,
                 shape: shape
-            }, 'user');
+            });
 
             shapePluginStore.plugin.onCollisionStart(editor, {
                 data: shapePluginStore.data,
-                shape
+                shape: shape
             }, {
                 data: compareShapePluginStore.data,
                 plugin: compareShapePluginStore.plugin,
                 shape: compareShape
-            }, 'user');
+            });
 
         } else if (wasColliding && !isColliding) {
             // Collision stopped, remove collision from table and fire events
@@ -88,7 +97,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
                 data: shapePluginStore.data,
                 plugin: shapePluginStore.plugin,
                 shape: shape
-            }, 'user');
+            });
 
             shapePluginStore.plugin.onCollisionEnd(editor, {
                 data: shapePluginStore.data,
@@ -97,7 +106,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
                 data: compareShapePluginStore.data,
                 plugin: compareShapePluginStore.plugin,
                 shape: compareShape
-            }, 'user');
+            });
         }
 
         // Updates the collisiontable
@@ -105,28 +114,20 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
         collisionTable.set(compareShape.id, collisionsWithCompareShape);
     })
 }
+
 const Tlwrap = () => {
     const wrapperElRef = useRef<HTMLDivElement>(null);
     const { onTldrawMount } = useTldrawDarkModeObserver(wrapperElRef);
-
-
-
-
-
-    const hoveredShapeRef = useRef<{
-        id: TLShapeId,
-        plugin: BasePlugin
-    } | undefined>(undefined);
-
     const collisionTable = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
 
     return (
         <div className="fixed inset-0" ref={wrapperElRef}>
+
             <Tldraw
                 inferDarkMode
-                shapeUtils={[RectShapeUtil]} // TODO Add toolbar buttons for shapes
+                shapeUtils={[RectShapeUtil, ConveyorShapeUtil]} // TODO Add toolbar buttons for shapes
                 tools={[RectShapeTool, ConveyorShapeTool]}
-                overrides={uiOverrides}
+                overrides={overrides}
                 components={{
                     Toolbar
                     // TODO override color/shape component as well to remove several options
@@ -134,10 +135,18 @@ const Tlwrap = () => {
                 onMount={(editor) => {
                     onTldrawMount();
 
+                    // Starts the interval for the tick function of plugins
+                    setInterval(() => {
+                        const { plugins } = usePluginStore.getState();
+                        plugins.forEach(({ plugin }) => plugin.tick.call(plugin, editor));
+                    }, 20);
+
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                         Also inform the plugin that a shape has been created
                         https://tldraw.dev/docs/shapes#Meta-information   */
                     editor.getInitialMetaForShape = (shape) => {
+                        console.log(shape);
+
                         const { selected, getPlugin } = usePluginStore.getState();
                         const { plugin } = getPlugin(selected) ?? {};
 
@@ -171,12 +180,14 @@ const Tlwrap = () => {
 
 
                             const shape = editor.getShape(to.id) as TLShape;
-
+                            
                             const shapeMoved = from.x !== to.x || from.y !== to.y;
-                            const shapeResized = 'width' in from.props && 'width' in to.props && from.props.width !== to.props.width
-                                || 'height' in from.props && 'height' in to.props && from.props.height !== to.props.height;
+                            const shapeResized = 'w' in from.props && 'w' in to.props && from.props.w !== to.props.w
+                                || 'h' in from.props && 'h' in to.props && from.props.h !== to.props.h;
 
                             if (shapeMoved || shapeResized) {
+                                console.log('Checking collisions');
+                                
                                 // If a shape's position is updated recheck collision state
                                 handleCollision(editor, shape, collisionTable.current); // ! Might be too much of a performance hit here (move to pointer up if so)
                             }
@@ -216,16 +227,19 @@ const Tlwrap = () => {
                             const { plugin } = unwrapShape(shape) ?? {};
                             plugin?.onCreate(editor, shape);
                             plugin?.registerShape(id);
+
+                            console.log('Checking collisions');
+
+                            // If a shape's position is updated recheck collision state
+                            handleCollision(editor, shape, collisionTable.current); // ! Might be too much of a performance hit here (move to pointer up if so)
                         }
                         // Removed
                         for (const { id, meta, typeName } of Object.values(removed)) {
                             if (typeName !== 'shape') continue;
 
-                            handleCollision(editor, { id, meta } as TLShape, collisionTable.current);
 
                             // Get connected arrows, unlock them, delete them
                             const arrows = editor.getArrowsBoundTo(id).map(({ arrowId }) => arrowId);
-                            console.log(arrows);
 
                             editor
                                 .updateShapes(arrows
@@ -245,7 +259,9 @@ const Tlwrap = () => {
                             }
 
                             plugin.onDelete(id, data);
-                            plugin.unregisterShape(id);
+                            plugin.unregisterShape(id);// ! Might be too much of a performance hit here (move to pointer up if so)
+
+                            handleCollision(editor, { id, meta } as TLShape, collisionTable.current);
                         }
                     })
 

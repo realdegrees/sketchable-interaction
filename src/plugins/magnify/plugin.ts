@@ -12,8 +12,7 @@ class Plugin extends BasePlugin {
     colliding: {
       shape: TLShape;
       data?: PluginData;
-    },
-    source: "user" | "plugin"
+    }
   ): void {
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     meta.data.state = meta.data.state ?? {};
@@ -32,8 +31,7 @@ class Plugin extends BasePlugin {
     colliding: {
       shape: TLShape;
       data?: PluginData;
-    },
-    source: "user" | "plugin"
+    }
   ): void {
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     meta.data.state = meta.data.state ?? {};

@@ -7,8 +7,7 @@ class Plugin extends BasePlugin {
   public onCollisionEnd(
     editor: Editor,
     self: { shape: TLShape; data?: PluginData },
-    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData },
-    source: "user" | "plugin"
+    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData }
   ): void {}
   private handles: Map<
     TLShapeId,
@@ -29,8 +28,7 @@ class Plugin extends BasePlugin {
       shape: TLShape;
       plugin: BasePlugin;
       data?: PluginData;
-    },
-    source: "user" | "plugin"
+    }
   ): Promise<void> {
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
@@ -140,4 +138,5 @@ export default new Plugin({
   id: "folder",
   useableAsTool: true,
   availableShapes: ["rect"],
+  deletable: true
 });

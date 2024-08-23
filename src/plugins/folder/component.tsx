@@ -145,7 +145,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                                 shape: dirShape,
                                                 ...meta.data.attachments![0]
                                             }]);
-                                            plugin?.connectShape(shape.id, dirShape.id, editor);
+                                            plugin?.connectShape(shape.id, dirShape.id, editor, true);
                                         }
 
                                     }}
@@ -207,7 +207,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                                 shape: fileShape,
                                                 ...meta.data.attachments![0]
                                             }]);
-                                            plugin?.connectShape(shape.id, fileShape.id, editor);
+                                            plugin?.connectShape(shape.id, fileShape.id, editor, true);
                                         }
 
                                     }}

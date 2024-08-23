@@ -3,7 +3,7 @@ import { useTools, DefaultToolbar, TldrawUiMenuItem, useIsToolSelected, TLUiTool
 const defaultTools: string[] = ['select', 'eraser']
 
 const CustomTldrawUiMenuItem = ({ name }: { name: string}) => {
-    const tools = useTools();
+    const tools = useTools();    
     const isSelected = useIsToolSelected(tools[name]);
     return <TldrawUiMenuItem {...tools[name]} isSelected={isSelected} />;
 }
@@ -13,6 +13,9 @@ const CustomTldrawUiMenuItem = ({ name }: { name: string}) => {
 const Toolbar = () => {    
     const { plugins, selected } = usePluginStore();
     const selectedPluginAvailableShapes = plugins.find(({ plugin: { properties: { id } } }) => id === selected)?.plugin.properties.availableShapes;
+    
+    const tools = useTools();
+    console.log(tools);
 
     return (
         <div>

@@ -1,5 +1,6 @@
 import { Editor, TLShape } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
+import { unwrapShape } from "@/util/pluginUtil";
 
 class Plugin extends BasePlugin {
   public onCollisionStart(
@@ -11,11 +12,14 @@ class Plugin extends BasePlugin {
     colliding: {
       shape: TLShape;
       data?: PluginData;
-    },
-    source: "user" | "plugin"
+    }
   ): void {
-    // ? Just delete the shape, everything else like file deletion will be handled by the plugin associated with the deleted shape which receives an onDelete event
-    editor.deleteShape(colliding.shape);
+    const deletable = !!unwrapShape(colliding.shape)?.plugin.properties
+      .deletable;
+    if (deletable) {
+      // ? Just delete the shape, everything else like file deletion will be handled by the plugin associated with the deleted shape which receives an onDelete event
+      editor.deleteShape(colliding.shape);
+    }
   }
   public onCollisionEnd(
     editor: Editor,
@@ -26,8 +30,7 @@ class Plugin extends BasePlugin {
     colliding: {
       shape: TLShape;
       data?: PluginData;
-    },
-    source: "user" | "plugin"
+    }
   ): void {}
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(shapeId: string, data?: PluginData): void {}

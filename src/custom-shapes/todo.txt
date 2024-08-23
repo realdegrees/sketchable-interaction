@@ -1,0 +1,1 @@
+consider putting these into the individual plugin folders as well and implement custom loading logic
