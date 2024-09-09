@@ -3,6 +3,7 @@ import BasePlugin, { PluginData } from "../base";
 import { ShapeMeta } from "@/components/tlwrap";
 import { unwrapShape } from "@/util/pluginUtil";
 import equal from "deep-equal";
+import { getMimeType } from "@/util/getMimeType";
 
 class Plugin extends BasePlugin {
   public onCollisionStart(
@@ -17,11 +18,13 @@ class Plugin extends BasePlugin {
     }
   ): void {
     const { plugin } = unwrapShape(colliding.shape) ?? {};
-    if (!plugin || plugin.id === "file") return; // Only switch editor UI when colliding with files
+    if (!plugin || plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     const editData = meta.data.attachments?.find(
-      ({ extension }) => extension && ["png", "jpg"].includes(extension)
+      ({ extension }) => {        
+        return extension && getMimeType(extension)?.split('/')?.[0] === "image";
+      }
     );
     if (!editData) return; // Only switch editor UI for images
 
@@ -58,14 +61,14 @@ class Plugin extends BasePlugin {
     }
   ): void {
     const { plugin } = unwrapShape(colliding.shape) ?? {};
-    if (!plugin || plugin.id === "file") return; // Only switch editor UI when colliding with files
+    if (!plugin || plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
     const selfMeta = structuredClone(self.shape.meta) as ShapeMeta;
     const currentEditData = selfMeta.data.attachments?.[0];
 
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     const editData = meta.data.attachments?.find(
-      ({ extension }) => extension && ["png", "jpg"].includes(extension)
+      ({ extension }) => extension && getMimeType(extension)?.split("/")?.[0] === "image"
     );
 
     if (!editData || !equal(currentEditData, editData)) return;
@@ -99,6 +102,7 @@ class Plugin extends BasePlugin {
 
 export default new Plugin({
   id: "imageeditor",
+  label: 'Image Edtior',
   availableShapes: ["rect"],
   useableAsTool: true,
 });
