@@ -5,8 +5,7 @@ import { unwrapShape } from "@/util/pluginUtil";
 import equal from "deep-equal";
 import { getMimeType } from "@/util/getMimeType";
 
-const mimeType = "image";
-
+const mimeType = 'text';
 class Plugin extends BasePlugin {
   public onCollisionStart(
     editor: Editor,
@@ -103,8 +102,8 @@ class Plugin extends BasePlugin {
 }
 
 export default new Plugin({
-  id: "imageeditor",
-  label: "Image Edtior",
+  id: "texteditor",
+  label: "Text Edtior",
   availableShapes: ["rect"],
   useableAsTool: true,
 });
