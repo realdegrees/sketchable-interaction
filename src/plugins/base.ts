@@ -29,7 +29,7 @@ export type PluginAttachment = z.infer<typeof PluginAttachment>;
 
 // TODO maybe add effects automatically on collision so it doesn't have to be repeated in each plugin (add plugin name as effect during collision)
 // ! Possible effects that can be attached to plugin data, plugins can decide themselves what to do with it
-export const SIEffectsSchema = z.enum(["magnify", "invert"]);
+export const SIEffectsSchema = z.enum(["magnify", "invert", "edit"]);
 export type SIEffects = z.infer<typeof SIEffectsSchema>;
 
 // TODO maybe add some sort of plugindata map where a plugin can save plugin specific data to the shape without modifying the schema

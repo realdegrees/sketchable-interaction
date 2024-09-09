@@ -185,9 +185,7 @@ const Tlwrap = () => {
                             const shapeResized = 'w' in from.props && 'w' in to.props && from.props.w !== to.props.w
                                 || 'h' in from.props && 'h' in to.props && from.props.h !== to.props.h;
 
-                            if (shapeMoved || shapeResized) {
-                                console.log('Checking collisions');
-                                
+                            if (shapeMoved || shapeResized) {                                
                                 // If a shape's position is updated recheck collision state
                                 handleCollision(editor, shape, collisionTable.current); // ! Might be too much of a performance hit here (move to pointer up if so)
                             }

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "deep-equal": "^2.2.3",
     "ignore": "^5.3.1",
     "mime-types": "^2.1.35",
     "next": "14.2.3",
@@ -30,6 +31,7 @@
     "@iconify-json/tdesign": "^1.1.7",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
+    "@types/deep-equal": "^1.0.4",
     "@types/mime-types": "^2.1.4",
     "@types/node": "^20",
     "@types/react": "^18",

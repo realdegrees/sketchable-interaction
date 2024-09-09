@@ -13,17 +13,45 @@ class Plugin extends BasePlugin {
 
         if (!conveyorShape) return;
 
-        const destinationX =
-          conveyorShape.x +
-          (conveyorShape.props.end.type === "point"
-            ? conveyorShape.props.end.x
-            : 0);
-        const destinationY =
-          conveyorShape.y +
-          (conveyorShape.props.end.type === "point"
-            ? conveyorShape.props.end.y
-            : 0);
-        const destination = new Vec(destinationX, destinationY);
+        let destX = 0,
+          destY = 0;
+
+        if (conveyorShape.props.end.type === "point") {
+          destX = conveyorShape.x + conveyorShape.props.end.x;
+          destY = conveyorShape.y + conveyorShape.props.end.y;
+        } else {
+          const { x, y, props } =
+            editor.getShape(conveyorShape.props.end.boundShapeId) ?? {};
+
+          let w = 1,
+            h = 1;
+
+          if (props && "w" in props && "h" in props) {
+            w = props.w as number;
+            h = props.h as number;
+          }
+
+          const dest = Vec.Add(
+            new Vec(x, y),
+            new Vec(
+              w * conveyorShape.props.end.normalizedAnchor.x,
+              h * conveyorShape.props.end.normalizedAnchor.y
+            )
+          );
+          destX = dest.x;
+          destY = dest.y;
+        }
+        // const destinationX =
+        //   conveyorShape.x +
+        //   (conveyorShape.props.end.type === "point"
+        //     ? conveyorShape.props.end.x
+        //     : 0);
+        // const destinationY =
+        //   conveyorShape.y +
+        //   (conveyorShape.props.end.type === "point"
+        //     ? conveyorShape.props.end.y
+        //     : 0);
+        const destination = new Vec(destX, destY);
         const selectedShapes = editor.getSelectedShapeIds();
         itemIds
           .map((id) => editor.getShape(id))
