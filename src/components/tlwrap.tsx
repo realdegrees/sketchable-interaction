@@ -92,7 +92,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
 
             compareShapePluginStore.plugin.onCollisionEnd(editor, {
                 data: compareShapePluginStore.data,
-                shape
+                shape: compareShape
             }, {
                 data: shapePluginStore.data,
                 plugin: shapePluginStore.plugin,
@@ -101,7 +101,7 @@ const handleCollision = (editor: Editor, compareShape: TLShape, collisionTable: 
 
             shapePluginStore.plugin.onCollisionEnd(editor, {
                 data: shapePluginStore.data,
-                shape
+                shape: shape
             }, {
                 data: compareShapePluginStore.data,
                 plugin: compareShapePluginStore.plugin,
