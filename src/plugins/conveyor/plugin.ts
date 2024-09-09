@@ -1,9 +1,10 @@
-import { Editor, TLArrowShape, TLShape, Vec } from "tldraw";
+import { Editor, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
 
 const SPEED = 4;
 class Plugin extends BasePlugin {
+  private disableBendListeners: Map<TLShapeId, () => void> = new Map();
   tick(editor: Editor): void {
     // TODO: move all connected shapes
 
@@ -143,8 +144,30 @@ class Plugin extends BasePlugin {
 
     this.disconnectShape(self.shape.id, colliding.shape.id, editor);
   }
-  public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: string, data?: PluginData): void {}
+  public onCreate(editor: Editor, shape: TLArrowShape): void {
+    const unsubscribe = editor.store.listen(({ changes: { updated } }) => {
+      for (const [to] of Object.values(updated) as [TLShape, TLShape][]) {
+        if(to.id !== shape.id) continue;
+        shape = editor.getShape(to.id) as TLArrowShape;
+
+        if(shape.props.bend !== 0){
+          // Disables the ability to bend conveyors
+          editor.updateShape({
+            ...shape,
+            props: {
+              ...shape.props,
+              bend: 0,
+            },
+          });
+        }
+      }
+    });
+    this.disableBendListeners.set(shape.id, unsubscribe);
+  }
+  public onDelete(shapeId: TLShapeId, data?: PluginData): void {
+    this.disableBendListeners.get(shapeId)?.();
+    this.disableBendListeners.delete(shapeId);
+  }
 }
 
 export default new Plugin({

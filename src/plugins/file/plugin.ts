@@ -1,4 +1,4 @@
-import { Editor, TLShape } from "tldraw";
+import { Editor, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 
 class Plugin extends BasePlugin {
@@ -19,7 +19,7 @@ class Plugin extends BasePlugin {
     }
   ): void {}
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: string, data?: PluginData): void {
+  public onDelete(shapeId: TLShapeId, data?: PluginData): void {
     // get folder plugin instance of the sourceshape prop of data
     // ? in base.ts create a system to reference "connected" shapes (e.g. files to folders)
     // Create functionality to inform plugin if any connected shapes are deleted

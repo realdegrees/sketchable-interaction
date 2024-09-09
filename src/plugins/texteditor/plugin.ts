@@ -1,4 +1,4 @@
-import { Editor, TLShape } from "tldraw";
+import { Editor, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import { ShapeMeta } from "@/components/tlwrap";
 import { unwrapShape } from "@/util/pluginUtil";
@@ -98,7 +98,7 @@ class Plugin extends BasePlugin {
     });
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: string, data?: PluginData): void {}
+  public onDelete(shapeId: TLShapeId, data?: PluginData): void {}
 }
 
 export default new Plugin({

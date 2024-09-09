@@ -156,7 +156,7 @@ export default abstract class BasePlugin {
     }
   ): void;
   public abstract onCreate(editor: Editor, shape: TLShape): void;
-  public abstract onDelete(shapeId: string, data?: PluginData): void;
+  public abstract onDelete(shapeId: TLShapeId, data?: PluginData): void;
   public onShapeHovered(shapeId: TLShapeId, editor: Editor): void {
     this.updateArrows(editor, shapeId, { opacity: 0.2 });
   }

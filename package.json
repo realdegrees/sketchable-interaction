@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "deep-equal": "^2.2.3",
+    "detect-collisions": "^9.15.0",
     "ignore": "^5.3.1",
     "mime-types": "^2.1.35",
     "next": "14.2.3",
