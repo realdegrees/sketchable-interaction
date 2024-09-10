@@ -13,10 +13,13 @@ import { useUnmount } from './useUnmount';
 export const useFileSystem = ({
     pollInterval = 500,
     onChange,
+    onOpen,
+    ignorePattern,
     startIn
 }: {
     pollInterval?: number;
     startIn?: FileSystemDirectoryHandle;
+    ignorePattern?: RegExp;
     onChange?: (previous: {
         files: FileSystemFileHandle[],
         directories: FileSystemDirectoryHandle[]
@@ -24,6 +27,7 @@ export const useFileSystem = ({
         files: FileSystemFileHandle[],
         directories: FileSystemDirectoryHandle[]
     }) => void;
+    onOpen?: (directoryHandle: FileSystemDirectoryHandle) => void;
 }) => {
     const directoryHandle = useRef<FileSystemDirectoryHandle | undefined>(startIn);
     const pollingInterval = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -45,7 +49,11 @@ export const useFileSystem = ({
 
             // TODO find a way to run this async iterator in parallel
             // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/values
-            for await (const handle of directoryHandle.current.values()) {
+            for await (const handle of directoryHandle.current.values()) {                
+                if (ignorePattern?.test(handle.name)) {
+                    console.debug('Ignoring file ' + handle.name);
+                    continue;                    
+                }
                 if (handle instanceof FileSystemDirectoryHandle) {
                     currentDirectories.push(handle);
                 } else if (handle instanceof FileSystemFileHandle) {
@@ -85,7 +93,7 @@ export const useFileSystem = ({
             setDirectories([]);
             directoryHandle.current = undefined;
         }
-    }, [directories, files, onChange]);
+    }, [directories, files, onChange, ignorePattern]);
 
     const startPolling = useCallback(() => {
         // Start watching the directory for changes
@@ -113,13 +121,16 @@ export const useFileSystem = ({
     const showDirectoryPicker = async () => {
         try {
             // @ts-ignore
-            directoryHandle.current = await window.showDirectoryPicker?.()
-            
+            directoryHandle.current = await window.showDirectoryPicker?.();
+            if (directoryHandle.current) {
+                onOpen?.(directoryHandle.current);
+                startPolling();
+            }
         } catch (error) {
             console.error(`Error during directory selection:`);
             console.error(error);
         }
-        if (directoryHandle.current) startPolling();
+
     };
 
     return {

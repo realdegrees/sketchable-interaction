@@ -99,7 +99,7 @@ class Plugin extends BasePlugin {
     });
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: TLShapeId, data?: PluginData): void {}
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {}
 }
 
 export default new Plugin({

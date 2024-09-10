@@ -7,7 +7,7 @@ class Plugin extends BasePlugin {
   private disableBendListeners: Map<TLShapeId, () => void> = new Map();
   tick(editor: Editor): void {
     // TODO: move all connected shapes
-
+    
     Array.from(this.connectedShapes.entries()).forEach(
       ([conveyorId, itemIds], i, arr) => {
         const conveyorShape = editor.getShape<TLArrowShape>(conveyorId);
@@ -116,13 +116,10 @@ class Plugin extends BasePlugin {
     console.log(`${colliding.shape.id} entered conveyor ${self.shape.id}`);
 
     // Disconnect from any other conveyor belts
-    this.connectedShapes.forEach((itemIds, conveyorId) => {
+    Array.from(this.connectedShapes.entries()).forEach(([conveyorId, itemIds]) => {
       this.connectedShapes.set(
         conveyorId,
         itemIds.filter((id) => id !== colliding.shape.id)
-      );
-      console.log(
-        `${colliding.shape.id} disconnected from conveyor ${conveyorId}`
       );
     });
 
@@ -164,7 +161,7 @@ class Plugin extends BasePlugin {
     });
     this.disableBendListeners.set(shape.id, unsubscribe);
   }
-  public onDelete(shapeId: TLShapeId, data?: PluginData): void {
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
     this.disableBendListeners.get(shapeId)?.();
     this.disableBendListeners.delete(shapeId);
   }

@@ -14,6 +14,8 @@ class Plugin extends BasePlugin {
       data?: PluginData;
     }
   ): void {
+    if(!colliding.data?.attachments?.length) return;
+
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     meta.data.state = meta.data.state ?? {};
     meta.data.state.activeEffects = ['magnify', ...meta.data.state.activeEffects];
@@ -33,6 +35,8 @@ class Plugin extends BasePlugin {
       data?: PluginData;
     }
   ): void {
+    if (!colliding.data?.attachments?.length) return;
+
     const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
     meta.data.state = meta.data.state ?? {};
     meta.data.state.activeEffects = meta.data.state.activeEffects.filter((v) => v !== 'magnify');
@@ -42,7 +46,7 @@ class Plugin extends BasePlugin {
     })
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: TLShapeId, data?: PluginData): void {}
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {}
 }
 
 export default new Plugin({

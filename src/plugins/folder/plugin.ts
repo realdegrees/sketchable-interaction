@@ -1,15 +1,39 @@
 import { Editor, TLShape, TLShapeId } from "tldraw";
-import BasePlugin, { PluginData } from "../base";
+import BasePlugin, { PluginAttachment, PluginData } from "../base";
 import { readFile } from "fs/promises";
 
+type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
 // TODO add code to receive and store handles for each existing
-class Plugin extends BasePlugin {
+export class FolderPlugin extends BasePlugin {
   public onCollisionEnd(
     editor: Editor,
     self: { shape: TLShape; data?: PluginData },
     colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData }
   ): void {}
-  private handles: Map<
+
+  private _detachedMap: Map<TLShapeId, ItemShapeMap> = new Map();
+
+  public get detachedMap(): Map<TLShapeId, ItemShapeMap> {
+    return this._detachedMap;
+  }
+
+  public setDetachedItems(folderShapeId: TLShapeId, itemMap: ItemShapeMap) {
+    this._detachedMap.set(folderShapeId, itemMap);
+  }
+  public addDetachedItem(
+    folderShapeId: TLShapeId,
+    itemShapeId: TLShapeId,
+    item: PluginAttachment
+  ) {
+    this._detachedMap.set(
+      folderShapeId,
+      (this._detachedMap.get(folderShapeId) ?? new Map()).set(itemShapeId, item)
+    );
+  }
+  public removeDetachedItem(folderShapeId: TLShapeId, itemShapeId: TLShapeId) {
+    this._detachedMap.get(folderShapeId)?.delete(itemShapeId);
+  }
+  private handleMap: Map<
     TLShapeId,
     {
       files: FileSystemFileHandle[];
@@ -35,18 +59,20 @@ class Plugin extends BasePlugin {
     const { sourceShape, dir, extension, name } =
       colliding.data?.attachments?.[0] ?? {};
 
-    if (sourceShape === self.shape.id) return; // Ignore own fileshapes
+    if (!sourceShape || sourceShape === self.shape.id) {
+      // trigger the deletion of the shape but make sure it doesn't get deleted as a file but instead
+      return;
+    }
 
     // TODO add utility function to retrieve colliding handles for re-use with other plugins
-    const selfDirectoryHandle = this.handles.get(self.shape.id)?.directory;
-    const collidingDirectoryHandle = sourceShape
-      ? this.handles.get(sourceShape)?.directory
-      : undefined;
+    const selfDirectoryHandle = this.handleMap.get(self.shape.id)?.directory;
+    const collidingDirectoryHandle =
+      sourceShape && this.handleMap.get(sourceShape)?.directory;
     const file =
       dir && sourceShape
-        ? await this.handles
+        ? await this.handleMap
             .get(sourceShape)
-            ?.files.find(({ name: fname }) => name === fname)
+            ?.files.find(({ name: fname }) => `${name}.${extension}` === fname)
             ?.getFile()
         : undefined;
 
@@ -96,7 +122,7 @@ class Plugin extends BasePlugin {
     extension?: string
   ): FileSystemHandle | undefined {
     const { directories, files, directory } =
-      this.handles.get(shapeId ?? ("" as TLShapeId)) ?? {};
+      this.handleMap.get(shapeId ?? ("" as TLShapeId)) ?? {};
 
     if (!name) return directory;
 
@@ -111,15 +137,15 @@ class Plugin extends BasePlugin {
     );
   }
 
-  public registerHandles(
+  public async registerHandles(
     shapeId: TLShapeId,
     handles: {
       files: FileSystemFileHandle[];
       directories: FileSystemDirectoryHandle[];
     },
     directoryHandle: FileSystemDirectoryHandle
-  ): void {
-    this.handles.set(shapeId, {
+  ): Promise<void> {
+    this.handleMap.set(shapeId, {
       files: handles.files,
       directories: handles.directories,
       directory: directoryHandle,
@@ -128,15 +154,19 @@ class Plugin extends BasePlugin {
 
   // TODO add methods to delete/create/etc files via shapeId and filename (find the corresponding handle and manipulate the file)
   public unregisterHandles(shapeId: TLShapeId): void {
-    this.handles.delete(shapeId);
+    this.handleMap.delete(shapeId);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: TLShapeId, data?: PluginData): void {}
+  public onDelete(
+    editor: Editor,
+    shapeId: TLShapeId,
+    data?: PluginData
+  ): void {}
 }
 
-export default new Plugin({
+export default new FolderPlugin({
   id: "folder",
   useableAsTool: true,
   availableShapes: ["rect"],
-  deletable: true
+  deletable: true,
 });

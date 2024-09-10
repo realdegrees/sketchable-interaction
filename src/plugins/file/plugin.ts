@@ -1,5 +1,7 @@
 import { Editor, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
+import { unwrapShape } from "@/util/pluginUtil";
+import { FolderPlugin } from "../folder/plugin";
 
 class Plugin extends BasePlugin {
   public onCollisionEnd(
@@ -19,7 +21,14 @@ class Plugin extends BasePlugin {
     }
   ): void {}
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(shapeId: TLShapeId, data?: PluginData): void {
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
+    // const deleteFilesOnHostSystem = true; // TODO: Extract this variable to planned settings store and access it from there
+    // if(!deleteFilesOnHostSystem) return;
+    // const {dir, sourceShape, extension, name} = data?.attachments?.[0] ?? {};
+    // const {plugin: folderPlugin} = unwrapShape(editor.getShape(sourceShape as TLShapeId)) ?? {};
+
+    // const parentDirectoryHandle = (folderPlugin as FolderPlugin).getHandle(sourceShape as TLShapeId);
+    // parentDirectoryHandle?.removeEntry(`${name}.${extension}`);
     // get folder plugin instance of the sourceshape prop of data
     // ? in base.ts create a system to reference "connected" shapes (e.g. files to folders)
     // Create functionality to inform plugin if any connected shapes are deleted
