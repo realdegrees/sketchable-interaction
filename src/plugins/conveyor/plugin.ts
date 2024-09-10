@@ -7,7 +7,17 @@ class Plugin extends BasePlugin {
   private disableBendListeners: Map<TLShapeId, () => void> = new Map();
   tick(editor: Editor): void {
     // TODO: move all connected shapes
-    
+    Array.from(this.activeShapes.values()).forEach((activeShape) => {
+      const shape = editor.getShape(activeShape) as TLArrowShape;
+      if (shape.props.start.type === "binding") {
+        const boundShape = editor.getShape(shape.props.start.boundShapeId);
+        const { plugin } = unwrapShape(boundShape) ?? {};
+
+        if (plugin && plugin.id === "folder") {
+          console.log(`Conveyor ${activeShape} is connected to a folder`);
+        }
+      }
+    });
     Array.from(this.connectedShapes.entries()).forEach(
       ([conveyorId, itemIds], i, arr) => {
         const conveyorShape = editor.getShape<TLArrowShape>(conveyorId);
@@ -42,60 +52,54 @@ class Plugin extends BasePlugin {
           destX = dest.x;
           destY = dest.y;
         }
-        // const destinationX =
-        //   conveyorShape.x +
-        //   (conveyorShape.props.end.type === "point"
-        //     ? conveyorShape.props.end.x
-        //     : 0);
-        // const destinationY =
-        //   conveyorShape.y +
-        //   (conveyorShape.props.end.type === "point"
-        //     ? conveyorShape.props.end.y
-        //     : 0);
         const destination = new Vec(destX, destY);
         const selectedShapes = editor.getSelectedShapeIds();
-        itemIds
+
+        const shapesToMove = itemIds
           .map((id) => editor.getShape(id))
           .filter((shape): shape is TLShape => !!shape)
-          .filter((shape) => !selectedShapes.includes(shape.id))
-          .forEach((shape) => {
-            const { x, y, props } = shape;
+          .filter((shape) => !selectedShapes.includes(shape.id));
 
-            let offsetX = 0,
-              offsetY = 0;
-            if (
-              "w" in props &&
-              "h" in props &&
-              !isNaN(props.w) &&
-              !isNaN(props.h)
-            ) {
-              offsetX = props.w / 2;
-              offsetY = props.h / 2;
-            }
+        editor.bringToFront(shapesToMove); // Bring shapes moving on a coneyor forward
 
-            const direction = Vec.Sub(
-              new Vec(destination.x - offsetX, destination.y - offsetY),
-              new Vec(x, y)
-            );
-            const magnitude = Math.sqrt(direction.x ** 2 + direction.y ** 2);
+        shapesToMove.forEach((shape) => {
+          const { x, y, props } = shape;
 
-            if (magnitude === 0) {
-              return;
-            }
+          let offsetX = 0,
+            offsetY = 0;
+          if (
+            "w" in props &&
+            "h" in props &&
+            !isNaN(props.w) &&
+            !isNaN(props.h)
+          ) {
+            offsetX = props.w / 2;
+            offsetY = props.h / 2;
+          }
 
-            const normalized = Vec.Mul(Vec.Div(direction, magnitude), SPEED);
-            const normalizedMagnitude = Math.sqrt(
-              normalized.x ** 2 + normalized.y ** 2
-            );
+          const direction = Vec.Sub(
+            new Vec(destination.x - offsetX, destination.y - offsetY),
+            new Vec(x, y)
+          );
+          const magnitude = Math.sqrt(direction.x ** 2 + direction.y ** 2);
 
-            const shapeOffset =
-              normalizedMagnitude < magnitude ? normalized : direction;
-            editor.updateShape({
-              ...shape,
-              x: x + shapeOffset.x,
-              y: y + shapeOffset.y,
-            });
+          if (magnitude === 0) {
+            return;
+          }
+
+          const normalized = Vec.Mul(Vec.Div(direction, magnitude), SPEED);
+          const normalizedMagnitude = Math.sqrt(
+            normalized.x ** 2 + normalized.y ** 2
+          );
+
+          const shapeOffset =
+            normalizedMagnitude < magnitude ? normalized : direction;
+          editor.updateShape({
+            ...shape,
+            x: x + shapeOffset.x,
+            y: y + shapeOffset.y,
           });
+        });
       }
     );
   }
@@ -116,12 +120,14 @@ class Plugin extends BasePlugin {
     console.log(`${colliding.shape.id} entered conveyor ${self.shape.id}`);
 
     // Disconnect from any other conveyor belts
-    Array.from(this.connectedShapes.entries()).forEach(([conveyorId, itemIds]) => {
-      this.connectedShapes.set(
-        conveyorId,
-        itemIds.filter((id) => id !== colliding.shape.id)
-      );
-    });
+    Array.from(this.connectedShapes.entries()).forEach(
+      ([conveyorId, itemIds]) => {
+        this.connectedShapes.set(
+          conveyorId,
+          itemIds.filter((id) => id !== colliding.shape.id)
+        );
+      }
+    );
 
     // check if colliding plugin is "moveable" and if yes add it to a map of current items on the conveyor belt (a map of shapeIds and current position)
     this.connectShape(self.shape.id, colliding.shape.id, editor);
@@ -144,10 +150,10 @@ class Plugin extends BasePlugin {
   public onCreate(editor: Editor, shape: TLArrowShape): void {
     const unsubscribe = editor.store.listen(({ changes: { updated } }) => {
       for (const [to] of Object.values(updated) as [TLShape, TLShape][]) {
-        if(to.id !== shape.id) continue;
+        if (to.id !== shape.id) continue;
         shape = editor.getShape(to.id) as TLArrowShape;
 
-        if(shape.props.bend !== 0){
+        if (shape.props.bend !== 0) {
           // Disables the ability to bend conveyors
           editor.updateShape({
             ...shape,
