@@ -25,6 +25,7 @@ export const getArrowCoordinates = (
   shape: TLArrowShape,
   editor: Editor
 ): { origin: VecModel; coords: Poly } => {
+  const origin = { x: shape.x, y: shape.y };
   let start: VecModel, end: VecModel;
   if (shape.props.start.type === "point") {
     start = {
@@ -43,12 +44,15 @@ export const getArrowCoordinates = (
       h = props.h as number;
     }
 
-    const arrowStart = Vec.Add(
-      new Vec(x, y),
-      new Vec(
-        w * shape.props.start.normalizedAnchor.x,
-        h * shape.props.start.normalizedAnchor.y
-      )
+    const arrowStart = Vec.Sub(
+      Vec.Add(
+        new Vec(x, y),
+        new Vec(
+          w * shape.props.start.normalizedAnchor.x,
+          h * shape.props.start.normalizedAnchor.y
+        )
+      ),
+      origin
     );
     start = arrowStart;
   }
@@ -56,7 +60,7 @@ export const getArrowCoordinates = (
     end = {
       x: shape.props.end.x, // * 2,
       y: shape.props.end.y, // * 2,
-    }
+    };
   } else {
     const { x, y, props } = editor.getShape(shape.props.end.boundShapeId) ?? {};
 
@@ -76,14 +80,14 @@ export const getArrowCoordinates = (
           h * shape.props.end.normalizedAnchor.y
         )
       ),
-      start
+      origin
     );
 
     end = arrowEnd;
   }
-  
+
   return {
-    origin: { x: shape.x, y: shape.y },
+    origin,
     coords: [start, end],
   };
 };
