@@ -28,8 +28,8 @@ export const getArrowCoordinates = (
   let start: VecModel, end: VecModel;
   if (shape.props.start.type === "point") {
     start = {
-      x: shape.x,
-      y: shape.y,
+      x: shape.props.start.x,
+      y: shape.props.start.y,
     };
   } else {
     const { x, y, props } =
@@ -56,7 +56,7 @@ export const getArrowCoordinates = (
     end = {
       x: shape.props.end.x, // * 2,
       y: shape.props.end.y, // * 2,
-    };
+    }
   } else {
     const { x, y, props } = editor.getShape(shape.props.end.boundShapeId) ?? {};
 
@@ -81,9 +81,10 @@ export const getArrowCoordinates = (
 
     end = arrowEnd;
   }
+  
   return {
-    origin: { x: start.x, y: start.y },
-    coords: [{ x: 0, y: 0 }, end],
+    origin: { x: shape.x, y: shape.y },
+    coords: [start, end],
   };
 };
 
