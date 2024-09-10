@@ -306,7 +306,6 @@ const Tlwrap = () => {
                             // Collision Handling
                             const poly = polyShapeMap.current.get(id);
                             if (!poly) continue;
-                            onNoCollision({ id, meta, typeName } as TLShape, plugin, data);
                             collisionSystem.remove(poly);
                         }
                     })
