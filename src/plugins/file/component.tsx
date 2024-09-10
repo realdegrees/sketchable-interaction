@@ -37,6 +37,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
     useEffect(() => {
         editor.bringForward([shape]);
+        if(dataUrl) return;
         (async () => {
             const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
 
@@ -45,7 +46,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             setDataUrl(dataUrl);
         })();
 
-    }, [setDataUrl, editor, shape, sourceShape, extension, name])
+    }, [setDataUrl, dataUrl, editor, shape, sourceShape, extension, name])
 
     if (!dir || !extension || !name) return <AlertIcon className="w-2/3 h-2/3" />;
     if (!dataUrl) return <LoadingIcon className="w-2/3 h-2/3" />;

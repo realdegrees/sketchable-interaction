@@ -12,6 +12,8 @@ export type FilterType = typeof FILTERS[number];
 export type FilterSettings = { filterType: FilterType, filterValue: string }
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
 
+
+
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
@@ -30,6 +32,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     }, [filterType, textFilter, shape.id]);
 
     useEffect(() => {
+
+
         updatePluginRef();
 
         const hasConnectedShapes = !!collectorPlugin.connectedShapes.get(shape.id)?.length;
@@ -40,6 +44,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         else setConnectionState('none');
 
     }, [updatePluginRef, shape.id]);
+
+
 
 
     return <div className="p-4 text-lg relative">

@@ -48,7 +48,6 @@ const Tlwrap = () => {
             // Remove the collisionId from own table entry and other references
             collisionTable.current.get(dirtyCollisionId)?.delete(shape.id);
             collisionTable.current.get(shape.id)?.delete(dirtyCollisionId);
-            console.log(`Removed connection from ${shape.id} to ${dirtyCollisionId}`);
 
             const dirtyCollisionShape = editor.getShape(dirtyCollisionId);
             if (!dirtyCollisionShape) return;
@@ -186,7 +185,6 @@ const Tlwrap = () => {
                             return shape.meta;
                         }
                         if (Object.keys(shape.meta).length > 0) {
-                            console.log('KEEPING SHAPE META');
                             return shape.meta;
                         }
 
@@ -194,7 +192,6 @@ const Tlwrap = () => {
                             return shape.meta;
                         }
 
-                        console.log('RECONFIGURING SHAPE META');
 
                         const meta: ShapeMeta = {
                             props: plugin.properties,
@@ -274,8 +271,7 @@ const Tlwrap = () => {
                             polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
                             const poly = polyShapeMap.current.get(shape.id);
                             if (!poly) continue;
-                            collisionSystem.checkOne(poly, onCollision(editor, shape, plugin, data, false));
-
+                            updateCollision(editor, shape, plugin, data);
                         }
                         // ! Removed
                         for (const { id, meta, typeName } of Object.values(removed)) {

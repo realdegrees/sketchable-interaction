@@ -6,18 +6,6 @@ const SPEED = 4;
 class Plugin extends BasePlugin {
   private disableBendListeners: Map<TLShapeId, () => void> = new Map();
   tick(editor: Editor): void {
-    // TODO: move all connected shapes
-    Array.from(this.activeShapes.values()).forEach((activeShape) => {
-      const shape = editor.getShape(activeShape) as TLArrowShape;
-      if (shape.props.start.type === "binding") {
-        const boundShape = editor.getShape(shape.props.start.boundShapeId);
-        const { plugin } = unwrapShape(boundShape) ?? {};
-
-        if (plugin && plugin.id === "folder") {
-          console.log(`Conveyor ${activeShape} is connected to a folder`);
-        }
-      }
-    });
     Array.from(this.connectedShapes.entries()).forEach(
       ([conveyorId, itemIds], i, arr) => {
         const conveyorShape = editor.getShape<TLArrowShape>(conveyorId);
@@ -117,7 +105,6 @@ class Plugin extends BasePlugin {
     const moveable = !!unwrapShape(colliding.shape)?.plugin.properties.moveable;
     if (!moveable) return;
 
-    console.log(`${colliding.shape.id} entered conveyor ${self.shape.id}`);
 
     // Disconnect from any other conveyor belts
     Array.from(this.connectedShapes.entries()).forEach(
@@ -143,7 +130,6 @@ class Plugin extends BasePlugin {
       data?: PluginData;
     }
   ): void {
-    console.log(`${colliding.shape.id} left conveyor ${self.shape.id}`);
 
     this.disconnectShape(self.shape.id, colliding.shape.id, editor);
   }

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PluginData, PluginAttachment } from "../base";
 import { useFileSystem } from "@/hooks/useFileSystem";
 import AlertIcon from '~icons/line-md/alert-circle-twotone-loop';
-import { TLShape, TLShapeId, useEditor } from "tldraw";
+import { TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
 import { ShapeMeta } from "@/components/tlwrap";
 import plugin from "./plugin";
 import FilePlugin from "@/plugins/file/plugin";
@@ -11,7 +11,7 @@ import { unwrapShape } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
 import FolderIcon from '~icons/ic/twotone-folder.jsx';
 import deepEqual from "deep-equal";
-import { map } from "zod";
+import { getArrowCoordinates } from "@/util/collision";
 
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
@@ -20,20 +20,169 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     const editor = useEditor();
-    const [detachedMap, setDetachedMap] = useState<Map<TLShapeId, PluginAttachment>>(new Map());
 
-    const isDetached = (attachment: FileSystemHandle) => {
-        return Array.from(detachedMap.values() ?? []).find(({ name, extension }) => {
-            return attachment.kind === 'directory'
-                ? name === attachment.name
-                : [name, extension].join('.') === attachment.name
-        });
+    const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
+
+    useEffect(() => {
+        /* https://tldraw.dev/examples/editor-api/store-events */
+        // This reattaches detached files
+        const unsubscribeEditor = editor.store.listen(({ changes: { removed } }) => {
+            const reattachQueue: TLShapeId[] = [];
+            for (const { id, typeName } of Object.values(removed)) {  
+                if(typeName !== 'shape') continue;              
+                if(detached.find(({shapeId}) => id === shapeId)){
+                    reattachQueue.push(id as TLShapeId);
+                }
+            }
+            if(reattachQueue.length === 0) return;
+            
+            setDetached(detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)));
+        })
+
+        
+        // Run an interval that extracts files to attached conveyor belts
+        const interval = setInterval(() => {
+            // Don't act if the folder shape is currently selected
+            if(editor.getSelectedShapes().find(({id}) => id === shape.id)) return;
+
+            const connectedConveyors = editor.getArrowsBoundTo(shape.id).map(({ arrowId, handleId }) => {
+                if (handleId !== 'start') return;
+                const shape: TLArrowShape = editor.getShape(arrowId) as TLArrowShape;
+                if (shape?.isLocked) return;
+                const { plugin } = unwrapShape(shape) ?? {};
+                return plugin?.id === 'conveyor' ? shape : undefined;
+            }).filter((shape): shape is TLArrowShape => !!shape);
+
+            if (!connectedConveyors[0] || !rootHandle) return;
+            const { coords: [{ x, y }], origin } = getArrowCoordinates(connectedConveyors[0], editor);
+            const coords = Vec.Add(origin, { x, y });
+
+            const file = files.find((file) => {
+                const [name, extension] = file.name.split('.') ?? [];
+                if (!detached.find(({ attachment }) => name === attachment.name && extension === attachment.extension)) {
+                    return file;
+                }
+            });
+            if (!file) return;
+
+            const [name, extension] = file.name.split('.') ?? [];
+
+            console.log('Spawning file ' + name);
+
+            spawnFile(name, extension, rootHandle.name, coords);
+        }, 1000);
+
+        return () => {            
+            unsubscribeEditor();
+            clearInterval(interval);
+        }
+    })
+
+    const spawnDirectory = (name: string, coords: { x: number, y: number }) => {
+        /* Creates a shape and adds the file data and source shape (folder) to the meta data
+                                        When the file shape collides with another plugin shape, that plugin can use the attached metadata
+                                        To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
+        const meta: ShapeMeta = {
+            data: {
+                attachments: [{
+                    name: name,
+                    dir: name,
+                    sourceShape: shape.id ?? null
+                }],
+                state: { activeEffects: [] }
+            },
+            props: plugin.properties
+        };
+
+        const id = ('shape:' + Date.now() + name) as TLShapeId;
+        const { x, y, props } = editor.getShape(shape) ?? { x: coords.x, y: coords.y, props: { w: 0 } };
+        const w = ('w' in props && props.w) || 0;
+
+        const dirShape = editor.createShape({
+            id,
+            type: 'rect',
+            x: x + w,
+            y,
+            meta,
+            props: {
+                w: 200,
+                h: 200
+            }
+        }).getShape(id);
+
+        if (dirShape) {
+            plugin?.connectShape(shape.id, dirShape.id, editor, true);
+
+            setDetached([
+                ...detached,
+                {
+                    shapeId: dirShape.id,
+                    attachment: {
+                        dir: name,
+                        sourceShape: shape.id
+                    }
+                }
+            ]);
+
+            // FolderPlugin.addDetachedItem(shape.id, dirShape.id, {
+            //     dir: directoryHandle.name,
+            //     sourceShape: dirShape.id
+            // })
+        }
+    }
+    const spawnFile = (name: string, extension: string, root: string, coords: { x: number, y: number }) => {
+        /* Creates a shape and adds the file data and source shape (folder) to the meta data
+                                                When the file shape collides with another plugin shape, that plugin can use the attached metadata
+                                                To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
+        const meta: ShapeMeta = {
+            data: {
+                attachments: [{
+                    name,
+                    dir: root,
+                    extension,
+                    sourceShape: shape.id ?? null
+                }],
+                state: { activeEffects: [] }
+            },
+            props: FilePlugin.properties
+        };
+
+
+        const id = ('shape:' + Date.now() + name) as TLShapeId;
+
+        const fileShape = editor.createShape({
+            id,
+            type: 'rect',
+            x: coords.x - 50,
+            y: coords.y - 62.5,
+            meta,
+            props: {
+                w: 100,
+                h: 125
+            }
+        }).getShape(id);
+
+        if (fileShape) {
+            plugin?.connectShape(shape.id, fileShape.id, editor, true);
+
+            setDetached([
+                ...detached,
+                {
+                    shapeId: fileShape.id,
+                    attachment: {
+                        dir: root,
+                        name,
+                        extension,
+                        sourceShape: shape.id
+                    }
+                }
+            ]);
+        }
     };
 
     const startInHandle = data?.attachments?.[0].dir ? plugin.getHandle(data.attachments[0].sourceShape, data.attachments[0].dir) : undefined;
     const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
         onChange: (previous, current) => {
-            console.log('File change');
         },
         onOpen: async (directoryHandle) => {
             const newFileHandle = await directoryHandle.getFileHandle(
@@ -52,41 +201,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         startIn: startInHandle,
         pollInterval: 500
     });
-    const detached = new Map(Array.from(FilePlugin.activeShapes.values())
-        .map((shapeId) => {
-            const shape = editor.getShape(shapeId);
-            const { data } = unwrapShape(shape) ?? {};
-
-            return [
-                shape?.id,
-                data?.attachments?.[0]
-            ];
-        })
-        .filter((entry): entry is [TLShapeId, PluginAttachment] => !!entry[0] && !!entry[1])
-        .filter(([, { sourceShape }]) => sourceShape === shape.id));
-
-
-    if (!deepEqual(detachedMap, detached)) {
-        setDetachedMap(detached);
-    }
-    FolderPlugin.setDetachedItems(shape.id, detached);
-
-    // useEffect(() => {
-    //     const detached = Array.from(FilePlugin.activeShapes.values())
-    //         .map((shapeId) => {
-    //             const shape = editor.getShape(shapeId);
-    //             const { data } = unwrapShape(shape) ?? {};
-
-    //             return {
-    //                 shape,
-    //                 ...data?.attachments?.[0]
-    //             };
-    //         })
-    //         .filter((file): file is PluginAttachment & { shape: TLShape } => !!shape.id)
-    //         .filter(({ sourceShape }) => sourceShape === shape.id);
-    //     setDetachedFiles(detached);
-
-    // }, [setDetachedFiles, editor, shape.id])
 
     if (!isDirectoryPickerSupported) {
         return (
@@ -102,12 +216,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             type="button"
             className="bg-zinc-500 rounded-md p-1 text-xl"
             onClick={async () => {
-
                 await showDirectoryPicker?.();
-
-                console.log(rootHandle);
-
-
             }}
             onPointerDown={(e) => e.stopPropagation()}>
             Open Folder
@@ -120,7 +229,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         files
     }, rootHandle); // Stores the handles in the plugin instance for other plugins to use    
 
-
     return <div className="flex justify-center items-center w-full h-full">
         {rootHandle &&
             <div className="overflow-y-auto w-full h-full flex flex-col">
@@ -130,7 +238,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                     {[
                         ...directories.map((directoryHandle) => {
                             // TODO use fileHandle to show preview of e.g. image files
-                            const isDirectoryDetached = !!isDetached(directoryHandle);
+                            const isDirectoryDetached = !!detached.find(({ attachment: { dir } }) => dir === directoryHandle.name);
 
                             return (
                                 <div
@@ -139,50 +247,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
-                                        /* Creates a shape and adds the file data and source shape (folder) to the meta data
-                                        When the file shape collides with another plugin shape, that plugin can use the attached metadata
-                                        To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
-                                        const meta: ShapeMeta = {
-                                            data: {
-                                                attachments: [{
-                                                    name: directoryHandle.name,
-                                                    dir: directoryHandle.name,
-                                                    sourceShape: shape.id ?? null
-                                                }],
-                                                state: { activeEffects: [] }
-                                            },
-                                            props: plugin.properties
-                                        };
-                                        console.log('Creating folder shape with meta');
-
-                                        const id = ('shape:' + Date.now() + directoryHandle.name) as TLShapeId;
-                                        const { x, y, props } = editor.getShape(shape) ?? { x: e.pageX, y: e.pageY, props: { w: 0 } };
-                                        const w = ('w' in props && props.w) || 0;
-
-                                        const dirShape = editor.createShape({
-                                            id,
-                                            type: 'rect',
-                                            x: x + w,
-                                            y,
-                                            meta,
-                                            props: {
-                                                w: 200,
-                                                h: 200
-                                            }
-                                        }).getShape(id);
-
-                                        if (dirShape) {
-                                            plugin?.connectShape(shape.id, dirShape.id, editor, true);
-                         
-                                            setDetachedMap(new Map([...Array.from(detachedMap.entries()), [dirShape.id, {
-                                                dir: directoryHandle.name,
-                                                sourceShape: dirShape.id
-                                            }]]));
-                                            // FolderPlugin.addDetachedItem(shape.id, dirShape.id, {
-                                            //     dir: directoryHandle.name,
-                                            //     sourceShape: dirShape.id
-                                            // })
-                                        }
+                                        spawnDirectory(directoryHandle.name, { x: e.pageX, y: e.pageY });
 
                                     }}
                                 >
@@ -191,16 +256,15 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                 </div>
                             )
                         }),
-                        ...Array.from(detachedMap.entries()).map(([detachedShapeId, { dir, sourceShape, extension, name }]) => {
+                        detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
                             return <div
-                                key={name + '-' + detachedShapeId}
+                                key={name + '-' + shapeId}
                                 className={`w-16 max-h-fit pointer-events-none opacity-20`}
                             >
                                 <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
                             </div>;
-                        })
-                        ,
-                        ...files.filter((file) => !Array.from(detachedMap.values()).find(({ name, extension }) => `${name}.${extension}` === file.name)).map((fileHandle, i) => {
+                        }),
+                        ...files.filter(({ name: fullname }) => !detached.find(({ attachment: { name, extension } }) => fullname === `${name}.${extension}`)).map((fileHandle, i) => {
                             // TODO use fileHandle to show preview of e.g. image files
                             const [name, extension] = fileHandle.name.split('.') ?? [];
                             //const isFileDetached = !!isDetached(fileHandle);
@@ -212,50 +276,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
-                                        /* Creates a shape and adds the file data and source shape (folder) to the meta data
-                                        When the file shape collides with another plugin shape, that plugin can use the attached metadata
-                                        To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
-                                        const meta: ShapeMeta = {
-                                            data: {
-                                                attachments: [{
-                                                    name,
-                                                    dir: rootHandle.name,
-                                                    extension,
-                                                    sourceShape: shape.id ?? null
-                                                }],
-                                                state: { activeEffects: [] }
-                                            },
-                                            props: FilePlugin.properties
-                                        };
-                                        console.log('Creating file shape with meta');
-                                        console.log(meta);
-
-                                        const { x, y, props } = editor.getShape(shape) ?? { x: e.pageX, y: e.pageY, props: { w: 0 } };
-                                        const w = ('w' in props && props.w) || 0;
-                                        const id = ('shape:' + Date.now() + name + '-' + i) as TLShapeId;
-
-                                        const fileShape = editor.createShape({
-                                            id,
-                                            type: 'rect',
-                                            x: x + w,
-                                            y,
-                                            meta,
-                                            props: {
-                                                w: 100,
-                                                h: 125
-                                            }
-                                        }).getShape(id);
-
-                                        if (fileShape) {
-                                            plugin?.connectShape(shape.id, fileShape.id, editor, true);
-                                            setDetachedMap(new Map([...Array.from(detachedMap.entries()), [fileShape.id, {
-                                                dir: rootHandle.name,
-                                                sourceShape: fileShape.id,
-                                                name,
-                                                extension
-                                            }]]));
-                                        }
-
+                                        spawnFile(name, extension, rootHandle.name, { x: e.pageX, y: e.pageY });
                                     }}
                                 >
                                     <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />

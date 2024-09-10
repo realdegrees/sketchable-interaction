@@ -34,7 +34,6 @@ class CollectorPlugin extends BasePlugin {
 
       if (!isAlreadyConnected) {
         this.connectShape(self.shape.id, colliding.shape.id, editor);
-        console.log("Connecting collector filters");
       }
       return;
     }
@@ -68,8 +67,6 @@ class CollectorPlugin extends BasePlugin {
       }
 
       if (plugin.doesFilterMatch(settings, attachment)) {
-        console.log("Matching connected filter found, moving file towards it");
-
         editor.updateShape({
           ...colliding.shape,
           x: connectedFilterShape?.x,
