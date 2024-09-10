@@ -1,7 +1,7 @@
-import { createRef, useCallback, useEffect } from "react";
+import { createRef, useCallback, useEffect, useState } from "react";
 import { PluginData } from "../base";
 import { TLShape } from "tldraw";
-import plugin from "./plugin";
+import collectorPlugin from "./plugin";
 
 const FILTERS = [
     'all',
@@ -20,20 +20,42 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     const filterType = createRef<HTMLSelectElement>();
     const textFilter = createRef<HTMLInputElement>();
 
+    const [connectionState, setConnectionState] = useState<'parent' | 'child' | 'both' | 'none'>('none');
+
     const updatePluginRef = useCallback(() => {
-        plugin.setCollectorFilter(shape.id, {
+        collectorPlugin.setCollectorFilter(shape.id, {
             filterType: filterType.current!.value as FilterType,
             filterValue: textFilter.current!.value
         });
     }, [filterType, textFilter, shape.id]);
-    
+
     useEffect(() => {
         updatePluginRef();
-    }, [updatePluginRef]);
+
+        const hasConnectedShapes = !!collectorPlugin.connectedShapes.get(shape.id)?.length;
+        const isConnectedShape = !!Array.from(collectorPlugin.connectedShapes.values()).find((shapes) => shapes.includes(shape.id));
+        if (hasConnectedShapes && isConnectedShape) setConnectionState('both');
+        else if (hasConnectedShapes && !isConnectedShape) setConnectionState('parent');
+        else if (!hasConnectedShapes && isConnectedShape) setConnectionState('child');
+        else setConnectionState('none');
+
+    }, [updatePluginRef, shape.id]);
 
 
     return <div className="p-4 text-lg relative">
-        <p>Filter Type</p>
+        <p className={`
+            ${connectionState === 'parent' && 'bg-green-400 '}
+            ${connectionState === 'child' && 'bg-blue-400 '}
+            ${connectionState === 'both' && 'bg-orange-400 '}
+            `}>Filter  {
+                (() => {
+                    switch (connectionState) {
+                        case 'parent': return '(Input)';
+                        case 'child': return '(Output)';
+                        case 'both': return '(Input & Output)';
+                    }
+                })()
+            }</p>
         <select name="Filter" id="filter" className="w-full h-fit dark:bg-black dark:text-white" defaultValue='default' ref={filterType} onChange={updatePluginRef}>
             {FILTERS.map((filter) =>
                 <option key={filter} value={filter}>{filter.toPascalCase()}</option>

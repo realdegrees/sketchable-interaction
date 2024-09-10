@@ -29,6 +29,127 @@ const Tlwrap = () => {
     const polyShapeMap = useRef<Map<TLShapeId, Polygon>>(new Map());
     const collisionTable = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
     const previousCollisions = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
+    const collisionSystem = new System();
+
+    const updateCollision = (editor: Editor, shape: TLShape, plugin: BasePlugin, data?: PluginData) => {
+        // Collision Handling
+        const poly = polyShapeMap.current.get(shape.id);
+        const { origin, coords } = getShapeCoordinates(shape, editor);
+        poly?.setPosition(origin.x, origin.y);
+        poly?.setPoints(coords.map(({ x, y }) => new SATVector(x, y)));
+
+
+        const cachedShapeCollisions = collisionTable.current.get(shape.id);
+        const previousShapeCollisions = previousCollisions.current.get(shape.id) ?? new Set();
+        const difference = cachedShapeCollisions?.difference(previousShapeCollisions); // This is every cached collision that is not happening anymore and needs to be cleaned up
+
+        Array.from(difference?.values() ?? []).map((dirtyCollisionId) => {
+
+            // Remove the collisionId from own table entry and other references
+            collisionTable.current.get(dirtyCollisionId)?.delete(shape.id);
+            collisionTable.current.get(shape.id)?.delete(dirtyCollisionId);
+            console.log(`Removed connection from ${shape.id} to ${dirtyCollisionId}`);
+
+            const dirtyCollisionShape = editor.getShape(dirtyCollisionId);
+            if (!dirtyCollisionShape) return;
+
+            const dirtyCollisionShapePluginStore = unwrapShape(dirtyCollisionShape);
+            if (!dirtyCollisionShapePluginStore) return;
+            // Send events to both of them
+            dirtyCollisionShapePluginStore.plugin.onCollisionEnd(
+                editor,
+                {
+                    data: dirtyCollisionShapePluginStore.data,
+                    shape: dirtyCollisionShape,
+                },
+                {
+                    data: data,
+                    plugin: plugin,
+                    shape: shape,
+                }
+            );
+
+            plugin.onCollisionEnd(
+                editor,
+                {
+                    data: data,
+                    shape: shape,
+                },
+                {
+                    data: dirtyCollisionShapePluginStore.data,
+                    plugin: dirtyCollisionShapePluginStore.plugin,
+                    shape: dirtyCollisionShape,
+                }
+            );
+        })
+
+        previousCollisions.current.get(shape.id)?.clear();
+        poly && collisionSystem.checkOne(poly, (response) => {
+            onCollision(editor, shape, plugin, data)(response);
+        });
+    }
+    const onCollision = (editor: Editor, shape: TLShape, plugin: BasePlugin, data?: PluginData, triggerEvents: boolean = true) => (response: Response) => {
+
+        const collidingId = Array.from(polyShapeMap.current.entries()).find(([, poly]) => poly === response.b)?.[0];
+        const compareShape = collidingId && editor.getShape(collidingId);
+        if (!compareShape) return;
+
+        const compareShapePluginStore = unwrapShape(compareShape);
+        if (!compareShapePluginStore) return;
+
+
+        const collisionsWithCompareShape =
+            collisionTable.current.get(collidingId) ?? new Set<TLShapeId>();
+        const collisionsWithShape =
+            collisionTable.current.get(shape.id) ?? new Set<TLShapeId>();
+
+        const wasColliding =
+            collisionsWithCompareShape.has(shape.id) ||
+            collisionsWithShape.has(collidingId);
+
+
+        if (!wasColliding) {
+
+
+            // Collision started, add collision to table and fire events
+            collisionsWithCompareShape.add(shape.id);
+            collisionsWithShape.add(collidingId);
+
+            if (triggerEvents) {
+                compareShapePluginStore.plugin.onCollisionStart(
+                    editor,
+                    {
+                        data: compareShapePluginStore.data,
+                        shape: compareShape,
+                    },
+                    {
+                        data: data,
+                        plugin: plugin,
+                        shape: shape,
+                    }
+                );
+
+                plugin.onCollisionStart(
+                    editor,
+                    {
+                        data: data,
+                        shape: shape,
+                    },
+                    {
+                        data: compareShapePluginStore.data,
+                        plugin: compareShapePluginStore.plugin,
+                        shape: compareShape,
+                    }
+                );
+            }
+
+        }
+        // Updates the collisiontable
+        collisionTable.current.set(shape.id, collisionsWithShape);
+        collisionTable.current.set(compareShape.id, collisionsWithCompareShape);
+
+        previousCollisions.current.set(shape.id, (previousCollisions.current.get(shape.id) ?? new Set()).add(compareShape.id));
+    }
 
     return (
         <div className="fixed inset-0" ref={wrapperElRef}>
@@ -43,7 +164,6 @@ const Tlwrap = () => {
                     // TODO override color/shape component as well to remove several options
                 }}
                 onMount={(editor) => {
-                    const collisionSystem = new System();
 
                     onTldrawMount();
 
@@ -88,69 +208,6 @@ const Tlwrap = () => {
                         return meta;
                     }
 
-                    const onCollision = (shape: TLShape, plugin: BasePlugin, data?: PluginData, triggerEvents: boolean = true) => (response: Response) => {
-
-                        const collidingId = Array.from(polyShapeMap.current.entries()).find(([, poly]) => poly === response.b)?.[0];
-                        const compareShape = collidingId && editor.getShape(collidingId);
-                        if (!compareShape) return;
-
-                        const compareShapePluginStore = unwrapShape(compareShape);
-                        if (!compareShapePluginStore) return;
-
-
-                        const collisionsWithCompareShape =
-                            collisionTable.current.get(collidingId) ?? new Set<TLShapeId>();
-                        const collisionsWithShape =
-                            collisionTable.current.get(shape.id) ?? new Set<TLShapeId>();
-
-                        const wasColliding =
-                            collisionsWithCompareShape.has(shape.id) ||
-                            collisionsWithShape.has(collidingId);
-
-
-                        if (!wasColliding) {
-
-
-                            // Collision started, add collision to table and fire events
-                            collisionsWithCompareShape.add(shape.id);
-                            collisionsWithShape.add(collidingId);
-
-                            if (triggerEvents) {
-                                compareShapePluginStore.plugin.onCollisionStart(
-                                    editor,
-                                    {
-                                        data: compareShapePluginStore.data,
-                                        shape: compareShape,
-                                    },
-                                    {
-                                        data: data,
-                                        plugin: plugin,
-                                        shape: shape,
-                                    }
-                                );
-
-                                plugin.onCollisionStart(
-                                    editor,
-                                    {
-                                        data: data,
-                                        shape: shape,
-                                    },
-                                    {
-                                        data: compareShapePluginStore.data,
-                                        plugin: compareShapePluginStore.plugin,
-                                        shape: compareShape,
-                                    }
-                                );
-                            }
-
-                        }
-                        // Updates the collisiontable
-                        collisionTable.current.set(shape.id, collisionsWithShape);
-                        collisionTable.current.set(compareShape.id, collisionsWithCompareShape);
-
-                        previousCollisions.current.set(shape.id, (previousCollisions.current.get(shape.id) ?? new Set()).add(compareShape.id));
-                    }
-
                     /* https://tldraw.dev/examples/editor-api/store-events */
                     editor.store.listen(({ changes: { updated, removed, added } }) => {
 
@@ -183,62 +240,7 @@ const Tlwrap = () => {
                             }
 
                             editor.bringToFront([to.id]);
-
-                            // Collision Handling
-                            const poly = polyShapeMap.current.get(shape.id);
-                            const { origin, coords } = getShapeCoordinates(shape, editor);
-                            poly?.setPosition(origin.x, origin.y);
-                            poly?.setPoints(coords.map(({ x, y }) => new SATVector(x, y)));
-
-
-                            const cachedShapeCollisions = collisionTable.current.get(shape.id);
-                            const previousShapeCollisions = previousCollisions.current.get(shape.id) ?? new Set();
-                            const difference = cachedShapeCollisions?.difference(previousShapeCollisions); // This is every cached collision that is not happening anymore and needs to be cleaned up
-
-                            Array.from(difference?.values() ?? []).map((dirtyCollisionId) => {
-
-                                // Remove the collisionId from own table entry and other references
-                                collisionTable.current.get(dirtyCollisionId)?.delete(shape.id);
-                                collisionTable.current.get(shape.id)?.delete(dirtyCollisionId);
-                                console.log(`Removed connection from ${shape.id} to ${dirtyCollisionId}`);
-
-                                const dirtyCollisionShape = editor.getShape(dirtyCollisionId);
-                                if (!dirtyCollisionShape) return;
-
-                                const dirtyCollisionShapePluginStore = unwrapShape(dirtyCollisionShape);
-                                if (!dirtyCollisionShapePluginStore) return;
-                                // Send events to both of them
-                                dirtyCollisionShapePluginStore.plugin.onCollisionEnd(
-                                    editor,
-                                    {
-                                        data: dirtyCollisionShapePluginStore.data,
-                                        shape: dirtyCollisionShape,
-                                    },
-                                    {
-                                        data: data,
-                                        plugin: plugin,
-                                        shape: shape,
-                                    }
-                                );
-
-                                plugin.onCollisionEnd(
-                                    editor,
-                                    {
-                                        data: data,
-                                        shape: shape,
-                                    },
-                                    {
-                                        data: dirtyCollisionShapePluginStore.data,
-                                        plugin: dirtyCollisionShapePluginStore.plugin,
-                                        shape: dirtyCollisionShape,
-                                    }
-                                );
-                            })
-
-                            previousCollisions.current.get(shape.id)?.clear();
-                            poly && collisionSystem.checkOne(poly, (response) => {
-                                onCollision(shape, plugin, data)(response);
-                            });
+                            updateCollision(editor, shape, plugin, data);
                         }
                         // ! Added
                         for (const { id, meta, typeName } of Object.values(added)) {
@@ -272,7 +274,7 @@ const Tlwrap = () => {
                             polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
                             const poly = polyShapeMap.current.get(shape.id);
                             if (!poly) continue;
-                            collisionSystem.checkOne(poly, onCollision(shape, plugin, data, false));
+                            collisionSystem.checkOne(poly, onCollision(editor, shape, plugin, data, false));
 
                         }
                         // ! Removed
