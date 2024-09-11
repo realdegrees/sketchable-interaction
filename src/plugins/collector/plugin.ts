@@ -1,4 +1,11 @@
-import { Editor, TLArrowShape, TLShape, TLShapeId, Vec, VecModel } from "tldraw";
+import {
+  Editor,
+  TLArrowShape,
+  TLShape,
+  TLShapeId,
+  Vec,
+  VecModel,
+} from "tldraw";
 import BasePlugin, { PluginAttachment, PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
 import { FilterSettings, FilterType } from "./component";
@@ -79,9 +86,18 @@ class CollectorPlugin extends BasePlugin {
         })
         .filter((shape): shape is TLArrowShape => !!shape);
 
-      const coords: VecModel = { x: connectedFilterShape?.x, y: connectedFilterShape?.y};
+      const coords: VecModel = {
+        x: connectedFilterShape?.x,
+        y: connectedFilterShape?.y,
+      };
+      let offset: VecModel = { x: 0, y: 0 };
 
-      if (connectedConveyors[0]){
+      if ("h" in colliding.shape.props && "w" in colliding.shape.props) {
+        offset.x = -colliding.shape.props.w / 2;
+        offset.y = -colliding.shape.props.h / 2;
+      }
+
+      if (connectedConveyors[0]) {
         const arrowInfo = getArrowCoordinates(connectedConveyors[0], editor);
         coords.x = arrowInfo.origin.x + arrowInfo.coords[0].x;
         coords.y = arrowInfo.origin.y + arrowInfo.coords[0].y;
@@ -90,7 +106,8 @@ class CollectorPlugin extends BasePlugin {
       if (plugin.doesFilterMatch(settings, attachment)) {
         editor.updateShape({
           ...colliding.shape,
-          ...coords
+          x: coords.x + offset.x,
+          y: coords.y + offset.y,
         });
         break;
       }
@@ -122,7 +139,7 @@ class CollectorPlugin extends BasePlugin {
 
     const typeMatch =
       filterSettings.filterType === "filetype" &&
-      filterSettings.filterValue.toLowerCase() === extension;
+      filterSettings.filterValue.split(',').map((v) => v.trim()).some((v) => v === extension);
 
     const nameMatch =
       filterSettings.filterType === "name" &&
