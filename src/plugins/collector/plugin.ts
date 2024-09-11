@@ -1,7 +1,8 @@
-import { Editor, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
+import { Editor, TLArrowShape, TLShape, TLShapeId, Vec, VecModel } from "tldraw";
 import BasePlugin, { PluginAttachment, PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
 import { FilterSettings, FilterType } from "./component";
+import { getArrowCoordinates } from "@/util/collision";
 
 class CollectorPlugin extends BasePlugin {
   private filterMap: Map<TLShapeId, FilterSettings> = new Map(); // TODO create methods to set filter options (for collector shape id) on collision these can the be evaluated by the plugin and sent to the appropriate shape on the canvas)
@@ -49,28 +50,47 @@ class CollectorPlugin extends BasePlugin {
 
     if (!match) return;
 
-    const connectedFilterSettingsMap = (this.connectedShapes.get(self.shape.id) ?? []).map(
-      (connectedFilterShapeId) => {
-
+    const connectedFilterSettingsMap = (
+      this.connectedShapes.get(self.shape.id) ?? []
+    )
+      .map((connectedFilterShapeId) => {
         const connectedFilterShape = editor.getShape(connectedFilterShapeId);
         const { plugin } = unwrapShape(connectedFilterShape) ?? {};
         const settings = this.filterMap.get(connectedFilterShapeId);
         return [connectedFilterShape, settings];
-      }
-    ).filter((data): data is [TLShape, FilterSettings] => !!data[1]);
+      })
+      .filter((data): data is [TLShape, FilterSettings] => !!data[1]);
 
     for (const [connectedFilterShape, settings] of connectedFilterSettingsMap) {
       const { plugin } = unwrapShape(connectedFilterShape) ?? {};
-      
+
       if (!settings || !plugin || !(plugin instanceof CollectorPlugin)) {
         continue;
+      }
+
+      const connectedConveyors = editor
+        .getArrowsBoundTo(connectedFilterShape.id)
+        .map(({ arrowId, handleId }) => {
+          if (handleId !== "start") return;
+          const shape: TLArrowShape = editor.getShape(arrowId) as TLArrowShape;
+          if (shape?.isLocked) return;
+          const { plugin } = unwrapShape(shape) ?? {};
+          return plugin?.id === "conveyor" ? shape : undefined;
+        })
+        .filter((shape): shape is TLArrowShape => !!shape);
+
+      const coords: VecModel = { x: connectedFilterShape?.x, y: connectedFilterShape?.y};
+
+      if (connectedConveyors[0]){
+        const arrowInfo = getArrowCoordinates(connectedConveyors[0], editor);
+        coords.x = arrowInfo.origin.x + arrowInfo.coords[0].x;
+        coords.y = arrowInfo.origin.y + arrowInfo.coords[0].y;
       }
 
       if (plugin.doesFilterMatch(settings, attachment)) {
         editor.updateShape({
           ...colliding.shape,
-          x: connectedFilterShape?.x,
-          y: connectedFilterShape?.y,
+          ...coords
         });
         break;
       }
@@ -108,7 +128,7 @@ class CollectorPlugin extends BasePlugin {
       filterSettings.filterType === "name" &&
       name &&
       filterSettings.filterValue &&
-      new RegExp(filterSettings.filterValue, 'i').test(name);
+      new RegExp(filterSettings.filterValue, "i").test(name);
 
     return typeMatch || nameMatch || filterSettings.filterType === "all";
   }

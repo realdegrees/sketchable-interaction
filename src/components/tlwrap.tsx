@@ -1,7 +1,7 @@
 'use client'
 
-import { PluginStore, usePluginStore } from "@/stores/plugin";
-import { Editor, TLArrowShape, Tldraw, TLGeoShape, TLShape, TLShapeId, VecModel } from "tldraw";
+import { usePluginStore } from "@/stores/plugin";
+import { Editor, TLArrowShape, Tldraw, TLShape, TLShapeId } from "tldraw";
 import Toolbar from "./toolbar";
 import RectShapeUtil from "@/custom-shapes/rect/shapeUtil";
 import ConveyorShapeUtil from "@/custom-shapes/conveyor/shapeUtil";
@@ -13,8 +13,8 @@ import { unwrapShape } from "@/util/pluginUtil";
 import { overrides } from "./overrides";
 import { useRef } from "react";
 import { useTldrawDarkModeObserver } from "@/hooks/useTldrawDarkmodeObserver";
-import { getArrowCoordinates, getRectCoordinates, getShapeCoordinates, handleCollision } from "@/util/collision";
-import { CollisionCallback, Polygon, polygonInCircle, Response, SATVector, System } from "detect-collisions";
+import { getShapeCoordinates } from "@/util/collision";
+import { Polygon, Response, SATVector, System } from "detect-collisions";
 
 export const ShapeMetaSchema = z.object({
     props: PluginPropsSchema,
