@@ -1,8 +1,18 @@
 import { Editor, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
+import { FolderPlugin } from "../folder/plugin";
 
-class Plugin extends BasePlugin {
+export type TrashSettings = {
+  delete: boolean;
+};
+export class TrashPlugin extends BasePlugin {
+  private trashSettingsMap: Map<TLShapeId, TrashSettings> = new Map();
+
+  public setTrashSettings(shapeId: TLShapeId, settings: TrashSettings): void {
+    this.trashSettingsMap.set(shapeId, settings);
+  }
+
   public onCollisionStart(
     editor: Editor,
     self: {
@@ -16,10 +26,21 @@ class Plugin extends BasePlugin {
   ): void {
     const deletable = !!unwrapShape(colliding.shape)?.plugin.properties
       .deletable;
-    if (deletable) {
-      // ? Just delete the shape, everything else like file deletion will be handled by the plugin associated with the deleted shape which receives an onDelete event
+    if (!deletable) return;
+    if (!this.trashSettingsMap.get(self.shape.id)?.delete) {
       editor.deleteShape(colliding.shape);
+      return;
     }
+
+    const { sourceShape, extension, name } =
+      colliding.data?.attachments?.[0] ?? {};
+    const { plugin: folderPlugin } =
+      unwrapShape(editor.getShape(sourceShape as TLShapeId)) ?? {};
+
+    const parentDirectoryHandle = (folderPlugin as FolderPlugin).getHandle(
+      sourceShape as TLShapeId
+    );
+    parentDirectoryHandle?.removeEntry(`${name}.${extension}`);
   }
   public onCollisionEnd(
     editor: Editor,
@@ -33,10 +54,12 @@ class Plugin extends BasePlugin {
     }
   ): void {}
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {}
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
+    this.trashSettingsMap.delete(shapeId);
+  }
 }
 
-export default new Plugin({
+export default new TrashPlugin({
   id: "trash",
   availableShapes: ["rect"],
   useableAsTool: true,

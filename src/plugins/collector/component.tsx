@@ -32,8 +32,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     }, [filterType, textFilter, shape.id]);
 
     useEffect(() => {
-
-
         updatePluginRef();
 
         const hasConnectedShapes = !!collectorPlugin.connectedShapes.get(shape.id)?.length;
