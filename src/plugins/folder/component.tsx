@@ -27,23 +27,26 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         /* https://tldraw.dev/examples/editor-api/store-events */
         // This reattaches detached files
         const unsubscribeEditor = editor.store.listen(({ changes: { removed } }) => {
+            const removedShapes = Object.values(removed);
+            if (!removedShapes.length) return;
+
             const reattachQueue: TLShapeId[] = [];
-            for (const { id, typeName } of Object.values(removed)) {  
-                if(typeName !== 'shape') continue;              
-                if(detached.find(({shapeId}) => id === shapeId)){
+            for (const { id, typeName } of removedShapes) {
+                if (typeName !== 'shape') continue;
+                if (detached.find(({ shapeId }) => id === shapeId)) {
                     reattachQueue.push(id as TLShapeId);
                 }
             }
-            if(reattachQueue.length === 0) return;
-            
+            if (!reattachQueue.length) return;
+
             setDetached(detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)));
         })
 
-        
+
         // Run an interval that extracts files to attached conveyor belts
         const interval = setInterval(() => {
             // Don't act if the folder shape is currently selected
-            if(editor.getSelectedShapes().find(({id}) => id === shape.id)) return;
+            if (editor.getSelectedShapes().find(({ id }) => id === shape.id)) return;
 
             const connectedConveyors = editor.getArrowsBoundTo(shape.id).map(({ arrowId, handleId }) => {
                 if (handleId !== 'start') return;
@@ -72,7 +75,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             spawnFile(name, extension, rootHandle.name, coords);
         }, 1000);
 
-        return () => {            
+        return () => {
             unsubscribeEditor();
             clearInterval(interval);
         }
@@ -148,7 +151,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         };
 
 
-        const id = ('shape:' + Date.now() + name) as TLShapeId;
+        const id = ('shape:' + name + '-' + Date.now()) as TLShapeId;
 
         const fileShape = editor.createShape({
             id,
@@ -183,6 +186,15 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     const startInHandle = data?.attachments?.[0].dir ? plugin.getHandle(data.attachments[0].sourceShape, data.attachments[0].dir) : undefined;
     const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
         onChange: (previous, current) => {
+            const danglingDetached = detached.filter(({ attachment: { dir, extension, name } }) =>
+                !current.files.find(({ name: fullname }) => fullname === `${name}.${extension}`)
+                && !current.directories.find(({ name }) => name === dir));
+
+
+            if (danglingDetached.length) {
+                setDetached(detached.filter(({ shapeId }) => !danglingDetached.find(({ shapeId: id }) => id === shapeId)));
+                editor.deleteShapes(danglingDetached.map(({ shapeId }) => shapeId));
+            }
         },
         onOpen: async (directoryHandle) => {
             const newFileHandle = await directoryHandle.getFileHandle(
@@ -256,7 +268,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                 </div>
                             )
                         }),
-                        detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
+                        ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
                             return <div
                                 key={name + '-' + shapeId}
                                 className={`w-16 max-h-fit pointer-events-none opacity-20`}
@@ -276,7 +288,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
-                                        spawnFile(name, extension, rootHandle.name, { x: e.pageX, y: e.pageY });
+                                        const coords = editor.screenToPage({x: e.pageX, y: e.pageY});
+                                        spawnFile(name, extension, rootHandle.name, coords);
                                     }}
                                 >
                                     <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />

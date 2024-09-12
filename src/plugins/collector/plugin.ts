@@ -8,20 +8,39 @@ import {
 } from "tldraw";
 import BasePlugin, { PluginAttachment, PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
-import { FilterSettings, FilterType } from "./component";
+import {
+  CollectorConnectionState,
+  FilterSettings,
+  FilterType,
+} from "./component";
 import { getArrowCoordinates } from "@/util/collision";
+import { getMimeType } from "@/util/getMimeType";
+import { getFile } from "@/util/file";
 
 class CollectorPlugin extends BasePlugin {
-  private filterMap: Map<TLShapeId, FilterSettings> = new Map(); // TODO create methods to set filter options (for collector shape id) on collision these can the be evaluated by the plugin and sent to the appropriate shape on the canvas)
+  private settingsMap: Map<TLShapeId, FilterSettings> = new Map(); // TODO create methods to set filter options (for collector shape id) on collision these can the be evaluated by the plugin and sent to the appropriate shape on the canvas)
+  private connectionStateSubscriptionMap: Map<
+    TLShapeId,
+    (state: CollectorConnectionState) => void
+  > = new Map();
 
-  public setCollectorFilter(
+  public subscribeConnectionState(
+    shapeId: TLShapeId,
+    callback: (state: CollectorConnectionState) => void
+  ): () => void {
+    this.connectionStateSubscriptionMap.set(shapeId, callback);
+    return this.unsubscribeConnectionState.bind(this, shapeId);
+  }
+  public unsubscribeConnectionState(shapeId: TLShapeId) {
+    this.connectionStateSubscriptionMap.delete(shapeId);
+  }
+  public setCollectorSettings(
     shapeId: TLShapeId,
     filterSettings: FilterSettings
   ): void {
-    this.filterMap.set(shapeId, filterSettings);
+    this.settingsMap.set(shapeId, filterSettings);
   }
-
-  public onCollisionStart(
+  public async onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
@@ -31,25 +50,28 @@ class CollectorPlugin extends BasePlugin {
       shape: TLShape;
       data?: PluginData;
     }
-  ): void {
+  ): Promise<void> {
     // Check if colliding shape is a collector and only connect if it is
     const plugin = unwrapShape(colliding.shape)?.plugin;
 
     if (plugin?.id === this.id) {
-      const isAlreadyConnected = this.connectedShapes
-        .get(colliding.shape.id)
-        ?.includes(self.shape.id);
+      this.connectShape(self.shape.id, colliding.shape.id, editor);
 
-      if (!isAlreadyConnected) {
-        this.connectShape(self.shape.id, colliding.shape.id, editor);
-      }
+      const stateChangeListener = this.connectionStateSubscriptionMap.get(
+        self.shape.id
+      );
+
+      if (!stateChangeListener) return;
+
+      stateChangeListener("connected");
+
       return;
     }
 
     if (plugin?.id !== "file") return;
 
     const attachment = colliding.data?.attachments?.[0];
-    const filterSettings = this.filterMap.get(self.shape.id);
+    const filterSettings = this.settingsMap.get(self.shape.id);
 
     if (!filterSettings || !attachment) return;
 
@@ -63,7 +85,7 @@ class CollectorPlugin extends BasePlugin {
       .map((connectedFilterShapeId) => {
         const connectedFilterShape = editor.getShape(connectedFilterShapeId);
         const { plugin } = unwrapShape(connectedFilterShape) ?? {};
-        const settings = this.filterMap.get(connectedFilterShapeId);
+        const settings = this.settingsMap.get(connectedFilterShapeId);
         return [connectedFilterShape, settings];
       })
       .filter((data): data is [TLShape, FilterSettings] => !!data[1]);
@@ -103,7 +125,8 @@ class CollectorPlugin extends BasePlugin {
         coords.y = arrowInfo.origin.y + arrowInfo.coords[0].y;
       }
 
-      if (plugin.doesFilterMatch(settings, attachment)) {
+      const filterMatch = await plugin.doesFilterMatch(settings, attachment);
+      if (filterMatch) {
         editor.updateShape({
           ...colliding.shape,
           x: coords.x + offset.x,
@@ -126,35 +149,89 @@ class CollectorPlugin extends BasePlugin {
       data?: PluginData;
     }
   ): void {
+    console.log("end");
+
     const plugin = unwrapShape(colliding.shape)?.plugin;
     if (plugin?.id === this.id) {
       this.disconnectShape(self.shape.id, colliding.shape.id, editor);
+
+      const hasConnected = !!this.connectedShapes.get(self.shape.id)?.length;
+
+      const stateChangeListener = this.connectionStateSubscriptionMap.get(
+        self.shape.id
+      );
+      if (!stateChangeListener) return;
+      stateChangeListener(hasConnected ? "connected" : "none");
     }
   }
-  private doesFilterMatch(
+  private async doesFilterMatch(
     filterSettings: FilterSettings,
     attachment: PluginAttachment
-  ): boolean {
+  ): Promise<boolean> {
     const { name, extension } = attachment;
+    const bytes = (await getFile(attachment)?.getFile())?.size;
+    const fileSize = bytes && Math.round((bytes / 1048576) * 100) / 100;
+    const mimeType = extension && getMimeType(extension);
 
-    const typeMatch =
-      filterSettings.filterType === "filetype" &&
-      filterSettings.filterValue.split(',').map((v) => v.trim()).some((v) => v === extension);
+    if (!name || !extension || !mimeType || !fileSize) return false;
 
-    const nameMatch =
-      filterSettings.filterType === "name" &&
-      name &&
-      filterSettings.filterValue &&
-      new RegExp(filterSettings.filterValue, "i").test(name);
+    const filterResults: boolean[] = [];
+    for (const [key, value] of Object.entries(filterSettings)) {
+      if (!value) {
+        filterResults.push(true);
+        continue;
+      }
+      switch (key as keyof FilterSettings) {
+        case "Name": {
+          filterResults.push(new RegExp(value, "i").test(name));
+          break;
+        }
+        case "Mediatype": {
+          filterResults.push(
+            !!mimeType && new RegExp(value, "i").test(mimeType)
+          );
+          break;
+        }
+        case "Extension(s)": {
+          filterResults.push(
+            value.split(",").some((filter) => filter === extension)
+          );
+          break;
+        }
+        case "Size Max (MB)": {
+          const size = Number.parseInt(value);
 
-    return typeMatch || nameMatch || filterSettings.filterType === "all";
+          if (isNaN(size)) {
+            filterResults.push(true);
+            break;
+          }
+          filterResults.push(size <= fileSize);
+          break;
+        }
+        case "Size Min (MB)": {
+          const size = Number.parseInt(value);
+
+          if (isNaN(size)) {
+            filterResults.push(true);
+            break;
+          }
+          filterResults.push(size >= fileSize);
+          break;
+        }
+        default: {
+          console.warn(`${key} filter not implemented!`);
+          filterResults.push(true);
+          break;
+        }
+      }
+    }
+
+    return filterResults.every(() => true);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(
-    editor: Editor,
-    shapeId: TLShapeId,
-    data?: PluginData
-  ): void {}
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
+    this.settingsMap.delete(shapeId);
+  }
 }
 
 export default new CollectorPlugin({

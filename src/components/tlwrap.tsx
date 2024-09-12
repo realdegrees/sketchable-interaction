@@ -164,7 +164,20 @@ const Tlwrap = () => {
                     // TODO override color/shape component as well to remove several options
                 }}
                 onMount={(editor) => {
+                    const initCollision = (shape: TLShape, plugin: BasePlugin, data: PluginData | undefined): void => {
+                        // Collision Handling
+                        const { origin, coords } = getShapeCoordinates(shape, editor);
+                        polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
+                        const poly = polyShapeMap.current.get(shape.id);
+                        if (!poly) return;
+                        updateCollision(editor, shape, plugin, data);
+                    }
 
+                    editor.getCurrentPageShapes().forEach((shape) => {
+                        const {plugin, data} = unwrapShape(shape) ?? {};
+                        if(!plugin) return;
+                        initCollision(shape, plugin, data)
+                    })
                     onTldrawMount();
 
                     // Starts the interval for the tick function of plugins
@@ -246,6 +259,7 @@ const Tlwrap = () => {
                             editor.bringToFront([to.id]);
                             updateCollision(editor, shape, plugin, data);
                         }
+                        
                         // ! Added
                         for (const { id, meta, typeName } of sortedAdded) {
                             if (typeName !== 'shape') continue;
@@ -273,12 +287,7 @@ const Tlwrap = () => {
                                 };
                             }
 
-                            // Collision Handling
-                            const { origin, coords } = getShapeCoordinates(shape, editor);
-                            polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
-                            const poly = polyShapeMap.current.get(shape.id);
-                            if (!poly) continue;
-                            updateCollision(editor, shape, plugin, data);
+                            initCollision(shape, plugin, data);
                         }
                         // ! Removed
                         for (const { id, meta, typeName } of sortedRemoved) {

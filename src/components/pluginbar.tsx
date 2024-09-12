@@ -1,5 +1,3 @@
-import BasePlugin from "@/plugins/base";
-import { readdir } from "fs/promises";
 import path from "path";
 import Plugin from "./plugin";
 import { readdirSync } from "fs";

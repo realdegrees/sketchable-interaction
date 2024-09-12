@@ -32,7 +32,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
             isFilled: true,
         })
     }
-    component(shape: CustomRectShape) {        
+    component(shape: CustomRectShape) {
         const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() })
 
         const { plugin, Component, icon, data } = unwrapShape(shape) ?? {};
