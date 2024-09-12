@@ -1,5 +1,5 @@
 import { Editor, TLShape, TLShapeId } from "tldraw";
-import BasePlugin, { PluginData } from "../base";
+import BasePlugin from "../base";
 import { z } from "zod";
 
 const FileDataSchema = z.object({
@@ -32,7 +32,7 @@ class Plugin extends BasePlugin<FileData> {
   public onDelete(
     editor: Editor,
     shapeId: TLShapeId,
-    data?: PluginData
+    data?: FileData
   ): void {}
 }
 

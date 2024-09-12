@@ -85,14 +85,16 @@ const Component = ({ shape, data }: { shape: TLShape, data?: CollectorData }) =>
                         ...filterValues,
                         [label]: value
                     });
+                    const currentShape = editor.getShape(shape.id);
+                    if (!currentShape) return;
                     editor.updateShape({
-                        ...shape,
+                        ...currentShape,
                         meta: {
                             ...shape.meta,
                             [plugin.id]: filterValues
                         }
                     });
-                    
+
                 }} />)}
             </form>}
 

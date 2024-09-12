@@ -91,7 +91,9 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
       return;
     }
 
-    if (colliding.plugin?.id !== "file") return;
+    const hasChildren = this.connectedShapes.get(self.shape.id)?.length;
+
+    if (colliding.plugin?.id !== "file" || !hasChildren) return;
 
     const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
       colliding.data
@@ -108,15 +110,19 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
 
     const connectedFilterSettingsMap = (
       await Promise.all(
-        (this.connectedShapes.get(self.shape.id) ?? []).map(async (childIld) => {
-          const child = editor.getShape(childIld);
-          const { data: settings, plugin } =
-            unwrapShape<CollectorData, CollectorPlugin>(child) ?? {};
+        (this.connectedShapes.get(self.shape.id) ?? []).map(
+          async (childIld) => {
+            const child = editor.getShape(childIld);
+            const { data: settings, plugin } =
+              unwrapShape<CollectorData, CollectorPlugin>(child) ?? {};
 
-          const isMatch =
-            !!settings && (await plugin?.doesFilterMatch(settings, fileData));
-          return { child, isMatch };
-        })
+              if(!settings) return;
+
+            const matchInfo = await plugin?.doesFilterMatch(settings, fileData);
+            const isMatch = !!matchInfo;
+            return { child, isMatch };
+          }
+        )
       )
     ).filter(
       (
@@ -125,8 +131,7 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
         child: TLShape;
         isMatch: boolean;
       } => {
-        const { isMatch } = info;
-        return !!isMatch;
+        return !!info?.isMatch;
       }
     );
 
@@ -167,15 +172,12 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
       return;
     }
 
-    for (const {
-      child,
-      isMatch,
-    } of connectedFilterSettingsMap) {
+    for (const { child, isMatch } of connectedFilterSettingsMap) {
       const connectedConveyors = getConnectedConveyors(child);
 
       const coords: VecModel = {
-        x: child?.x,
-        y: child?.y,
+        x: child?.x + ("w" in child.props ? child.props.w / 2 : 0),
+        y: child?.y + ("h" in child.props ? child.props.h / 2 : 0),
       };
       let offset: VecModel = { x: 0, y: 0 };
 
@@ -326,9 +328,7 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
           break;
         }
         case "Mediatype": {
-          filterResults.push(
-            !!mimeType && new RegExp(value, "i").test(mimeType)
-          );
+          filterResults.push(new RegExp(value, "i").test(mimeType));
           break;
         }
         case "Extension(s)": {
@@ -365,7 +365,7 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
       }
     }
 
-    return filterResults.every(() => true);
+    return filterResults.every((r) => r);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
   public override onDelete(

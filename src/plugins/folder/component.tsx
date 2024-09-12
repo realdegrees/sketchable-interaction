@@ -75,8 +75,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
         }, 1000);
 
         return () => {
-            unsubscribeEditor();
             clearInterval(interval);
+            unsubscribeEditor();
         }
     })
 
@@ -269,14 +269,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
                                 </div>
                             )
                         }),
-                        ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
-                            return <div
-                                key={name + '-' + shapeId}
-                                className={`w-16 max-h-fit pointer-events-none opacity-20`}
-                            >
-                                <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
-                            </div>;
-                        }),
                         ...files.filter(({ name: fullname }) => !detached.find(({ attachment: { name, extension } }) => fullname === `${name}.${extension}`)).map((fileHandle, i) => {
                             // TODO use fileHandle to show preview of e.g. image files
                             const [name, extension] = fileHandle.name.split('.') ?? [];
@@ -296,6 +288,14 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
                                     <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
                                 </div>
                             )
+                        }),
+                        ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
+                            return <div
+                                key={name + '-' + shapeId}
+                                className={`w-16 max-h-fit pointer-events-none opacity-20`}
+                            >
+                                <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
+                            </div>;
                         }),
                         <div key="directoryAddButton" className={`w-16 h-18 rounded-lg bg-zinc-500 hover:brightness-110 hover:scale-110}`}></div>
                     ]}

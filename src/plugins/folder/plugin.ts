@@ -10,7 +10,6 @@ const FolderDataSchema = z.object({
 });
 export type FolderData = z.infer<typeof FolderDataSchema>;
 
-
 type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
 // TODO add code to receive and store handles for each existing
 export class FolderPlugin extends BasePlugin<FolderData> {
@@ -67,6 +66,8 @@ export class FolderPlugin extends BasePlugin<FolderData> {
       data?: JsonObject;
     }
   ): Promise<void> {
+    console.log("starting collision " + self.shape.id);
+
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
     const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
@@ -102,19 +103,24 @@ export class FolderPlugin extends BasePlugin<FolderData> {
       return;
     }
 
-    const newFileHandle = await selfDirectoryHandle.getFileHandle(
-      `${name}.${extension}`,
-      {
-        create: true,
+    // Don't wait for this as it clogs up the system
+    (async () => {
+      const newFileHandle = await selfDirectoryHandle.getFileHandle(
+        `${name}.${extension}`,
+        {
+          create: true,
+        }
+      );
+
+      const writeable = await newFileHandle.createWritable();
+      await writeable.write(file);
+      await writeable.close();
+
+      if(!writeable.locked){
+      await collidingDirectoryHandle.removeEntry(`${name}.${extension}`);
+
       }
-    );
-
-    const writeable = await newFileHandle.createWritable();
-    await writeable.write(file);
-    await writeable.close();
-    await collidingDirectoryHandle.removeEntry(`${name}.${extension}`);
-
-    editor.deleteShape(colliding.shape.id);
+    })();
   }
 
   // Signature for getting the parent directory handle
@@ -184,5 +190,5 @@ export default new FolderPlugin({
   useableAsTool: true,
   availableShapes: ["rect"],
   deletable: true,
-  pluginDataSchema: FolderDataSchema
+  pluginDataSchema: FolderDataSchema,
 });

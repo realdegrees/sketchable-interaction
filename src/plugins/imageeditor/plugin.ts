@@ -35,7 +35,7 @@ class Plugin extends BasePlugin<ImageEditorData> {
     if (
       !fileData ||
       !extension ||
-      getMimeType(extension)?.split("/")?.[0] !== mimeType
+      getMimeType(extension) !== mimeType
     ) {
       return; // Only switch editor UI for images
     }
