@@ -158,6 +158,7 @@ const Tlwrap = () => {
                 shapeUtils={[RectShapeUtil, ConveyorShapeUtil]} // TODO Add toolbar buttons for shapes
                 tools={[RectShapeTool, ConveyorShapeTool]}
                 overrides={overrides}
+                persistenceKey="si"
                 components={{
                     Toolbar
                     // TODO override color/shape component as well to remove several options
@@ -208,8 +209,14 @@ const Tlwrap = () => {
                     /* https://tldraw.dev/examples/editor-api/store-events */
                     editor.store.listen(({ changes: { updated, removed, added } }) => {
 
+                        // Sort event values to prioritize selected shapes
+                        const selectedShapes = editor.getSelectedShapes().map(({id}) => id);
+                        const sortedUpdate = Object.values(updated).sort(([{id}]) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+                        const sortedRemoved = Object.values(removed).sort(({id}) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+                        const sortedAdded = Object.values(added).sort(({id}) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+
                         // ! Updated
-                        for (const [from, to] of (Object.values(updated) as [TLShape, TLShape][])) {
+                        for (const [from, to] of (sortedUpdate as [TLShape, TLShape][])) {
                             if (to.typeName !== 'shape') continue;
 
 
@@ -240,7 +247,7 @@ const Tlwrap = () => {
                             updateCollision(editor, shape, plugin, data);
                         }
                         // ! Added
-                        for (const { id, meta, typeName } of Object.values(added)) {
+                        for (const { id, meta, typeName } of sortedAdded) {
                             if (typeName !== 'shape') continue;
                             const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
 
@@ -274,7 +281,7 @@ const Tlwrap = () => {
                             updateCollision(editor, shape, plugin, data);
                         }
                         // ! Removed
-                        for (const { id, meta, typeName } of Object.values(removed)) {
+                        for (const { id, meta, typeName } of sortedRemoved) {
                             if (typeName !== 'shape') continue;
 
                             // Sweeps all locked connector arrows that have no 2 binding points and cleans them up
