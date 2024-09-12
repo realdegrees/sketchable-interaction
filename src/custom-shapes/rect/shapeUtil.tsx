@@ -62,6 +62,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
                 {
                     Component && icon && <Image src={icon} alt="logo" className="absolute left-0 -bottom-12 w-12 h-12 pointer-events-none" />
                 }
+                {editor.getInstanceState().isDebugMode && <p className="w-fit ml-auto text-md">{shape.id}</p>}
             </HTMLContainer >
         )
     }

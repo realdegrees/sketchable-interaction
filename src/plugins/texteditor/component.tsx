@@ -3,6 +3,9 @@ import { PluginData } from "../base";
 import { TLShape, useEditor } from "tldraw";
 import folderPlugin from "@/plugins/folder/plugin";
 import ReactQuill from "react-quill";
+import TextEditorPlugin from "./plugin";
+import { unwrapShape } from "@/util/pluginUtil";
+import { FileData } from "../file/plugin";
 
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
@@ -13,13 +16,15 @@ When the file is moved/renamed/deleted etc the UI of this component will automat
 */
 const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
 
-    const { sourceShape, name, extension } = data?.attachments?.[0] ?? {};
     const [value, setValue] = useState<string>();
     const editor = useEditor();
 
     useEffect(() => {
         editor.bringForward([shape]);
         (async () => {
+            const connectedFile = Array.from(TextEditorPlugin.connectedShapes.keys())[0];
+            const { plugin, data } = (connectedFile && unwrapShape<FileData>(editor.getShape(connectedFile))) ?? {};
+            const { sourceShape, extension, name } = data ?? {};
             const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
 
             const file = await fileHandle?.getFile();
@@ -27,16 +32,21 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             setValue(text);
         })();
 
-    }, [setValue, editor, shape, sourceShape, extension, name])
+    }, [setValue, editor, shape])
 
-    if (!sourceShape || !value) return <p>Drag a text file here to edit it</p>;
+    if (!value) return <p>Drag a text file here to edit it</p>;
 
     return <div
-        title={name}
         className={`flex items-center justify-center relative`}
         onPointerDown={(e) => e.stopPropagation()}
     >
         <ReactQuill theme="snow" value={value} onChange={async (newValue) => {
+            const connectedFile = Array.from(TextEditorPlugin.connectedShapes.keys())[0];
+            const { data } = (connectedFile && unwrapShape<FileData>(editor.getShape(connectedFile))) ?? {};
+            const { sourceShape, extension, name } = data ?? {};
+
+            if(!sourceShape) return;
+
             const originalFileHandle = folderPlugin.getHandle(sourceShape, name, extension);
             const writeStream = await originalFileHandle?.createWritable();
             await writeStream?.write(newValue);

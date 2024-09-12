@@ -1,56 +1,47 @@
-import { Editor, TLShape, TLShapeId } from "tldraw";
+import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
-import { ShapeMeta } from "@/components/tlwrap";
+import { z } from "zod";
 
-class Plugin extends BasePlugin {
-  public onCollisionStart(
+const MagnifyDataSchema = z.object({});
+export type MagnifyData = z.infer<typeof MagnifyDataSchema>;
+
+
+class Plugin extends BasePlugin<MagnifyData> {
+  public async onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: MagnifyData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin;
+      data?: JsonObject;
     }
-  ): void {
-    if(!colliding.data?.attachments?.length) return;
-
-    const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
-    meta.data.state = meta.data.state ?? {};
-    meta.data.state.activeEffects = ['magnify', ...meta.data.state.activeEffects];
-    editor.updateShape({
-        ...colliding.shape,
-        meta
-    })
-  }
-  public onCollisionEnd(
+  ): Promise<void> {}
+  public async onCollisionEnd(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: MagnifyData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin;
+      data?: JsonObject;
     }
-  ): void {
-    if (!colliding.data?.attachments?.length) return;
-
-    const meta = structuredClone(colliding.shape.meta) as ShapeMeta;
-    meta.data.state = meta.data.state ?? {};
-    meta.data.state.activeEffects = meta.data.state.activeEffects.filter((v) => v !== 'magnify');
-    editor.updateShape({
-        ...colliding.shape,
-        meta
-    })
-  }
+  ): Promise<void> {}
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {}
+  public onDelete(
+    editor: Editor,
+    shapeId: TLShapeId,
+    data?: PluginData
+  ): void {}
 }
 
 export default new Plugin({
   id: "magnify",
   availableShapes: ["rect"],
   useableAsTool: true,
+  pluginDataSchema: MagnifyDataSchema
 });

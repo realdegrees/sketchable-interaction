@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PluginData, PluginAttachment } from "../base";
+import { PluginAttachment, PluginPropsSchema, SerializablePluginPropsSchema, SerializablePluginProps } from "../base";
 import { useFileSystem } from "@/hooks/useFileSystem";
-import AlertIcon from '~icons/line-md/alert-circle-twotone-loop';
+import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
 import { TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
-import { ShapeMeta } from "@/components/tlwrap";
-import plugin from "./plugin";
-import FilePlugin from "@/plugins/file/plugin";
+import plugin, { FolderData } from "./plugin";
+import FilePlugin, { FileData } from "@/plugins/file/plugin";
 import FolderPlugin from "@/plugins/folder/plugin";
-import { unwrapShape } from "@/util/pluginUtil";
+import { MetaPayload, unwrapShape } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
-import FolderIcon from '~icons/ic/twotone-folder.jsx';
+import FolderIcon from '~icons/ic/twotone-folder';
 import deepEqual from "deep-equal";
 import { getArrowCoordinates } from "@/util/collision";
 
@@ -18,7 +17,7 @@ import { getArrowCoordinates } from "@/util/collision";
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
+const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
     const editor = useEditor();
 
     const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
@@ -85,16 +84,15 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
                                         When the file shape collides with another plugin shape, that plugin can use the attached metadata
                                         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
-        const meta: ShapeMeta = {
-            data: {
-                attachments: [{
-                    name: name,
-                    dir: name,
-                    sourceShape: shape.id ?? null
-                }],
-                state: { activeEffects: [] }
+        const meta: MetaPayload<FolderData> = {
+            props: {
+                ...plugin.properties,
+                pluginDataSchema: null
             },
-            props: plugin.properties
+            [plugin.properties.id]: {
+                parentId: shape.id,
+                startIn: name
+            }
         };
 
         const id = ('shape:' + Date.now() + name) as TLShapeId;
@@ -135,19 +133,20 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
     }
     const spawnFile = (name: string, extension: string, root: string, coords: { x: number, y: number }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
-                                                When the file shape collides with another plugin shape, that plugin can use the attached metadata
-                                                To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
-        const meta: ShapeMeta = {
-            data: {
-                attachments: [{
-                    name,
-                    dir: root,
-                    extension,
-                    sourceShape: shape.id ?? null
-                }],
-                state: { activeEffects: [] }
+        When the file shape collides with another plugin shape, that plugin can use the attached metadata
+        To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
+
+        const meta: MetaPayload<FileData> = {
+            [FilePlugin.properties.id]: {
+                name,
+                dir: root,
+                extension,
+                sourceShape: shape.id
             },
-            props: FilePlugin.properties
+            props: {
+                ...FilePlugin.properties,
+                pluginDataSchema: null
+            }
         };
 
 
@@ -183,7 +182,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
         }
     };
 
-    const startInHandle = data?.attachments?.[0].dir ? plugin.getHandle(data.attachments[0].sourceShape, data.attachments[0].dir) : undefined;
+    const startInHandle = (data?.startIn && data.parentId) ? plugin.getHandle(data.parentId, data.startIn) : undefined;
     const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
         onChange: (previous, current) => {
             const danglingDetached = detached.filter(({ attachment: { dir, extension, name } }) =>
@@ -197,6 +196,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
             }
         },
         onOpen: async (directoryHandle) => {
+            // Create and delete file to prompt user permissions
             const newFileHandle = await directoryHandle.getFileHandle(
                 `si-temp`,
                 {
@@ -259,7 +259,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
-                                        spawnDirectory(directoryHandle.name, { x: e.pageX, y: e.pageY });
+                                        const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
+                                        spawnDirectory(directoryHandle.name, coords);
 
                                     }}
                                 >
@@ -288,7 +289,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: PluginData }) => {
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
-                                        const coords = editor.screenToPage({x: e.pageX, y: e.pageY});
+                                        const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
                                         spawnFile(name, extension, rootHandle.name, coords);
                                     }}
                                 >

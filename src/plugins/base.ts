@@ -1,7 +1,6 @@
-import { isPluginShape, unwrapShape } from "@/util/pluginUtil";
-import { Component } from "react";
-import { Editor, TLArrowShape, TLShape, TLShapeId } from "tldraw";
-import z, { TypeOf } from "zod";
+
+import { Editor, JsonObject, TLArrowShape, TLShape, TLShapeId } from "tldraw";
+import z, { ZodSchema } from "zod";
 
 // ! TODO: create react component for each plugin that gets loaded in the plugin component and saved to the plugin library so that it can be attached to shapes for custom UI ona  per-plugin basis
 // TODO implement basic functions like deletability
@@ -16,8 +15,14 @@ export const PluginPropsSchema = z.object({
   moveable: z.boolean().optional(),
   deletable: z.boolean().optional(),
   onlyCustomComponent: z.boolean().optional(),
+  pluginDataSchema: z.instanceof(ZodSchema)
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
+
+export const SerializablePluginPropsSchema = PluginPropsSchema.extend({
+  pluginDataSchema: z.boolean().nullable(),
+});
+export type SerializablePluginProps = z.infer<typeof SerializablePluginPropsSchema>;
 
 export const PluginAttachment = z.object({
   dir: z.string(),
@@ -32,26 +37,11 @@ export type PluginAttachment = z.infer<typeof PluginAttachment>;
 export const SIEffectsSchema = z.enum(["magnify", "invert", "edit"]);
 export type SIEffects = z.infer<typeof SIEffectsSchema>;
 
-// TODO maybe add some sort of plugindata map where a plugin can save plugin specific data to the shape without modifying the schema
-// something like Map<PluginName, any>
-// typing then just happens by retrieving the data and validating it
-export const PluginDataSchema = z.object({
-  attachments: PluginAttachment.array().optional(),
-  state: z.object({
-    activeEffects: z.array(SIEffectsSchema),
-  }),
-});
-export type PluginData = z.infer<typeof PluginDataSchema>;
-export type ShapeDisconnectEvent = (
-  shapeId: TLShapeId,
-  data: PluginData
-) => void;
 
-type ShapeTree = Map<TLShapeId, TLShapeId[] | ShapeTree>;
 
 // ? possibly add an array that holds references to all shapes of the plugin type (maintained in onCreate and onDelete)
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
-export default abstract class BasePlugin {
+export default abstract class BasePlugin<DataSchema = JsonObject> {
   public activeShapes: Set<TLShapeId> = new Set();
   public connectedShapes: /*ShapeTree*/ Map<TLShapeId, TLShapeId[]> = new Map(); // TODO change all usages of this to
 
@@ -135,28 +125,37 @@ export default abstract class BasePlugin {
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: DataSchema;
     },
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
-      data?: PluginData;
+      data?: JsonObject;
     }
-  ): void;
+  ): Promise<void>;
   public abstract onCollisionEnd(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: DataSchema;
     },
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
-      data?: PluginData;
+      data?: JsonObject;
     }
-  ): void;
+  ): Promise<void>;
   public abstract onCreate(editor: Editor, shape: TLShape): void;
-  public abstract onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void;
+  protected onDelete(
+    editor: Editor,
+    shapeId: TLShapeId,
+    data?: JsonObject
+  ): void {
+    this.disconnectAllShape(shapeId, editor);
+    Array.from(this.connectedShapes.keys()).forEach((sourceShape) => {
+      this.disconnectShape(sourceShape, shapeId, editor);
+    })
+  };
   public onShapeHovered(shapeId: TLShapeId, editor: Editor): void {
     this.updateArrows(editor, shapeId, { opacity: 0.2 });
   }

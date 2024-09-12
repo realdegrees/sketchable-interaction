@@ -1,11 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */ // ESLint thinks this is a class component but it's not according to tldraw documentation
 
-// TODO MIGHT NOT HAVE TO USE CUSTOM SHAPE, COULD JUST USE DEFAULT ARROW
-
-import { unwrapShape } from "@/util/pluginUtil";
-import Image from "next/image";
-import { ErrorBoundary } from "react-error-boundary";
-import { Geometry2d, HTMLContainer, getDefaultColorTheme, useEditor, TLArrowShape, TLOnBeforeCreateHandler, ShapeUtil, TLBaseShape, Rectangle2d, ArrowShapeUtil, TLArrowShapeProps, VecModel, Group2d, } from "tldraw";
+import { Geometry2d, HTMLContainer, ShapeUtil, TLBaseShape, TLArrowShapeProps } from "tldraw";
 
 // ? Syntax and structure reference https://gist.github.com/mdroidian/55927b143bbf8ed19ba730e49a76194b
 

@@ -1,15 +1,28 @@
-import { Editor, TLShape, TLShapeId } from "tldraw";
-import BasePlugin, { PluginAttachment, PluginData } from "../base";
+import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
+import BasePlugin, { PluginAttachment } from "../base";
 import { readFile } from "fs/promises";
+import { z } from "zod";
+import { FileData } from "../file/plugin";
+
+const FolderDataSchema = z.object({
+  startIn: z.string().optional(),
+  parentId: z.custom<TLShapeId>(),
+});
+export type FolderData = z.infer<typeof FolderDataSchema>;
+
 
 type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
 // TODO add code to receive and store handles for each existing
-export class FolderPlugin extends BasePlugin {
-  public onCollisionEnd(
+export class FolderPlugin extends BasePlugin<FolderData> {
+  public async onCollisionEnd(
     editor: Editor,
-    self: { shape: TLShape; data?: PluginData },
-    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData }
-  ): void {}
+    self: { shape: TLShape; data?: FolderData },
+    colliding: {
+      shape: TLShape;
+      plugin: BasePlugin;
+      data?: JsonObject;
+    }
+  ): Promise<void> {}
 
   private _detachedMap: Map<TLShapeId, ItemShapeMap> = new Map();
 
@@ -46,18 +59,20 @@ export class FolderPlugin extends BasePlugin {
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: FolderData;
     },
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
-      data?: PluginData;
+      data?: JsonObject;
     }
   ): Promise<void> {
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
-    const { sourceShape, dir, extension, name } =
-      colliding.data?.attachments?.[0] ?? {};
+    const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
+      colliding.data
+    ).data as JsonObject as FileData | undefined;
+    const { sourceShape, extension, name, dir } = fileData ?? {};
 
     if (!sourceShape || sourceShape === self.shape.id) {
       // trigger the deletion of the shape but make sure it doesn't get deleted as a file but instead
@@ -160,7 +175,7 @@ export class FolderPlugin extends BasePlugin {
   public onDelete(
     editor: Editor,
     shapeId: TLShapeId,
-    data?: PluginData
+    data?: JsonObject
   ): void {}
 }
 
@@ -169,4 +184,5 @@ export default new FolderPlugin({
   useableAsTool: true,
   availableShapes: ["rect"],
   deletable: true,
+  pluginDataSchema: FolderDataSchema
 });

@@ -1,29 +1,36 @@
-import { ShapeMetaSchema } from "@/components/tlwrap";
-import BasePlugin, { PluginData, PluginProps } from "@/plugins/base";
-import { PluginComponent, PluginStore, usePluginStore } from "@/stores/plugin";
+import BasePlugin, { PluginPropsSchema, SerializablePluginProps, SerializablePluginPropsSchema } from "@/plugins/base";
+import { PluginStore, usePluginStore } from "@/stores/plugin";
+import { Data } from "detect-collisions";
 import { JsonObject, TLShape } from "tldraw";
-import { StaticImport } from "next/dist/shared/lib/get-img-props";
+import { z } from "zod";
 
-export const unwrapShape = (
+export type MetaPayload<T = JsonObject> = {
+  [pluginId: string]: T | SerializablePluginProps;
+};
+
+export const unwrapShape = <PluginData = JsonObject, PluginType = BasePlugin>(
   shape?: Partial<TLShape> & { meta: JsonObject }
-): (PluginStore & { data?: PluginData }) | undefined => {
+): (PluginStore<PluginType> & { data?: PluginData }) | undefined => {
   if (!shape) return undefined;
 
   const { getPlugin } = usePluginStore.getState();
 
-  const { data, props } = ShapeMetaSchema.safeParse(shape?.meta).data ?? {};
+  const props: SerializablePluginProps | undefined =
+    SerializablePluginPropsSchema.safeParse(shape?.meta["props"]).data;
 
   const { plugin, Component, icon } = getPlugin(props?.id) ?? {};
-
-  if (!plugin) {
+  if (!plugin || !props) {
     // console.error(
     //   `Unable to find attached plugin\nShape: ${shape?.id}`
     // );
     return;
   }
 
+  const pluginDataSchema = plugin.properties.pluginDataSchema;
+  const data = pluginDataSchema.safeParse(shape.meta[props.id]).data as PluginData;
+
   return {
-    plugin,
+    plugin: plugin as PluginType,
     Component,
     data,
     icon,

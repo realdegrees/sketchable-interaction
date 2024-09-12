@@ -1,15 +1,11 @@
-import { PluginData } from "@/plugins/base";
-import { PluginStore } from "@/stores/plugin";
 import {
   TLArrowShape,
   VecModel,
   TLGeoShape,
   TLShape,
   Editor,
-  TLShapeId,
   Vec,
 } from "tldraw";
-import { unwrapShape } from "./pluginUtil";
 
 type Poly = VecModel[];
 

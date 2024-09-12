@@ -1,9 +1,14 @@
 import { Editor, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
+import { z } from "zod";
+
+const ConveyorDataSchema = z.object({});
+export type ConveyorData = z.infer<typeof ConveyorDataSchema>;
+
 
 const SPEED = 4;
-class Plugin extends BasePlugin {
+class Plugin extends BasePlugin<ConveyorData> {
   private disableBendListeners: Map<TLShapeId, () => void> = new Map();
   tick(editor: Editor): void {
     Array.from(this.connectedShapes.entries()).forEach(
@@ -91,20 +96,20 @@ class Plugin extends BasePlugin {
       }
     );
   }
-  public onCollisionStart(
+  public async onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: ConveyorData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin<unknown>;
+      data?: unknown;
     }
-  ): void {
+  ): Promise<void> {
     const moveable = !!unwrapShape(colliding.shape)?.plugin.properties.moveable;
     if (!moveable) return;
-
 
     // Disconnect from any other conveyor belts
     Array.from(this.connectedShapes.entries()).forEach(
@@ -119,18 +124,18 @@ class Plugin extends BasePlugin {
     // check if colliding plugin is "moveable" and if yes add it to a map of current items on the conveyor belt (a map of shapeIds and current position)
     this.connectShape(self.shape.id, colliding.shape.id, editor);
   }
-  public onCollisionEnd(
+  public async onCollisionEnd(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: ConveyorData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin<unknown>;
+      data?: unknown;
     }
-  ): void {
-
+  ): Promise<void> {
     this.disconnectShape(self.shape.id, colliding.shape.id, editor);
   }
   public onCreate(editor: Editor, shape: TLArrowShape): void {
@@ -163,4 +168,5 @@ export default new Plugin({
   id: "conveyor",
   availableShapes: ["conveyor"],
   useableAsTool: true,
+  pluginDataSchema: ConveyorDataSchema
 });

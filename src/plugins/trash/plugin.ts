@@ -1,29 +1,37 @@
-import { Editor, TLShape, TLShapeId } from "tldraw";
+import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
-import { FolderPlugin } from "../folder/plugin";
+import plugin, { FolderPlugin } from "../folder/plugin";
+import { z } from "zod";
+import { FileData } from "../file/plugin";
+
+const TrashDataSchema = z.object({
+  delete: z.boolean()
+});
+export type TrashData = z.infer<typeof TrashDataSchema>;
 
 export type TrashSettings = {
   delete: boolean;
 };
-export class TrashPlugin extends BasePlugin {
+export class TrashPlugin extends BasePlugin<TrashData> {
   private trashSettingsMap: Map<TLShapeId, TrashSettings> = new Map();
 
   public setTrashSettings(shapeId: TLShapeId, settings: TrashSettings): void {
     this.trashSettingsMap.set(shapeId, settings);
   }
 
-  public onCollisionStart(
+  public async onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: TrashData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin;
+      data?: JsonObject;
     }
-  ): void {
+  ): Promise<void> {
     const deletable = !!unwrapShape(colliding.shape)?.plugin.properties
       .deletable;
     if (!deletable) return;
@@ -32,8 +40,10 @@ export class TrashPlugin extends BasePlugin {
       return;
     }
 
-    const { sourceShape, extension, name } =
-      colliding.data?.attachments?.[0] ?? {};
+    const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
+      colliding.data
+    ).data as JsonObject as FileData | undefined;
+    const { sourceShape, extension, name } = fileData ?? {};
     const { plugin: folderPlugin } =
       unwrapShape(editor.getShape(sourceShape as TLShapeId)) ?? {};
 
@@ -42,17 +52,18 @@ export class TrashPlugin extends BasePlugin {
     );
     parentDirectoryHandle?.removeEntry(`${name}.${extension}`);
   }
-  public onCollisionEnd(
+  public async onCollisionEnd(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: TrashData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin;
+      data?: JsonObject;
     }
-  ): void {}
+  ): Promise<void> {}
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
     this.trashSettingsMap.delete(shapeId);
@@ -63,4 +74,5 @@ export default new TrashPlugin({
   id: "trash",
   availableShapes: ["rect"],
   useableAsTool: true,
+  pluginDataSchema: TrashDataSchema
 });

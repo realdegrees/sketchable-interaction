@@ -72,6 +72,9 @@ importers:
       '@iconify-json/tdesign':
         specifier: ^1.1.7
         version: 1.1.7
+      '@iconify/json':
+        specifier: ^2.2.247
+        version: 2.2.247
       '@svgr/core':
         specifier: ^8.1.0
         version: 8.1.0(typescript@5.4.5)
@@ -295,6 +298,9 @@ packages:
 
   '@iconify-json/tdesign@1.1.7':
     resolution: {integrity: sha512-Oq5Olm7ZHPEQZHxTE3fUWx/W41d/Q1630g0JHyTJgBhj4ROzDyPAFEDE81c9l2AZjXyVxRDDDqI6BYjX0OmXkg==}
+
+  '@iconify/json@2.2.247':
+    resolution: {integrity: sha512-i3Vm3VDAxtw0KxUR56o2zlNJcfmy4KDddSptxEw17Ze1O6FWA/JMNMI3em7FoaAqJLfcHMycWpzWx0Sbl/NUsA==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -2979,6 +2985,11 @@ snapshots:
   '@iconify-json/tdesign@1.1.7':
     dependencies:
       '@iconify/types': 2.0.0
+
+  '@iconify/json@2.2.247':
+    dependencies:
+      '@iconify/types': 2.0.0
+      pathe: 1.1.2
 
   '@iconify/types@2.0.0': {}
 

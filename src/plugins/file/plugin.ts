@@ -1,27 +1,39 @@
 import { Editor, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginData } from "../base";
-import { unwrapShape } from "@/util/pluginUtil";
-import { FolderPlugin } from "../folder/plugin";
+import { z } from "zod";
 
-class Plugin extends BasePlugin {
-  public onCollisionEnd(
+const FileDataSchema = z.object({
+  dir: z.string(),
+  extension: z.string().optional(),
+  name: z.string().optional(),
+  sourceShape: z.custom<TLShapeId>(),
+});
+export type FileData = z.infer<typeof FileDataSchema>;
+
+class Plugin extends BasePlugin<FileData> {
+  public async onCollisionEnd(
     editor: Editor,
-    self: { shape: TLShape; data?: PluginData },
-    colliding: { shape: TLShape; plugin: BasePlugin; data?: PluginData }
-  ): void {}
-  public onCollisionStart(
+    self: { shape: TLShape; data?: FileData },
+    colliding: { shape: TLShape; plugin: BasePlugin<unknown>; data?: unknown }
+  ): Promise<void> {}
+  public async onCollisionStart(
     editor: Editor,
     self: {
       shape: TLShape;
-      data?: PluginData;
+      data?: FileData;
     },
     colliding: {
       shape: TLShape;
-      data?: PluginData;
+      plugin: BasePlugin<unknown>;
+      data?: unknown;
     }
-  ): void {}
+  ): Promise<void> {}
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {  }
+  public onDelete(
+    editor: Editor,
+    shapeId: TLShapeId,
+    data?: PluginData
+  ): void {}
 }
 
 export default new Plugin({
@@ -30,5 +42,6 @@ export default new Plugin({
   useableAsTool: false,
   onlyCustomComponent: true,
   moveable: true,
-  deletable: true
+  deletable: true,
+  pluginDataSchema: FileDataSchema
 });
