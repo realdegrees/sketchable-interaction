@@ -8,7 +8,7 @@ export const InputRow = ({ label, value, onChange, key }: { label: string, value
                 value={value}
                 placeholder={`Enter ${label}`}
                 onChange={({ currentTarget: { value } }) => {
-                    console.log('change');
+                    console.debug('change');
                     onChange(value);
                 }}
             />

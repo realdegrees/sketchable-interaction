@@ -10,6 +10,8 @@ import { getMimeType } from "@/util/getMimeType";
 import Image from "next/image";
 import { toDataUrl } from "@/util/blob";
 import plugin from "./plugin";
+import { ErrorBoundary } from "react-error-boundary";
+import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
 
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
@@ -26,7 +28,6 @@ const Component = ({ shape, data }: { shape: TLShape, data?: MagnifyData }) => {
     const editor = useEditor();
 
     useEffect(() => {
-        editor.bringForward([shape]);
         (async () => {
             const { sourceShape, extension, name } = fileData ?? {};
             const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
@@ -49,7 +50,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: MagnifyData }) => {
     }, [setFile, editor, shape, fileData])
 
     if (!fileData || !fileData.name || !fileData.extension) return <p>Drag a file here to view its content</p>;
-    if (!file || !dataUrl) return <p>Unable to load file</p>;
+    if (!file || !dataUrl) return <LoadingIcon className="w-1/2 h-1/2"/>;
 
     const mimeType = fileData.extension && getMimeType(fileData.extension);
     const content = (() => {
@@ -68,7 +69,9 @@ const Component = ({ shape, data }: { shape: TLShape, data?: MagnifyData }) => {
             case 'video': {
                 return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
                     currentTarget.volume = 0.03;
-                }} />;
+                }} >
+                    <LoadingIcon className="w-1/2 h-1/2" />
+                </video>;
             }
             case 'model': {
                 return <p>model not implemented</p>; // TODO maybe add a nice 3d model viewer if there are any for react
@@ -85,7 +88,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: MagnifyData }) => {
         <p>{`${fileData.dir}/${fileData.name}.${fileData.extension}`}</p>
         <hr className="h-1 w-full mb-0 mt-2"></hr>
         <div className="h-full w-full">
-            {content}
+            <ErrorBoundary fallback={<p>Display Error</p>}>{content}</ErrorBoundary>
+            
         </div>
 
     </div>

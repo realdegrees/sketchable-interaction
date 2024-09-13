@@ -85,8 +85,8 @@ export const useFileSystem = ({
                 if (hasDirectoryChanges) setDirectories(currentDirectories);
             }
         } catch (e) {
-            console.log(`Error polling: ${directoryHandle.current?.name}`);
-            console.log(e);
+            console.debug(`Error polling: ${directoryHandle.current?.name}`);
+            console.debug(e);
 
             clearInterval(pollingInterval.current);
             setFiles([]);

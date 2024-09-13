@@ -13,7 +13,7 @@ const pluginPaths = readdirSync(pluginDir, { withFileTypes: true })
 const PluginBar = () => {
     // TODO get editor reference (might have to put PluginBar inside of tldraw context)
     return (
-        <div className="flex flex-col absolute top-2 left-1/2 -translate-x-1/2 ">
+        <div className="flex flex-col absolute top-2 left-1/2 -translate-x-1/2 z-50">
             <div id="pluginbar" className="flex bg-tldraw-tool-bg rounded-xl border border-opacity-25 border-zinc-100 shadow-sm shadow-slate-900">
                 {
                     // ! Can pass funcion references here if needed as passing the entire instance is not supported in react

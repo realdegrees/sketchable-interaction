@@ -7,12 +7,12 @@ import {
   Vec,
 } from "tldraw";
 
-type Poly = VecModel[];
+type Poly = Vec[];
 
 export const getShapeCoordinates = (
   shape: TLShape,
   editor: Editor
-): { origin: VecModel; coords: Poly } => {
+): { origin: Vec; coords: Poly } => {
   if (shape.type === "arrow")
     return getArrowCoordinates(shape as TLArrowShape, editor);
   else return getRectCoordinates(shape as TLGeoShape);
@@ -20,14 +20,13 @@ export const getShapeCoordinates = (
 export const getArrowCoordinates = (
   shape: TLArrowShape,
   editor: Editor
-): { origin: VecModel; coords: Poly } => {
-  const origin = { x: shape.x, y: shape.y };
-  let start: VecModel, end: VecModel;
+): { origin: Vec; coords: Poly } => {
+  const origin = new Vec(shape.x, shape.y);
+  let start: Vec = new Vec(),
+    end: Vec = new Vec();
   if (shape.props.start.type === "point") {
-    start = {
-      x: shape.props.start.x,
-      y: shape.props.start.y,
-    };
+    start.x = shape.props.start.x;
+    start.y = shape.props.start.y;
   } else {
     const { x, y, props } =
       editor.getShape(shape.props.start.boundShapeId) ?? {};
@@ -53,10 +52,8 @@ export const getArrowCoordinates = (
     start = arrowStart;
   }
   if (shape.props.end.type === "point") {
-    end = {
-      x: shape.props.end.x, // * 2,
-      y: shape.props.end.y, // * 2,
-    };
+    end.x = shape.props.end.x; // * 2,
+    end.y = shape.props.end.y; // * 2,
   } else {
     const { x, y, props } = editor.getShape(shape.props.end.boundShapeId) ?? {};
 
@@ -90,11 +87,11 @@ export const getArrowCoordinates = (
 
 export const getRectCoordinates = (
   shape: TLShape & { props: { w: number; h: number } }
-): { origin: VecModel; coords: Poly } => {
+): { origin: Vec; coords: Poly } => {
   const rotationCos = Math.cos(shape.rotation);
   const rotationSin = Math.sin(shape.rotation);
 
-  const rotatePoint = (x: number, y: number) => {
+  const rotatePoint = (x: number, y: number): Vec => {
     // Translate point to origin
     const translatedX = x;
     const translatedY = y;
@@ -104,10 +101,7 @@ export const getRectCoordinates = (
     const rotatedY = translatedX * rotationSin + translatedY * rotationCos;
 
     // Translate back to original position
-    return {
-      x: rotatedX,
-      y: rotatedY,
-    };
+    return new Vec(rotatedX, rotatedY);
   };
 
   // Define the four corners relative to center
@@ -124,8 +118,7 @@ export const getRectCoordinates = (
   });
 
   return {
-    origin: { x: shape.x, y: shape.y },
+    origin: new Vec(shape.x, shape.y),
     coords: poly,
   };
 };
-

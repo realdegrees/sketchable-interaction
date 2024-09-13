@@ -1,4 +1,4 @@
-import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
+import { Editor, JsonObject, T, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginAttachment } from "../base";
 import { readFile } from "fs/promises";
 import { z } from "zod";
@@ -66,8 +66,6 @@ export class FolderPlugin extends BasePlugin<FolderData> {
       data?: JsonObject;
     }
   ): Promise<void> {
-    console.log("starting collision " + self.shape.id);
-
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
     const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
@@ -102,23 +100,65 @@ export class FolderPlugin extends BasePlugin<FolderData> {
       console.warn("Unable to handle file movement!");
       return;
     }
+    
+    editor.updateShape({
+      ...colliding.shape,
+      opacity: 0
+    });
 
     // Don't wait for this as it clogs up the system
     (async () => {
-      const newFileHandle = await selfDirectoryHandle.getFileHandle(
-        `${name}.${extension}`,
-        {
-          create: true,
+      let transferSuccess = false;
+      let tries = 0;
+      const maxTries = 100;
+      const timeout = 500;
+
+      do {
+        try {
+          const newFileHandle = await selfDirectoryHandle.getFileHandle(
+            `${name}.${extension}`,
+            {
+              create: true,
+            }
+          );
+
+          const writeable = await newFileHandle.createWritable();
+          await writeable.write(file);
+          await writeable.close();
+          transferSuccess = true;
+        } catch (e) {
+          console.debug(`File transfer failed retrying in ${timeout}ms\n`, e);
+          await new Promise((res) => setTimeout(res, timeout));
+          tries++;
         }
-      );
+      } while (!transferSuccess && tries <= maxTries);
 
-      const writeable = await newFileHandle.createWritable();
-      await writeable.write(file);
-      await writeable.close();
-
-      if(!writeable.locked){
-      await collidingDirectoryHandle.removeEntry(`${name}.${extension}`);
-
+      if (transferSuccess) {
+        console.debug("File transferred\n", `${dir}/${name}.${extension}`);
+        let deleteSuccess = false;
+        tries = 0;
+        do {
+          try {
+          
+            await collidingDirectoryHandle.removeEntry(`${name}.${extension}`);
+            deleteSuccess = true;
+          } catch (e) {
+            console.debug(`File deletion failed retrying in ${timeout}ms`);
+            await new Promise((res) => setTimeout(res, timeout));
+            tries++;
+          }
+        } while (!deleteSuccess && tries <= maxTries);
+      } else {
+        editor.updateShape({
+          ...colliding.shape,
+          opacity: 100,
+        });
+        console.warn(
+          "Unable to delete file after transfer\n",
+          `Sourceshape: ${sourceShape}\n`,
+          `Targetshape: ${self.shape.id}\n`,
+          `File: ${dir}/${name}/${extension}`
+        );
       }
     })();
   }
@@ -191,4 +231,5 @@ export default new FolderPlugin({
   availableShapes: ["rect"],
   deletable: true,
   pluginDataSchema: FolderDataSchema,
+  tickRate: 3000
 });

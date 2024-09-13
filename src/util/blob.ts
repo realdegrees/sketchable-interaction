@@ -6,10 +6,11 @@ export const fromBlob = (content: string, mimeType: string): Blob => {
 };
 export const toDataUrl = async (file: File | Blob): Promise<string> => {
   return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      reader.result ? res(reader.result as string) : rej();
+    const worker = new Worker(new URL("./dataUrlWorker.ts", import.meta.url));
+    worker.onmessage = ({ data }) => {
+      worker.terminate();
+      res(data);
     };
-    reader.readAsDataURL(file);
+    worker.postMessage(file);
   });
 };

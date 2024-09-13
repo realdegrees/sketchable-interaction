@@ -16,6 +16,7 @@ export const PluginPropsSchema = z.object({
   deletable: z.boolean().optional(),
   onlyCustomComponent: z.boolean().optional(),
   pluginDataSchema: z.instanceof(ZodSchema),
+  tickRate: z.number().default(3000).optional(),
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
@@ -34,20 +35,34 @@ export const PluginAttachment = z.object({
 });
 export type PluginAttachment = z.infer<typeof PluginAttachment>;
 
-// TODO maybe add effects automatically on collision so it doesn't have to be repeated in each plugin (add plugin name as effect during collision)
-// ! Possible effects that can be attached to plugin data, plugins can decide themselves what to do with it
-export const SIEffectsSchema = z.enum(["magnify", "invert", "edit"]);
-export type SIEffects = z.infer<typeof SIEffectsSchema>;
-
 // ? possibly add an array that holds references to all shapes of the plugin type (maintained in onCreate and onDelete)
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
 export default abstract class BasePlugin<DataSchema = JsonObject> {
   public activeShapes: Set<TLShapeId> = new Set();
   public connectedShapes: /*ShapeTree*/ Map<TLShapeId, TLShapeId[]> = new Map(); // TODO change all usages of this to
+  private _editor: Editor | undefined;
+  private tickListeners: Set<(editor: Editor | undefined) => void> = new Set();
 
-  constructor(protected props: PluginProps) {}
+  constructor(protected props: PluginProps) {
+    if (props.tickRate) {
+      setInterval(() => {        
+        this.tickListeners.forEach((c) => c(this._editor));
+      }, props.tickRate);
+    }
+  }
 
-  tick(editor: Editor): void {}
+  public tick(callback: (editor: Editor | undefined) => void): () => void {
+    this.tickListeners.add(callback);
+    return () => this.tickListeners.delete(callback);
+  }
+  public get editor(): Editor {
+    if (!this._editor) console.warn("Editor not set in " + this.props.id);
+    return this._editor as Editor;
+  }
+
+  public setEditorRef(editor: Editor) {
+    this._editor = editor;
+  }
 
   public get id(): string {
     return this.props.id;

@@ -1,3 +1,4 @@
+import { COLORS } from "./src/util/constants";
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -14,9 +15,11 @@ const config: Config = {
       },
     },
   },
-  plugins: [
-    require('tailwind-scrollbar')
+  plugins: [require("tailwind-scrollbar")],
+  safelist: [
+    ...COLORS.map((c) => ({
+      pattern: new RegExp(`bg-${c}-500`),
+    })),
   ],
-  safelist: [],
 };
 export default config;

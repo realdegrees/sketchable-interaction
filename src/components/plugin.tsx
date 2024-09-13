@@ -7,7 +7,6 @@ import Image from "next/image";
 import React, { createElement, lazy, useEffect, useState } from "react";
 import "@/util/string.extensions";
 import SvgSpinnersBarsFade from '~icons/svg-spinners/bars-fade';
-import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
 
 
 const Plugin = ({ name }: { name: string }) => {

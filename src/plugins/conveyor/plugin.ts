@@ -1,51 +1,74 @@
-import { Editor, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
-import BasePlugin, { PluginData } from "../base";
+import {
+  Editor,
+  TLArrowShape,
+  TLShape,
+  TLShapeId,
+  Vec,
+  VecModel,
+} from "tldraw";
+import BasePlugin, { PluginProps } from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
 import { z } from "zod";
+import { getArrowCoordinates } from "@/util/collision";
+import { normalize } from "path";
 
 const ConveyorDataSchema = z.object({});
 export type ConveyorData = z.infer<typeof ConveyorDataSchema>;
 
-
 const SPEED = 4;
 class Plugin extends BasePlugin<ConveyorData> {
   private disableBendListeners: Map<TLShapeId, () => void> = new Map();
-  tick(editor: Editor): void {
+
+  constructor(props: PluginProps) {
+    super(props);
+
+    super.tick(this.handleConnectedConveyors.bind(this));
+  }
+  private handleConnectedConveyors(editor?: Editor): void {
+    if (!editor) {
+      console.warn("Conveyor tick not working");
+      return;
+    }
     Array.from(this.connectedShapes.entries()).forEach(
-      ([conveyorId, itemIds], i, arr) => {
+      ([conveyorId, itemIds]) => {
         const conveyorShape = editor.getShape<TLArrowShape>(conveyorId);
-
         if (!conveyorShape) return;
+        const {
+          origin,
+          coords: [start, end],
+        } = getArrowCoordinates(conveyorShape, editor);
+        const destination = Vec.Add(origin, end);
+        const source = Vec.Add(origin, start);
 
-        let destX = 0,
-          destY = 0;
+        const getClosesPointOnLine = (
+          start: Vec,
+          end: Vec,
+          point: Vec
+        ): Vec => {
+          const lineVec = Vec.Sub(end, start);
+          const pointVec = Vec.Sub(point, start);
 
-        if (conveyorShape.props.end.type === "point") {
-          destX = conveyorShape.x + conveyorShape.props.end.x;
-          destY = conveyorShape.y + conveyorShape.props.end.y;
-        } else {
-          const { x, y, props } =
-            editor.getShape(conveyorShape.props.end.boundShapeId) ?? {};
+          const dotProduct = lineVec.x * pointVec.x + lineVec.y * pointVec.y;
+          const lineLengthSquared =
+            lineVec.x * lineVec.x + lineVec.y * lineVec.y;
 
-          let w = 1,
-            h = 1;
+          const t = dotProduct / lineLengthSquared;
+          const clampedT = Math.max(0, Math.min(1, t));
 
-          if (props && "w" in props && "h" in props) {
-            w = props.w as number;
-            h = props.h as number;
-          }
-
-          const dest = Vec.Add(
-            new Vec(x, y),
-            new Vec(
-              w * conveyorShape.props.end.normalizedAnchor.x,
-              h * conveyorShape.props.end.normalizedAnchor.y
-            )
+          const closestPoint = new Vec(
+            source.x + clampedT * lineVec.x,
+            source.y + clampedT * lineVec.y
           );
-          destX = dest.x;
-          destY = dest.y;
-        }
-        const destination = new Vec(destX, destY);
+          // Return projected point
+          return closestPoint;
+        };
+
+        const getDistance = (pointA: Vec, pointB: Vec): number => {
+          const dx = pointB.x - pointA.x;
+          const dy = pointB.y - pointA.y;
+          return Math.sqrt(dx * dx + dy * dy);
+        };
+
         const selectedShapes = editor.getSelectedShapeIds();
 
         const shapesToMove = itemIds
@@ -55,44 +78,52 @@ class Plugin extends BasePlugin<ConveyorData> {
 
         editor.bringToFront(shapesToMove); // Bring shapes moving on a coneyor forward
 
-        shapesToMove.forEach((shape) => {
+        for (const shape of shapesToMove) {
           const { x, y, props } = shape;
 
-          let offsetX = 0,
-            offsetY = 0;
+          const offset = new Vec();
           if (
             "w" in props &&
             "h" in props &&
             !isNaN(props.w) &&
             !isNaN(props.h)
           ) {
-            offsetX = props.w / 2;
-            offsetY = props.h / 2;
+            offset.x = props.w / 2;
+            offset.y = props.h / 2;
           }
 
-          const direction = Vec.Sub(
-            new Vec(destination.x - offsetX, destination.y - offsetY),
-            new Vec(x, y)
+          const shapeCenter = Vec.Add(offset, new Vec(shape.x, shape.y));
+          const closestPointOnLine = getClosesPointOnLine(
+            source,
+            destination,
+            shapeCenter
           );
-          const magnitude = Math.sqrt(direction.x ** 2 + direction.y ** 2);
-
-          if (magnitude === 0) {
+          const distanceToLine = getDistance(shapeCenter, closestPointOnLine);
+          const distanceToDestination = getDistance(shapeCenter, destination);
+          const target =
+            distanceToLine > SPEED ? closestPointOnLine : destination;
+          const speed =
+            distanceToLine > SPEED * 4 ? SPEED * 4 : SPEED;
+            
+          if (distanceToDestination <= SPEED) {
+            console.debug("Destination reached, disonnecting " + shape.id);
+            this.disconnectShape(conveyorShape.id, shape.id, editor);
             return;
           }
 
-          const normalized = Vec.Mul(Vec.Div(direction, magnitude), SPEED);
-          const normalizedMagnitude = Math.sqrt(
-            normalized.x ** 2 + normalized.y ** 2
+          const direction = Vec.Sub(Vec.Sub(target, offset), new Vec(x, y));
+          const magnitude = Math.sqrt(
+            direction.x * direction.x + direction.y * direction.y
           );
+          const normalized = Vec.Div(direction, magnitude);
+          const speedVector = Vec.Mul(normalized, speed);
 
-          const shapeOffset =
-            normalizedMagnitude < magnitude ? normalized : direction;
           editor.updateShape({
             ...shape,
-            x: x + shapeOffset.x,
-            y: y + shapeOffset.y,
+            x: x + speedVector.x,
+            y: y + speedVector.y,
           });
-        });
+        }
       }
     );
   }
@@ -110,7 +141,6 @@ class Plugin extends BasePlugin<ConveyorData> {
   ): Promise<void> {
     const moveable = !!unwrapShape(colliding.shape)?.plugin.properties.moveable;
     if (!moveable) return;
-
     // Disconnect from any other conveyor belts
     Array.from(this.connectedShapes.entries()).forEach(
       ([conveyorId, itemIds]) => {
@@ -121,6 +151,7 @@ class Plugin extends BasePlugin<ConveyorData> {
       }
     );
 
+    editor.animateShape(colliding.shape);
     // check if colliding plugin is "moveable" and if yes add it to a map of current items on the conveyor belt (a map of shapeIds and current position)
     this.connectShape(self.shape.id, colliding.shape.id, editor);
   }
@@ -158,7 +189,11 @@ class Plugin extends BasePlugin<ConveyorData> {
     });
     this.disableBendListeners.set(shape.id, unsubscribe);
   }
-  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
+  public onDelete(
+    editor: Editor,
+    shapeId: TLShapeId,
+    data?: ConveyorData
+  ): void {
     this.disableBendListeners.get(shapeId)?.();
     this.disableBendListeners.delete(shapeId);
   }
@@ -168,5 +203,6 @@ export default new Plugin({
   id: "conveyor",
   availableShapes: ["conveyor"],
   useableAsTool: true,
-  pluginDataSchema: ConveyorDataSchema
+  pluginDataSchema: ConveyorDataSchema,
+  tickRate: 20,
 });

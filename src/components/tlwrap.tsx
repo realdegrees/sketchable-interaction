@@ -190,9 +190,9 @@ const Tlwrap = () => {
                     }
 
                     editor.getCurrentPageShapes().forEach((shape) => {
-                        const {plugin, data} = unwrapShape(shape) ?? {};
-                        if(!plugin) return;
-                        if(plugin.id === 'file'){
+                        const { plugin, data } = unwrapShape(shape) ?? {};
+                        if (!plugin) return;
+                        if (plugin.id === 'file') {
                             editor.deleteShape(shape.id);
                             return;
                         }
@@ -200,13 +200,16 @@ const Tlwrap = () => {
                     });
                     cleanup(editor);
 
+
+                    // Set editor reference for all plugins
+                    const { plugins, onPluginAdded } = usePluginStore.getState();
+                    onPluginAdded((plugin) => plugin.setEditorRef(editor));
+                    plugins.forEach(({ plugin }) => plugin.setEditorRef(editor));
+
+
+
                     onTldrawMount();
 
-                    // Starts the interval for the tick function of plugins
-                    setInterval(() => {
-                        const { plugins } = usePluginStore.getState();
-                        plugins.forEach(({ plugin }) => plugin.tick.call(plugin, editor));
-                    }, 20);
 
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
                         Also inform the plugin that a shape has been created
@@ -243,16 +246,13 @@ const Tlwrap = () => {
                     editor.store.listen(({ changes: { updated, removed, added } }) => {
 
                         // Sort event values to prioritize selected shapes
-                        const selectedShapes = editor.getSelectedShapes().map(({id}) => id);
-                        const sortedUpdate = Object.values(updated).sort(([{id}]) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
-                        const sortedRemoved = Object.values(removed).sort(({id}) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
-                        const sortedAdded = Object.values(added).sort(({id}) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
-                        
+                        const selectedShapes = editor.getSelectedShapes().map(({ id }) => id);
+                        const sortedUpdate = Object.values(updated).filter(([, to]) => to.typeName === 'shape').sort(([{ id }]) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+                        const sortedRemoved = Object.values(removed).filter((r) => r.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+                        const sortedAdded = Object.values(added).filter((a) => a.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+
                         // ! Updated
-                        for (const [from, to] of (sortedUpdate as [TLShape, TLShape][])) {
-                            if (to.typeName !== 'shape') continue;
-
-
+                        for (const [, to] of (sortedUpdate as [TLShape, TLShape][])) {
                             const shape = editor.getShape(to.id) as TLShape;
 
                             const { plugin, data } = unwrapShape(shape) ?? {};
@@ -275,14 +275,13 @@ const Tlwrap = () => {
                                     return;
                                 }
                             }
-                            
+
                             editor.bringToFront([to.id]);
                             updateCollision(editor, shape, plugin, data);
                         }
-                        
+
                         // ! Added
-                        for (const { id, meta, typeName } of sortedAdded) {
-                            if (typeName !== 'shape') continue;
+                        for (const { id } of sortedAdded) {
                             const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
 
                             const { plugin, data } = unwrapShape(shape) ?? {};
@@ -310,17 +309,12 @@ const Tlwrap = () => {
                             initCollision(shape, plugin, data);
                         }
                         // ! Removed
-                        for (const { id, meta, typeName } of sortedRemoved) {
-                            if (typeName !== 'shape') continue;
-
+                        for (const { id, meta } of sortedRemoved) {
                             cleanup(editor);
 
                             const { plugin, data } = unwrapShape({ meta }) ?? {};
 
-                            if (!plugin) {
-                                console.warn(`Deleted shape did not have an associated plugin`);
-                                return;
-                            }
+                            if (!plugin) return;
 
                             plugin.unregisterShape(id);
                             plugin.onDelete(editor, id, data);

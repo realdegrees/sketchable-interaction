@@ -12,7 +12,9 @@ import FolderIcon from '~icons/ic/twotone-folder';
 import deepEqual from "deep-equal";
 import { getArrowCoordinates } from "@/util/collision";
 import PlusIcon from '~icons/mdi/plus.jsx';
+import { COLORS } from "@/util/constants";
 
+const TRANSFER_RATE = 2500;
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
@@ -23,64 +25,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
 
     const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
     const [addDirectoryUiEnabled, setAddDirectoryUiEnabled] = useState(false);
-
-    useEffect(() => {
-        /* https://tldraw.dev/examples/editor-api/store-events */
-        // This reattaches detached files
-        const unsubscribeEditor = editor.store.listen(({ changes: { removed } }) => {
-            const removedShapes = Object.values(removed);
-            if (!removedShapes.length) return;
-
-            const reattachQueue: TLShapeId[] = [];
-            for (const { id, typeName } of removedShapes) {
-                if (typeName !== 'shape') continue;
-                if (detached.find(({ shapeId }) => id === shapeId)) {
-                    reattachQueue.push(id as TLShapeId);
-                }
-            }
-            if (!reattachQueue.length) return;
-
-            setDetached(detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)));
-        })
-
-
-        // Run an interval that extracts files to attached conveyor belts
-        const interval = setInterval(() => {
-            // Don't act if the folder shape is currently selected
-            if (editor.getSelectedShapes().find(({ id }) => id === shape.id)) return;
-
-            const connectedConveyors = editor.getArrowsBoundTo(shape.id).map(({ arrowId, handleId }) => {
-                if (handleId !== 'start') return;
-                const shape: TLArrowShape = editor.getShape(arrowId) as TLArrowShape;
-                if (shape?.isLocked) return;
-                const { plugin } = unwrapShape(shape) ?? {};
-                return plugin?.id === 'conveyor' ? shape : undefined;
-            }).filter((shape): shape is TLArrowShape => !!shape);
-
-            if (!connectedConveyors[0] || !rootHandle) return;
-            const { coords: [{ x, y }], origin } = getArrowCoordinates(connectedConveyors[0], editor);
-            const coords = Vec.Add(origin, { x, y });
-
-            const file = files.find((file) => {
-                const [name, extension] = file.name.split('.') ?? [];
-                if (!detached.find(({ attachment }) => name === attachment.name && extension === attachment.extension)) {
-                    return file;
-                }
-            });
-            if (!file) return;
-
-            const [name, extension] = file.name.split('.') ?? [];
-
-            console.log('Spawning file ' + name);
-
-            spawnFile(name, extension, rootHandle.name, coords);
-        }, 1000);
-
-        return () => {
-            clearInterval(interval);
-            unsubscribeEditor();
-        }
-    })
+    const color = useRef<string>(COLORS[Math.floor(Math.random() * (COLORS.length - 1))]);
 
     const spawnDirectory = (name: string, coords: { x: number, y: number }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
@@ -108,8 +53,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
             y,
             meta,
             props: {
-                w: 200,
-                h: 200
+                w: 500,
+                h: 500
             }
         }).getShape(id);
 
@@ -133,7 +78,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
             // })
         }
     }
-    const spawnFile = (name: string, extension: string, root: string, coords: { x: number, y: number }) => {
+    const spawnFile = useCallback((name: string, extension: string, root: string, coords: { x: number, y: number }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
         When the file shape collides with another plugin shape, that plugin can use the attached metadata
         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
@@ -182,7 +127,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
                 }
             ]);
         }
-    };
+    }, [detached, editor, shape]);
 
     const startInHandle = (data?.startIn && data.parentId) ? plugin.getHandle(data.parentId, data.startIn) : undefined;
     const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
@@ -211,10 +156,70 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
             await writeable.close();
             await directoryHandle.removeEntry(`si-temp`);
         },
-        ignorePattern: /^si-temp(\.crswap)?$/,
+        ignorePattern: /^(si-temp|\.crswap|.*\.crswap)$/,
         startIn: startInHandle,
         pollInterval: 500
     });
+
+    useEffect(() => {
+        /* https://tldraw.dev/examples/editor-api/store-events */
+        // This reattaches detached files
+        const unsubscribeEditor = editor.store.listen(({ changes: { removed } }) => {
+            const removedShapes = Object.values(removed).filter(({ typeName }) => typeName === 'shape');
+            if (!removedShapes.length) return;
+
+            const reattachQueue: TLShapeId[] = [];
+            for (const { id } of removedShapes) {
+                if (detached.find(({ shapeId }) => id === shapeId)) {
+                    reattachQueue.push(id as TLShapeId);
+                }
+            }
+            if (!reattachQueue.length) return;
+
+            setDetached(detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)));
+        })
+
+
+        const tickSubscription = plugin.tick(() => {
+            const selectedShapes = editor.getSelectedShapes();
+            const isFolderSelected = selectedShapes.find(({ id }) => id === shape.id);
+            // Don't act if the folder shape is currently selected
+            if (isFolderSelected) return;
+
+            const connectedConveyors = editor.getArrowsBoundTo(shape.id).map(({ arrowId, handleId }) => {
+                if (handleId !== 'start') return;
+                const shape: TLArrowShape = editor.getShape(arrowId) as TLArrowShape;
+                if (shape?.isLocked) return;
+                const { plugin } = unwrapShape(shape) ?? {};
+                return plugin?.id === 'conveyor' ? shape : undefined;
+            }).filter((shape): shape is TLArrowShape => {
+                if(!shape) return false;
+                const isArrowsSelected = selectedShapes.find(({ id }) => id === shape.id)
+                return !isArrowsSelected;
+            });
+
+            if (!connectedConveyors[0] || !rootHandle) return;
+            const { coords: [{ x, y }], origin } = getArrowCoordinates(connectedConveyors[0], editor);
+            const coords = Vec.Add(origin, { x, y });
+
+            const file = files.find((file) => {
+                const [name, extension] = file.name.split('.') ?? [];
+                if (!detached.find(({ attachment }) => name === attachment.name && extension === attachment.extension)) {
+                    return file;
+                }
+            });
+            if (!file) return;
+
+            const [name, extension] = file.name.split('.') ?? [];
+
+            spawnFile(name, extension, rootHandle.name, coords);
+        });
+
+        return () => {
+            tickSubscription();
+            unsubscribeEditor();
+        }
+    }, [detached, editor, files, rootHandle, shape, spawnFile])
 
     if (!isDirectoryPickerSupported) {
         return (
@@ -266,74 +271,86 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
             </input>
         </div>
     }
+    const FileComponent = ({ fileHandle }: { fileHandle: FileSystemFileHandle }) => {
+        // TODO use fileHandle to show preview of e.g. image files
+        const [name, extension] = fileHandle.name.split('.') ?? [];
+        //const isFileDetached = !!isDetached(fileHandle);
+
+        return (
+            <div
+                title={name + '.' + extension}
+                className={`w-full h-fit hover:scale-110 hover:brightness-110  transition-all duration-100`}
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+
+                    const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
+                    spawnFile(name, extension, rootHandle.name, coords);
+                }}
+            >
+                <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
+            </div>
+        )
+    }
+    const FolderComponent = ({ directoryHandle }: { directoryHandle: FileSystemDirectoryHandle }) => {
+        // TODO use fileHandle to show preview of e.g. image files
+        const [isDetached, setIsDetached] = useState(detached.find(({ attachment: { dir } }) => dir === directoryHandle.name));
+
+        useEffect(() => {
+            setIsDetached(detached.find(({ attachment: { dir } }) => dir === directoryHandle.name));
+        }, [directoryHandle.name])
+        return (
+            <div
+                key={directoryHandle.name}
+                title={directoryHandle.name}
+                className={`w-full h-2/3 flex flex-col hover:scale-110 hover:brightness-110 transition-all duration-100 ${isDetached && 'pointer-events-none opacity-20'}`}
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+
+                    const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
+                    spawnDirectory(directoryHandle.name, coords);
+
+                }}
+            >
+                <FolderIcon className="w-full h-full  rounded-lg bg-zinc-500" />
+                <p className="text-nowrap text-ellipsis overflow-hidden text-center text-sm">{directoryHandle.name}</p>
+            </div>
+        )
+    }
     return <div className="flex justify-center items-center w-full h-full">
         {rootHandle &&
-            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center scrollbar-thin scrollbar-track-black scrollbar-thumb-slate-400">
+            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center scrollbar-thin scrollbar-track-black scrollbar-thumb-slate-400 ">
                 <p className="m-2 font-bold text-3xl">{rootHandle.name}</p>
-                <hr></hr>
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(3rem,_6%))] gap-4 p-4 w-full items-start text-3xl">
+                <hr className={`w-full min-h-1 bg-${color.current}-500`}></hr>
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(4rem,_10%))] gap-2 p-4 w-full h-fit items-start text-3xl auto-rows-min">
                     {[
-                        <button key={shape.id + "directoryAddButton"} className={`w-full h-full flex flex-col hover:brightness-110 hover:scale-110 disabled:opacity-50  transition-all duration-100`} disabled={addDirectoryUiEnabled} onPointerDown={(e) => e.stopPropagation()} onClick={() => {
+                        // ! Add Directory Button
+                        <button key={shape.id + "directoryAddButton"} className={`w-full h-2/3 flex flex-col hover:brightness-110 hover:scale-110 disabled:opacity-50  transition-all duration-100`} disabled={addDirectoryUiEnabled} onPointerDown={(e) => e.stopPropagation()} onClick={() => {
                             setAddDirectoryUiEnabled(true);
                         }}>
-                            <div className="w-full h-auto bg-zinc-500  rounded-lg flex justify-center items-center">
-                                <PlusIcon className="w-full h-auto my-auto py-1" />
+                            <div className="w-full h-full bg-zinc-500 rounded-lg flex justify-center items-center">
+                                <PlusIcon className="w-full h-full my-auto py-1" />
 
                             </div>
                         </button>,
-                        ...directories.map((directoryHandle) => {
-                            // TODO use fileHandle to show preview of e.g. image files
-                            const isDirectoryDetached = !!detached.find(({ attachment: { dir } }) => dir === directoryHandle.name);
-
-                            return (
-                                <div
-                                    key={directoryHandle.name}
-                                    title={directoryHandle.name}
-                                    className={`w-full h-full flex flex-col hover:scale-110 hover:brightness-110 transition-all duration-100 ${isDirectoryDetached && 'pointer-events-none opacity-20'}`}
-                                    onPointerDown={(e) => {
-                                        e.stopPropagation();
-
-                                        const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
-                                        spawnDirectory(directoryHandle.name, coords);
-
-                                    }}
-                                >
-                                    <FolderIcon className="w-full h-full  rounded-xl bg-zinc-500" />
-                                    <p className="text-nowrap text-ellipsis overflow-hidden pb-4 text-lg">{directoryHandle.name}</p>
-                                </div>
-                            )
-                        })
+                        // ! Directory UI
+                        ...directories.map((directoryHandle, i) => <FolderComponent directoryHandle={directoryHandle} key={`${directoryHandle.name}-${i}-${shape.id}`} />)
                     ]}
                 </div>
-                {addDirectoryUiEnabled && <DirectoryAddUI key={shape.id + 'directoryadd'} />}
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(4rem,_10%))] gap-4 p-4 w-full items-start text-3xl">
+                {
+                    // ! Add Directory UI
+                    addDirectoryUiEnabled && <DirectoryAddUI key={shape.id + 'directoryadd'} />
+                }
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(3rem,_8%))] gap-3 p-4 w-full items-start text-3xl">
                     {[
-                        ...files.filter(({ name: fullname }) => !detached.find(({ attachment: { name, extension } }) => fullname === `${name}.${extension}`)).map((fileHandle, i) => {
-                            // TODO use fileHandle to show preview of e.g. image files
-                            const [name, extension] = fileHandle.name.split('.') ?? [];
-                            //const isFileDetached = !!isDetached(fileHandle);
-
-                            return (
-                                <div
-                                    key={name + '-' + i + '-' + shape.id}
-                                    title={name + '.' + extension}
-                                    className={`w-full h-full hover:scale-110 hover:brightness-110  transition-all duration-100`}
-                                    onPointerDown={(e) => {
-                                        e.stopPropagation();
-
-                                        const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
-                                        spawnFile(name, extension, rootHandle.name, coords);
-                                    }}
-                                >
-                                    <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
-                                </div>
-                            )
-                        })
+                        // ! File UI
+                        ...files.filter(({ name: fullname }) =>
+                            !detached.find(({ attachment: { name, extension } }) =>
+                                fullname === `${name}.${extension}`)).map((fileHandle, i) => <FileComponent fileHandle={fileHandle} key={fileHandle.name + '-' + i + '-' + shape.id} />)
                     ]}
                 </div>
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(1rem,_6%))] gap-4 p-4 w-full items-start text-3xl mt-auto">
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(2rem,_5%))] gap-2 p-4 w-full items-start text-3xl mt-auto">
                     {[
-
+                        // ! Detached File UI
                         ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
                             return <div
                                 key={name + '-' + shapeId}

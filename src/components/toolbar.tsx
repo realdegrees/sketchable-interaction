@@ -15,7 +15,7 @@ const Toolbar = () => {
     const selectedPluginAvailableShapes = plugins.find(({ plugin: { properties: { id } } }) => id === selected)?.plugin.properties.availableShapes;
     
     const tools = useTools();
-    console.log(tools);
+    console.debug(tools);
 
     return (
         <div>

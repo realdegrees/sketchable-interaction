@@ -20,7 +20,7 @@ export const useTldrawDarkModeObserver = (parentRef: RefObject<HTMLDivElement>) 
 
     useEffect(() => {
         return () => {
-            console.log('Darkmode observer disconnected');
+            console.debug('Darkmode observer disconnected');
             observerRef.current?.disconnect()
         };
     });
