@@ -335,21 +335,21 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
           break;
         }
         case "Size Max (MB)": {
-          const size = Number.parseInt(value);
+          const maxSize = Number.parseInt(value);
 
-          if (isNaN(size)) {
+          if (isNaN(maxSize)) {
             break;
           }
-          filterScore += size <= fileSize ? 1 : -Infinity;
+          filterScore += maxSize >= fileSize ? 1 : -Infinity;
           break;
         }
         case "Size Min (MB)": {
-          const size = Number.parseInt(value);
+          const minSize = Number.parseInt(value);
 
-          if (isNaN(size)) {
+          if (isNaN(minSize)) {
             break;
           }
-          filterScore += size >= fileSize ? 1 : -Infinity;
+          filterScore += minSize <= fileSize ? 1 : -Infinity;
           break;
         }
         default: {

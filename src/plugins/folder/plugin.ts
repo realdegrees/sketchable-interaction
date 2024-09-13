@@ -231,5 +231,5 @@ export default new FolderPlugin({
   availableShapes: ["rect"],
   deletable: true,
   pluginDataSchema: FolderDataSchema,
-  tickRate: 3000
+  tickRate: 2000
 });
