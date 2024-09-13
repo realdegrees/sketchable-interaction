@@ -15,7 +15,7 @@ import { normalize } from "path";
 const ConveyorDataSchema = z.object({});
 export type ConveyorData = z.infer<typeof ConveyorDataSchema>;
 
-const SPEED = 4;
+const SPEED = 8;
 class Plugin extends BasePlugin<ConveyorData> {
   private disableBendListeners: Map<TLShapeId, () => void> = new Map();
 
@@ -104,7 +104,7 @@ class Plugin extends BasePlugin<ConveyorData> {
             distanceToLine > SPEED ? closestPointOnLine : destination;
           const speed =
             distanceToLine > SPEED * 4 ? SPEED * 4 : SPEED;
-            
+
           if (distanceToDestination <= SPEED) {
             console.debug("Destination reached, disonnecting " + shape.id);
             this.disconnectShape(conveyorShape.id, shape.id, editor);

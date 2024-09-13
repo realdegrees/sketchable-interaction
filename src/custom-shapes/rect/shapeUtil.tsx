@@ -40,12 +40,19 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
         const editor = useEditor();
         useHoverEvent(editor, shape);
 
-        const [debugData, setDebugData] = useState({
+        const [debugData, setDebugData] = useState<{
+            id: string,
+            x: number,
+            y: number,
+            w: number,
+            h: number,
+            plugin?: string
+        }>({
             id: shape.id,
             x: shape.x,
             y: shape.y,
             w: shape.props.w,
-            h: shape.props.h
+            h: shape.props.h,
         });
 
         useEffect(() => {
@@ -55,12 +62,14 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
                 for (const [, { id }] of Object.values(updated)) {
                     if (id === shape.id) {
                         const updatedShape = editor.getShape(id) as TLGeoShape;
+                        const {plugin} = unwrapShape(updatedShape) ?? {};
                         setDebugData({
                             id: updatedShape.id,
                             x: updatedShape.x,
                             y: updatedShape.y,
                             w: updatedShape.props.w,
-                            h: updatedShape.props.h
+                            h: updatedShape.props.h,
+                            plugin: plugin?.id
                         })
                     }
                 }
@@ -100,6 +109,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
                     {
                         ...[
                             debugData.id,
+                            debugData.plugin,
                             `x: ${debugData.x.toFixed()} y:${debugData.y.toFixed()}`,
                             `w: ${debugData.w.toFixed()} h: ${debugData.h.toFixed()}`,
                             `Center x:${parseInt(debugData.x.toFixed()) + parseInt(debugData.w.toFixed()) / 2} y: ${parseInt(debugData.y.toFixed()) + parseInt(debugData.h.toFixed()) / 2}`,

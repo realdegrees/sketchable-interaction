@@ -340,7 +340,7 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
           if (isNaN(size)) {
             break;
           }
-          size <= fileSize && filterScore++;
+          filterScore += size <= fileSize ? 1 : -Infinity;
           break;
         }
         case "Size Min (MB)": {
@@ -349,7 +349,7 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
           if (isNaN(size)) {
             break;
           }
-          size >= fileSize && filterScore++;
+          filterScore += size >= fileSize ? 1 : -Infinity;
           break;
         }
         default: {

@@ -85,7 +85,10 @@ const Component = ({ shape, data }: { shape: TLShape, data?: CollectorData }) =>
                         ...filterValues,
                         [label]: value
                     });
-                    plugin.serializePluginData(shape, filterValues, editor);
+                    plugin.serializePluginData(shape, {
+                        ...filterValues,
+                        [label]: value
+                    }, editor);
                 }} />)}
             </form>}
 
