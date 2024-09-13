@@ -30,7 +30,7 @@ class Plugin extends BasePlugin<TextEditorData> {
       colliding.data
     ).data as JsonObject as FileData | undefined;
 
-    this.informCollisionListeners("collision-start", self.shape.id, fileData);
+    this.informCollisionListeners("file", self.shape.id, fileData);
   }
   public async onCollisionEnd(
     editor: Editor,
@@ -47,7 +47,7 @@ class Plugin extends BasePlugin<TextEditorData> {
     const { plugin } = unwrapShape(colliding.shape) ?? {};
     if (!plugin || plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
-    this.informCollisionListeners("collision-end", self.shape.id, undefined);
+    this.informCollisionListeners("end", self.shape.id, undefined);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(

@@ -11,6 +11,7 @@ import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
 import FolderIcon from '~icons/ic/twotone-folder';
 import deepEqual from "deep-equal";
 import { getArrowCoordinates } from "@/util/collision";
+import PlusIcon from '~icons/mdi/plus.jsx';
 
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
 /* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
@@ -21,6 +22,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
     const editor = useEditor();
 
     const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
+    const [addDirectoryUiEnabled, setAddDirectoryUiEnabled] = useState(false);
 
     useEffect(() => {
         /* https://tldraw.dev/examples/editor-api/store-events */
@@ -241,13 +243,44 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
         files
     }, rootHandle); // Stores the handles in the plugin instance for other plugins to use    
 
+    const DirectoryAddUI = ({ }: {}) => {
+        const [value, setValue] = useState('New Folder');
+
+        const createDir = async () => {
+            await rootHandle.getDirectoryHandle(value, {
+                create: true
+            });
+            setAddDirectoryUiEnabled(false);
+        }
+        return <div className="flex flex-col justify-center items-center min-w-48 h-auto max-h-52 w-2/5 pb-8">
+            <FolderIcon className="w-full h-full" />
+            <input
+                autoFocus
+                className="w-full h-fit text-black text-xl rounded-full px-4 text-ellipsis"
+                placeholder="Directory name.."
+                onChange={({ currentTarget: { value } }) => {
+                    setValue(value);
+                }}
+                onKeyDown={async ({ code }) => code === 'Enter' && createDir()}
+                onBlur={createDir}>
+            </input>
+        </div>
+    }
     return <div className="flex justify-center items-center w-full h-full">
         {rootHandle &&
-            <div className="overflow-y-auto w-full h-full flex flex-col">
-                <p className="m-2 font-bold">{rootHandle.name}</p>
+            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center ">
+                <p className="m-2 font-bold text-3xl">{rootHandle.name}</p>
                 <hr></hr>
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(4rem,_1fr))] gap-2 p-2 w-full items-start">
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(3rem,_6%))] gap-4 p-4 w-full items-start text-3xl">
                     {[
+                        <button key={shape.id + "directoryAddButton"} className={`w-full h-full flex flex-col hover:brightness-110 hover:scale-110 disabled:opacity-50  transition-all duration-100`} disabled={addDirectoryUiEnabled} onPointerDown={(e) => e.stopPropagation()} onClick={() => {
+                            setAddDirectoryUiEnabled(true);
+                        }}>
+                            <div className="w-full h-auto bg-zinc-500  rounded-lg flex justify-center items-center">
+                                <PlusIcon className="w-full h-auto my-auto py-1" />
+
+                            </div>
+                        </button>,
                         ...directories.map((directoryHandle) => {
                             // TODO use fileHandle to show preview of e.g. image files
                             const isDirectoryDetached = !!detached.find(({ attachment: { dir } }) => dir === directoryHandle.name);
@@ -255,7 +288,8 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
                             return (
                                 <div
                                     key={directoryHandle.name}
-                                    className={`max-w-14 max-h-14 rounded-lg bg-zinc-500 ${isDirectoryDetached && 'pointer-events-none opacity-20'}`}
+                                    title={directoryHandle.name}
+                                    className={`w-full h-full flex flex-col hover:scale-110 hover:brightness-110 transition-all duration-100 ${isDirectoryDetached && 'pointer-events-none opacity-20'}`}
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
@@ -264,11 +298,16 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
 
                                     }}
                                 >
-                                    <FolderIcon className="w-full h-full" />
-                                    <p className="text-center">{directoryHandle.name}</p>
+                                    <FolderIcon className="w-full h-full  rounded-xl bg-zinc-500" />
+                                    <p className="text-nowrap text-ellipsis overflow-hidden pb-4 text-lg">{directoryHandle.name}</p>
                                 </div>
                             )
-                        }),
+                        })
+                    ]}
+                </div>
+                {addDirectoryUiEnabled && <DirectoryAddUI key={shape.id + 'directoryadd'} />}
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(4rem,_10%))] gap-4 p-4 w-full items-start text-3xl">
+                    {[
                         ...files.filter(({ name: fullname }) => !detached.find(({ attachment: { name, extension } }) => fullname === `${name}.${extension}`)).map((fileHandle, i) => {
                             // TODO use fileHandle to show preview of e.g. image files
                             const [name, extension] = fileHandle.name.split('.') ?? [];
@@ -276,8 +315,9 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
 
                             return (
                                 <div
-                                    key={name + '-' + i}
-                                    className={`w-16 max-h-fit `}
+                                    key={name + '-' + i + '-' + shape.id}
+                                    title={name + '.' + extension}
+                                    className={`w-full h-full hover:scale-110 hover:brightness-110  transition-all duration-100`}
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
 
@@ -288,16 +328,20 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
                                     <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
                                 </div>
                             )
-                        }),
+                        })
+                    ]}
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(1rem,_6%))] gap-4 p-4 w-full items-start text-3xl mt-auto">
+                    {[
+
                         ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
                             return <div
                                 key={name + '-' + shapeId}
-                                className={`w-16 max-h-fit pointer-events-none opacity-20`}
+                                className={`w-full h-full pointer-events-none opacity-20`}
                             >
                                 <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
                             </div>;
-                        }),
-                        <div key="directoryAddButton" className={`w-16 h-18 rounded-lg bg-zinc-500 hover:brightness-110 hover:scale-110}`}></div>
+                        })
                     ]}
                 </div>
             </div>}

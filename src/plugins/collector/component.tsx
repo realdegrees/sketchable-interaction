@@ -74,13 +74,13 @@ const Component = ({ shape, data }: { shape: TLShape, data?: CollectorData }) =>
             ${connectionState === 'both' && 'bg-orange-400 '}} mt-2 mb-4 h-1`}></hr>
         {!showMenu
             ? <div className="flex flex-col text-lg text-nowrap">
-                {Object.entries(filterValues).map(([label, value]) => <div key={label} className="flex flex-row">
+                {Object.entries(filterValues).map(([label, value]) => <div key={label + '-' + shape.id} className="flex flex-row">
                     <p className="font-bold">{label}:</p>
                     <p className="pl-2">{value || '-'}</p>
                 </div>)}
             </div>
             : <form className={`transition-all ${!showMenu && 'hidden'} h-fit duration-300`}>
-                {Object.entries(filterValues).map(([label, value]) => <InputRow key={label} label={label} value={value} onChange={(value) => {
+                {Object.entries(filterValues).map(([label, value]) => <InputRow key={label + '-' + shape.id} label={label} value={value} onChange={(value) => {
                     setFiltervalues({
                         ...filterValues,
                         [label]: value

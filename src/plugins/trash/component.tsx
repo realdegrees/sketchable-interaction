@@ -8,7 +8,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: TrashData }) => {
     const editor = useEditor();
     const inputEl = useRef<HTMLInputElement | null>(null);
 
-    return <div key={shape.id} className="w-fit max-w-full max-h-full h-fit flex flex-col justify-center" onPointerDown={(e) => e.stopPropagation()}>
+    return <div key={shape.id + '-checkbox'} className="w-fit max-w-full max-h-full h-fit flex flex-col justify-center" onPointerDown={(e) => e.stopPropagation()}>
         <p className="text-lg mb-2 text-nowrap overflow-hidden h-fit">{inputEl.current?.checked ? 'Delete Files' : 'Send back to folder'}</p>
         <label htmlFor={`toggle-${shape.id}`} className="m-auto bg-gray-50 cursor-pointer relative max-w-20 h-8 rounded-lg w-full">
             <input ref={inputEl} type="checkbox" id={`toggle-${shape.id}`} checked={unwrapShape<TrashData>(shape)?.data?.delete} className="sr-only peer group" onChange={() => {                

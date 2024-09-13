@@ -32,10 +32,10 @@ const Component = ({ shape, data }: { shape: TLShape, data?: ImageEditorData }) 
         })();
 
         const unsub = [
-            plugin.on<FileData>('collision-start', shape.id, (data) => {
+            plugin.on<FileData>('file', shape.id, (data) => {
                 if (!fileData) setFileData(data);
             }),
-            plugin.on<FileData>('collision-end', shape.id, setFileData),
+            plugin.on<FileData>('end', shape.id, setFileData),
         ]
         return () => {
             unsub.forEach((f) => f())

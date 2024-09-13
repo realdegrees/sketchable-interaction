@@ -191,13 +191,13 @@ export default abstract class BasePlugin<DataSchema = JsonObject> {
   private collisionListeners: Map<
     TLShapeId,
     {
-      type: "collision-start" | "collision-end";
+      type: string;
       callback: (value: unknown) => void;
     }[]
   > = new Map();
 
   public on<T = unknown>(
-    type: "collision-start" | "collision-end",
+    type: string,
     shapeId: TLShapeId,
     callback: (value?: T) => void
   ): () => void {
@@ -211,7 +211,7 @@ export default abstract class BasePlugin<DataSchema = JsonObject> {
     return this.off.bind(this, type, shapeId);
   }
 
-  public off(type: "collision-start" | "collision-end", shapeId: TLShapeId) {
+  public off(type: string, shapeId: TLShapeId) {
     this.collisionListeners.set(
       shapeId,
       this.collisionListeners
@@ -221,7 +221,7 @@ export default abstract class BasePlugin<DataSchema = JsonObject> {
   }
 
   protected informCollisionListeners(
-    type: "collision-start" | "collision-end",
+    type: string,
     shapeId: TLShapeId,
     payload: unknown
   ) {

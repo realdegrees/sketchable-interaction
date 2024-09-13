@@ -20,7 +20,7 @@ const Toolbar = () => {
     return (
         <div>
             <DefaultToolbar>
-                {[...defaultTools, ...selectedPluginAvailableShapes ?? []].map((name) => <CustomTldrawUiMenuItem name={name} key={name} />)}
+                {[...defaultTools, ...selectedPluginAvailableShapes ?? []].map((name) => <CustomTldrawUiMenuItem name={name} key={name + 'uimenuitem'} />)}
             </DefaultToolbar>
         </div>
     )
