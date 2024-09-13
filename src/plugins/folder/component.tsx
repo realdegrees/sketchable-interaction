@@ -268,7 +268,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
     }
     return <div className="flex justify-center items-center w-full h-full">
         {rootHandle &&
-            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center ">
+            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center scrollbar-thin scrollbar-track-black scrollbar-thumb-slate-400">
                 <p className="m-2 font-bold text-3xl">{rootHandle.name}</p>
                 <hr></hr>
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(3rem,_6%))] gap-4 p-4 w-full items-start text-3xl">
