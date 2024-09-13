@@ -149,6 +149,22 @@ const Tlwrap = () => {
         previousCollisions.current.set(shape.id, (previousCollisions.current.get(shape.id) ?? new Set()).add(compareShape.id));
     }
 
+    const cleanup = (editor: Editor) => {
+        // Sweeps all locked connector arrows that have no 2 binding points and cleans them up
+        const unboundConnectorArrows = editor.getCurrentPageShapes().filter(({ props, isLocked }) => {
+            return isLocked && ('end' in props && props.end.type === 'point' || 'start' in props && props.start.type === 'point')
+        });
+
+        editor
+            .updateShapes(unboundConnectorArrows
+                .filter((shape): shape is TLArrowShape => !!shape)
+                .map((shape) => ({
+                    ...shape,
+                    isLocked: false
+                })))
+            .deleteShapes(unboundConnectorArrows);
+    }
+
     return (
         <div className="fixed inset-0" ref={wrapperElRef}>
 
@@ -181,7 +197,9 @@ const Tlwrap = () => {
                             return;
                         }
                         initCollision(shape, plugin, data)
-                    })
+                    });
+                    cleanup(editor);
+
                     onTldrawMount();
 
                     // Starts the interval for the tick function of plugins
@@ -295,19 +313,7 @@ const Tlwrap = () => {
                         for (const { id, meta, typeName } of sortedRemoved) {
                             if (typeName !== 'shape') continue;
 
-                            // Sweeps all locked connector arrows that have no 2 binding points and cleans them up
-                            const unboundConnectorArrows = editor.getCurrentPageShapes().filter(({ props, isLocked }) => {
-                                return isLocked && ('end' in props && props.end.type === 'point' || 'start' in props && props.start.type === 'point')
-                            });
-
-                            editor
-                                .updateShapes(unboundConnectorArrows
-                                    .filter((shape): shape is TLArrowShape => !!shape)
-                                    .map((shape) => ({
-                                        ...shape,
-                                        isLocked: false
-                                    })))
-                                .deleteShapes(unboundConnectorArrows);
+                            cleanup(editor);
 
                             const { plugin, data } = unwrapShape({ meta }) ?? {};
 

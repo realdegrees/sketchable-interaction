@@ -45,7 +45,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
         return (
             <HTMLContainer
                 id={shape.id}
-                className="border relative"
+                className="border relative rounded-lg"
                 style={{
                     pointerEvents: 'all',
                     backgroundColor: plugin?.properties.onlyCustomComponent ? 'transparent' : theme[shape.props.color].semi,

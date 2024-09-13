@@ -1,4 +1,4 @@
-
+import { unwrapShape } from "@/util/pluginUtil";
 import { Editor, JsonObject, TLArrowShape, TLShape, TLShapeId } from "tldraw";
 import z, { ZodSchema } from "zod";
 
@@ -15,14 +15,16 @@ export const PluginPropsSchema = z.object({
   moveable: z.boolean().optional(),
   deletable: z.boolean().optional(),
   onlyCustomComponent: z.boolean().optional(),
-  pluginDataSchema: z.instanceof(ZodSchema)
+  pluginDataSchema: z.instanceof(ZodSchema),
 });
 export type PluginProps = z.infer<typeof PluginPropsSchema>;
 
 export const SerializablePluginPropsSchema = PluginPropsSchema.extend({
   pluginDataSchema: z.boolean().nullable(),
 });
-export type SerializablePluginProps = z.infer<typeof SerializablePluginPropsSchema>;
+export type SerializablePluginProps = z.infer<
+  typeof SerializablePluginPropsSchema
+>;
 
 export const PluginAttachment = z.object({
   dir: z.string(),
@@ -36,8 +38,6 @@ export type PluginAttachment = z.infer<typeof PluginAttachment>;
 // ! Possible effects that can be attached to plugin data, plugins can decide themselves what to do with it
 export const SIEffectsSchema = z.enum(["magnify", "invert", "edit"]);
 export type SIEffects = z.infer<typeof SIEffectsSchema>;
-
-
 
 // ? possibly add an array that holds references to all shapes of the plugin type (maintained in onCreate and onDelete)
 // TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
@@ -61,6 +61,35 @@ export default abstract class BasePlugin<DataSchema = JsonObject> {
   }
   public unregisterShape(shapeId: TLShapeId): void {
     this.activeShapes.delete(shapeId);
+  }
+
+  public serializePluginData(
+    shape: TLShape | undefined,
+    data: DataSchema,
+    editor: Editor
+  ): boolean {
+    shape = shape && editor.getShape(shape);
+
+    if (!shape) return false;
+
+    const validated = this.props.pluginDataSchema.safeParse(data).data as
+      | DataSchema
+      | undefined;
+
+    if (!validated) {
+      console.warn(`Unable to serialize plugin data for ${shape.id}`, data);
+      return false;
+    }
+
+    editor.updateShape({
+      ...shape,
+      meta: {
+        ...shape.meta,
+        [this.props.id]: validated,
+      },
+    });
+
+    return true;
   }
 
   public connectShape(
@@ -146,21 +175,59 @@ export default abstract class BasePlugin<DataSchema = JsonObject> {
     }
   ): Promise<void>;
   public abstract onCreate(editor: Editor, shape: TLShape): void;
-  protected onDelete(
-    editor: Editor,
-    shapeId: TLShapeId,
-    data?: JsonObject
-  ): void {
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: JsonObject): void {
     this.disconnectAllShape(shapeId, editor);
     Array.from(this.connectedShapes.keys()).forEach((sourceShape) => {
       this.disconnectShape(sourceShape, shapeId, editor);
-    })
-  };
+    });
+  }
   public onShapeHovered(shapeId: TLShapeId, editor: Editor): void {
     this.updateArrows(editor, shapeId, { opacity: 0.2 });
   }
   public onShapeUnhovered(shapeId: TLShapeId, editor: Editor): void {
     this.updateArrows(editor, shapeId, { opacity: 0 });
+  }
+
+  private collisionListeners: Map<
+    TLShapeId,
+    {
+      type: "collision-start" | "collision-end";
+      callback: (value: unknown) => void;
+    }[]
+  > = new Map();
+
+  public on<T = unknown>(
+    type: "collision-start" | "collision-end",
+    shapeId: TLShapeId,
+    callback: (value?: T) => void
+  ): () => void {
+    this.collisionListeners.set(shapeId, [
+      ...(this.collisionListeners.get(shapeId) ?? []),
+      {
+        type,
+        callback: callback as (value: unknown) => void,
+      },
+    ]);
+    return this.off.bind(this, type, shapeId);
+  }
+
+  public off(type: "collision-start" | "collision-end", shapeId: TLShapeId) {
+    this.collisionListeners.set(
+      shapeId,
+      this.collisionListeners
+        .get(shapeId)
+        ?.filter(({ type: t }) => t !== type) ?? []
+    );
+  }
+
+  protected informCollisionListeners(
+    type: "collision-start" | "collision-end",
+    shapeId: TLShapeId,
+    payload: unknown
+  ) {
+    this.collisionListeners
+      .get(shapeId)
+      ?.forEach(({ type: t, callback }) => t === type && callback(payload));
   }
 
   private updateArrows(

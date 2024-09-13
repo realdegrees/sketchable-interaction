@@ -85,16 +85,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: CollectorData }) =>
                         ...filterValues,
                         [label]: value
                     });
-                    const currentShape = editor.getShape(shape.id);
-                    if (!currentShape) return;
-                    editor.updateShape({
-                        ...currentShape,
-                        meta: {
-                            ...shape.meta,
-                            [plugin.id]: filterValues
-                        }
-                    });
-
+                    plugin.serializePluginData(shape, filterValues, editor);
                 }} />)}
             </form>}
 

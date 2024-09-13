@@ -9,8 +9,7 @@ import { FileData } from "../file/plugin";
 const TextEditorDataSchema = z.object({});
 export type TextEditorData = z.infer<typeof TextEditorDataSchema>;
 
-
-const mimeType = 'text';
+const mimeType = "text";
 class Plugin extends BasePlugin<TextEditorData> {
   public async onCollisionStart(
     editor: Editor,
@@ -30,15 +29,8 @@ class Plugin extends BasePlugin<TextEditorData> {
     const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
       colliding.data
     ).data as JsonObject as FileData | undefined;
-    const { sourceShape, extension, name, dir } = fileData ?? {};
 
-    if (
-      !fileData ||
-      !extension ||
-      getMimeType(extension) !== mimeType
-    ) {
-      return; // Only switch editor UI for images
-    }
+    this.informCollisionListeners("collision-start", self.shape.id, fileData);
   }
   public async onCollisionEnd(
     editor: Editor,
@@ -55,7 +47,7 @@ class Plugin extends BasePlugin<TextEditorData> {
     const { plugin } = unwrapShape(colliding.shape) ?? {};
     if (!plugin || plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
-    this.disconnectShape(self.shape.id, colliding.shape.id, editor);
+    this.informCollisionListeners("collision-end", self.shape.id, undefined);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(
@@ -70,5 +62,5 @@ export default new Plugin({
   label: "Text Edtior",
   availableShapes: ["rect"],
   useableAsTool: true,
-  pluginDataSchema: TextEditorDataSchema
+  pluginDataSchema: TextEditorDataSchema,
 });

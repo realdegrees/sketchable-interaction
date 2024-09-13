@@ -75,8 +75,8 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
         connectionSubscription = this.connectionStateSubscriptionMap
           .set(self.shape.id, {})
           .get(self.shape.id);
+        return;
       }
-      if (!connectionSubscription) return;
 
       connectionSubscription.lastState = this.processConnectionState(
         self.shape,
@@ -108,32 +108,46 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
 
     if (!match) return;
 
-    const connectedFilterSettingsMap = (
-      await Promise.all(
-        (this.connectedShapes.get(self.shape.id) ?? []).map(
-          async (childIld) => {
-            const child = editor.getShape(childIld);
-            const { data: settings, plugin } =
-              unwrapShape<CollectorData, CollectorPlugin>(child) ?? {};
+    const connectedFilters = this.connectedShapes.get(self.shape.id) ?? [];
+    const destination = (
+      await Promise.all<{ shape?: TLShape; matchScore: number }>(
+        // gets the filter results for every connected collector
+        connectedFilters.map(async (childIld) => {
+          const shape = editor.getShape(childIld);
+          const { data: settings, plugin } =
+            unwrapShape<CollectorData, CollectorPlugin>(shape) ?? {};
+          let matchScore: number = -1;
 
-              if(!settings) return;
-
-            const matchInfo = await plugin?.doesFilterMatch(settings, fileData);
-            const isMatch = !!matchInfo;
-            return { child, isMatch };
+          if (!settings || !plugin) {
+            matchScore = 0;
+          } else {
+            matchScore = await plugin.doesFilterMatch(settings, fileData);
           }
-        )
+
+          return { shape, matchScore };
+        })
       )
-    ).filter(
-      (
-        info
-      ): info is {
-        child: TLShape;
-        isMatch: boolean;
-      } => {
-        return !!info?.isMatch;
-      }
-    );
+    )
+      // removes results where no match was found
+      .filter(
+        (
+          info
+        ): info is {
+          shape?: TLShape;
+          matchScore: number;
+        } => {
+          return info?.matchScore >= 0;
+        }
+      )
+      // Finds the item with the highest matchScore
+      .reduce<{ shape?: TLShape; matchScore: number } | undefined>(
+        (bestMatch, currentMatch) => {
+          return !bestMatch || currentMatch.matchScore > bestMatch.matchScore
+            ? currentMatch
+            : bestMatch;
+        },
+        undefined
+      ) ?? { shape: self.shape }; // Use own shape if no destination is found (in case of connected conveyors)
 
     const getConnectedConveyors = (shape: TLShape) => {
       return editor
@@ -148,61 +162,45 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
         .filter((shape): shape is TLArrowShape => !!shape);
     };
 
-    // If no matching connected collectors were found then attempt to transport colliding item to a conveyor belt
-    if (!connectedFilterSettingsMap.length) {
-      const connectedConveyors = getConnectedConveyors(self.shape);
+    // Default position to center of shape
+    let coords: VecModel = destination.shape
+      ? {
+          x:
+            destination.shape.x +
+            ("w" in destination.shape.props
+              ? destination.shape.props.w / 2
+              : 0),
+          y:
+            destination.shape.y +
+            ("h" in destination.shape.props
+              ? destination.shape.props.h / 2
+              : 0),
+        }
+      : { x: 0, y: 0 };
 
-      if (!connectedConveyors[0]) return;
+    // Check connected conveyor and if exists set coords to start of conveyor
+    const connectedConveyor =
+      destination.shape && getConnectedConveyors(destination.shape)?.[0];
+    const arrowInfo =
+      connectedConveyor && getArrowCoordinates(connectedConveyor, editor);
+    coords = arrowInfo
+      ? Vec.Add(arrowInfo.origin, arrowInfo.coords[0])
+      : coords;
 
-      const arrowInfo = getArrowCoordinates(connectedConveyors[0], editor);
-      const coords = Vec.Add(arrowInfo.origin, arrowInfo.coords[0]);
-
-      let offset: VecModel = { x: 0, y: 0 };
-
-      if ("h" in colliding.shape.props && "w" in colliding.shape.props) {
-        offset.x = -colliding.shape.props.w / 2;
-        offset.y = -colliding.shape.props.h / 2;
-      }
-
-      editor.updateShape({
-        ...colliding.shape,
-        x: coords.x + offset.x,
-        y: coords.y + offset.y,
-      });
-      return;
+    // Calculate offset so file shape can be centered
+    let offset: VecModel = { x: 0, y: 0 };
+    if ("h" in colliding.shape.props && "w" in colliding.shape.props) {
+      offset.x = -colliding.shape.props.w / 2;
+      offset.y = -colliding.shape.props.h / 2;
     }
 
-    for (const { child, isMatch } of connectedFilterSettingsMap) {
-      const connectedConveyors = getConnectedConveyors(child);
-
-      const coords: VecModel = {
-        x: child?.x + ("w" in child.props ? child.props.w / 2 : 0),
-        y: child?.y + ("h" in child.props ? child.props.h / 2 : 0),
-      };
-      let offset: VecModel = { x: 0, y: 0 };
-
-      if ("h" in colliding.shape.props && "w" in colliding.shape.props) {
-        offset.x = -colliding.shape.props.w / 2;
-        offset.y = -colliding.shape.props.h / 2;
-      }
-
-      if (connectedConveyors[0]) {
-        const arrowInfo = getArrowCoordinates(connectedConveyors[0], editor);
-        coords.x = arrowInfo.origin.x + arrowInfo.coords[0].x;
-        coords.y = arrowInfo.origin.y + arrowInfo.coords[0].y;
-      }
-
-      if (isMatch) {
-        editor.updateShape({
-          ...colliding.shape,
-          x: coords.x + offset.x,
-          y: coords.y + offset.y,
-        });
-        break;
-      }
-    }
-
-    // look through all connectedshapes
+    // Update shape
+    editor.updateShape({
+      ...colliding.shape,
+      x: coords.x + offset.x,
+      y: coords.y + offset.y,
+    });
+    return;
   }
   public async onCollisionEnd(
     editor: Editor,
@@ -308,64 +306,60 @@ class CollectorPlugin extends BasePlugin<CollectorData> {
   private async doesFilterMatch(
     filterSettings: CollectorData,
     attachment: PluginAttachment
-  ): Promise<boolean> {
+  ): Promise<number> {
     const { name, extension } = attachment;
     const bytes = (await getFile(attachment)?.getFile())?.size;
     const fileSize = bytes && Math.round((bytes / 1048576) * 100) / 100;
     const mimeType = extension && getMimeType(extension);
 
-    if (!name || !extension || !mimeType || !fileSize) return false;
+    if (!name || !extension || !mimeType || !fileSize) return -1;
 
-    const filterResults: boolean[] = [];
+    // Add one score for each matching filter
+    let filterScore: number = -1;
     for (const [key, value] of Object.entries(filterSettings)) {
       if (!value) {
-        filterResults.push(true);
         continue;
       }
       switch (key as keyof CollectorData) {
         case "Name": {
-          filterResults.push(new RegExp(value, "i").test(name));
+          new RegExp(value, "i").test(name) && filterScore++;
           break;
         }
         case "Mediatype": {
-          filterResults.push(new RegExp(value, "i").test(mimeType));
+          new RegExp(value, "i").test(mimeType) && filterScore++;
           break;
         }
         case "Extension(s)": {
-          filterResults.push(
-            value.split(",").some((filter) => filter === extension)
-          );
+          value.split(",").some((filter) => filter === extension) &&
+            filterScore++;
           break;
         }
         case "Size Max (MB)": {
           const size = Number.parseInt(value);
 
           if (isNaN(size)) {
-            filterResults.push(true);
             break;
           }
-          filterResults.push(size <= fileSize);
+          size <= fileSize && filterScore++;
           break;
         }
         case "Size Min (MB)": {
           const size = Number.parseInt(value);
 
           if (isNaN(size)) {
-            filterResults.push(true);
             break;
           }
-          filterResults.push(size >= fileSize);
+          size >= fileSize && filterScore++;
           break;
         }
         default: {
           console.warn(`${key} filter not implemented!`);
-          filterResults.push(true);
           break;
         }
       }
     }
 
-    return filterResults.every((r) => r);
+    return filterScore;
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
   public override onDelete(

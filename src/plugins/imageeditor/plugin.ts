@@ -1,5 +1,5 @@
 import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
-import BasePlugin, { PluginData } from "../base";
+import BasePlugin from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
 import equal from "deep-equal";
 import { getMimeType } from "@/util/getMimeType";
@@ -30,17 +30,8 @@ class Plugin extends BasePlugin<ImageEditorData> {
     const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
       colliding.data
     ).data as JsonObject as FileData | undefined;
-    const { sourceShape, extension, name, dir } = fileData ?? {};
-
-    if (
-      !fileData ||
-      !extension ||
-      getMimeType(extension) !== mimeType
-    ) {
-      return; // Only switch editor UI for images
-    }
-
-    this.connectShape(self.shape.id, colliding.shape.id, editor);
+    
+    this.informCollisionListeners("collision-start", self.shape.id, fileData);
   }
   public async onCollisionEnd(
     editor: Editor,
@@ -57,7 +48,7 @@ class Plugin extends BasePlugin<ImageEditorData> {
     const { plugin } = unwrapShape(colliding.shape) ?? {};
     if (!plugin || plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
-    this.disconnectShape(self.shape.id, colliding.shape.id, editor);
+    this.informCollisionListeners("collision-end", self.shape.id, undefined);
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
   public onDelete(

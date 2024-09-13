@@ -1,12 +1,12 @@
 import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
-import BasePlugin, { PluginData } from "../base";
+import BasePlugin from "../base";
 import { unwrapShape } from "@/util/pluginUtil";
-import plugin, { FolderPlugin } from "../folder/plugin";
+import { FolderPlugin } from "../folder/plugin";
 import { z } from "zod";
 import { FileData } from "../file/plugin";
 
 const TrashDataSchema = z.object({
-  delete: z.boolean()
+  delete: z.boolean(),
 });
 export type TrashData = z.infer<typeof TrashDataSchema>;
 
@@ -14,12 +14,6 @@ export type TrashSettings = {
   delete: boolean;
 };
 export class TrashPlugin extends BasePlugin<TrashData> {
-  private trashSettingsMap: Map<TLShapeId, TrashSettings> = new Map();
-
-  public setTrashSettings(shapeId: TLShapeId, settings: TrashSettings): void {
-    this.trashSettingsMap.set(shapeId, settings);
-  }
-
   public async onCollisionStart(
     editor: Editor,
     self: {
@@ -32,10 +26,9 @@ export class TrashPlugin extends BasePlugin<TrashData> {
       data?: JsonObject;
     }
   ): Promise<void> {
-    const deletable = !!unwrapShape(colliding.shape)?.plugin.properties
-      .deletable;
-    if (!deletable) return;
-    if (!this.trashSettingsMap.get(self.shape.id)?.delete) {
+    if (!colliding.plugin?.properties.deletable) return;
+
+    if (!colliding.data?.delete) {
       editor.deleteShape(colliding.shape);
       return;
     }
@@ -44,6 +37,7 @@ export class TrashPlugin extends BasePlugin<TrashData> {
       colliding.data
     ).data as JsonObject as FileData | undefined;
     const { sourceShape, extension, name } = fileData ?? {};
+
     const { plugin: folderPlugin } =
       unwrapShape(editor.getShape(sourceShape as TLShapeId)) ?? {};
 
@@ -65,14 +59,12 @@ export class TrashPlugin extends BasePlugin<TrashData> {
     }
   ): Promise<void> {}
   public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(editor: Editor, shapeId: TLShapeId, data?: PluginData): void {
-    this.trashSettingsMap.delete(shapeId);
-  }
+  public onDelete(editor: Editor, shapeId: TLShapeId, data?: TrashData): void {}
 }
 
 export default new TrashPlugin({
   id: "trash",
   availableShapes: ["rect"],
   useableAsTool: true,
-  pluginDataSchema: TrashDataSchema
+  pluginDataSchema: TrashDataSchema,
 });
