@@ -1,17 +1,16 @@
 'use client'
 
 import { usePluginStore } from "@/stores/plugin";
-import { Editor, JsonObject, TLArrowShape, Tldraw, TLShape, TLShapeId } from "tldraw";
+import { Editor, JsonObject, TLArrowShape, Tldraw, TLRecord, TLShape, TLShapeId } from "tldraw";
 import Toolbar from "./toolbar";
 import RectShapeUtil from "@/custom-shapes/rect/shapeUtil";
 import ConveyorShapeUtil from "@/custom-shapes/conveyor/shapeUtil";
 import RectShapeTool from "@/custom-shapes/rect/tool";
 import ConveyorShapeTool from "@/custom-shapes/conveyor/tool";
 import BasePlugin from "@/plugins/base";
-import { z, ZodSchema } from "zod";
-import { MetaPayload, unwrapShape } from "@/util/pluginUtil";
+import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { overrides } from "./overrides";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTldrawDarkModeObserver } from "@/hooks/useTldrawDarkmodeObserver";
 import { getShapeCoordinates } from "@/util/collision";
 import { Polygon, Response, SATVector, System } from "detect-collisions";
@@ -24,19 +23,37 @@ const Tlwrap = () => {
     const polyShapeMap = useRef<Map<TLShapeId, Polygon>>(new Map());
     const collisionTable = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
     const previousCollisions = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
-    const collisionSystem = new System();
+    const { eventEmitter: pluginStoreEventEmitter } = usePluginStore();
+    const [collisionSystem, setCollisionSystem] = useState(new System());
 
-    const updateCollision = async (editor: Editor, shape: TLShape, plugin: BasePlugin, data?: JsonObject) => {
+
+
+    const updateCollision = async (editor: Editor, shape: TLShape) => {
+        const { plugin, data } = PluginUtil.unwrapShape(shape) ?? {};
+        if (!plugin) return;
+
         // Collision Handling
         const poly = polyShapeMap.current.get(shape.id);
         const { origin, coords } = getShapeCoordinates(shape, editor);
         poly?.setPosition(origin.x, origin.y);
         poly?.setPoints(coords.map(({ x, y }) => new SATVector(x, y)));
 
+        const getDifference = <T = unknown>(a?: Set<T>, b?: Set<T>): Set<T> => {
+            const difference = new Set();
+            const [largerSet, smallerSet] = ((a?.size ?? -Infinity) > (b?.size ?? -Infinity)) ? [a, b] : [b, a];
+            largerSet?.forEach((item) => {
+                if (!smallerSet?.has(item)) {
+                    difference.add(item);
+                }
+            })
+
+            return difference as Set<T>;
+        }
+
 
         const cachedShapeCollisions = collisionTable.current.get(shape.id);
         const previousShapeCollisions = previousCollisions.current.get(shape.id) ?? new Set();
-        const difference = cachedShapeCollisions?.difference(previousShapeCollisions); // This is every cached collision that is not happening anymore and needs to be cleaned up
+        const difference = getDifference(cachedShapeCollisions, previousShapeCollisions); // This is every cached collision that is not happening anymore and needs to be cleaned up
 
         await Promise.all(Array.from(difference?.values() ?? []).map(async (dirtyCollisionId) => {
 
@@ -47,17 +64,12 @@ const Tlwrap = () => {
             const dirtyCollisionShape = editor.getShape(dirtyCollisionId);
             if (!dirtyCollisionShape) return;
 
-            const dirtyCollisionShapePluginStore = unwrapShape(dirtyCollisionShape);
-            if (!dirtyCollisionShapePluginStore) return;
+            const dirtyCollisionShapePluginStore = PluginUtil.unwrapShape(dirtyCollisionShape);
+            if (!dirtyCollisionShapePluginStore?.plugin) return;
 
             // Send events to both of them
-
             await plugin.onCollisionEnd(
-                editor,
-                {
-                    data: data,
-                    shape: shape,
-                },
+                data,
                 {
                     data: dirtyCollisionShapePluginStore.data,
                     plugin: dirtyCollisionShapePluginStore.plugin,
@@ -66,11 +78,7 @@ const Tlwrap = () => {
             );
 
             await dirtyCollisionShapePluginStore.plugin.onCollisionEnd(
-                editor,
-                {
-                    data: dirtyCollisionShapePluginStore.data,
-                    shape: dirtyCollisionShape,
-                },
+                data,
                 {
                     data: data,
                     plugin: plugin,
@@ -92,8 +100,8 @@ const Tlwrap = () => {
         const compareShape = collidingId && editor.getShape(collidingId);
         if (!compareShape) return;
 
-        const compareShapePluginStore = unwrapShape(compareShape);
-        if (!compareShapePluginStore) return;
+        const compareShapePluginStore = PluginUtil.unwrapShape(compareShape);
+        if (!compareShapePluginStore?.plugin) return;
 
 
         const collisionsWithCompareShape =
@@ -107,19 +115,13 @@ const Tlwrap = () => {
 
 
         if (!wasColliding) {
-
-
             // Collision started, add collision to table and fire events
             collisionsWithCompareShape.add(shape.id);
             collisionsWithShape.add(collidingId);
 
             if (triggerEvents) {
                 await plugin.onCollisionStart(
-                    editor,
-                    {
-                        data: data,
-                        shape: shape,
-                    },
+                    data,
                     {
                         data: compareShapePluginStore.data,
                         plugin: compareShapePluginStore.plugin,
@@ -128,11 +130,7 @@ const Tlwrap = () => {
                 );
 
                 await compareShapePluginStore.plugin.onCollisionStart(
-                    editor,
-                    {
-                        data: compareShapePluginStore.data,
-                        shape: compareShape,
-                    },
+                    compareShapePluginStore.data,
                     {
                         data: data,
                         plugin: plugin,
@@ -165,6 +163,18 @@ const Tlwrap = () => {
             .deleteShapes(unboundConnectorArrows);
     }
 
+    const initCollision = (editor: Editor, shape: TLShape): void => {
+        // Collision Handling
+        const { origin, coords } = getShapeCoordinates(shape, editor);
+        polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
+        const poly = polyShapeMap.current.get(shape.id);
+        if (!poly) return;
+
+        console.debug(`Loaded in collision system: ${shape.id}`);
+
+        updateCollision(editor, shape);
+    }
+
     return (
         <div className="fixed inset-0" ref={wrapperElRef}>
 
@@ -180,35 +190,23 @@ const Tlwrap = () => {
                 }}
 
                 onMount={(editor) => {
-                    const initCollision = (shape: TLShape, plugin: BasePlugin, data?: JsonObject): void => {
-                        // Collision Handling
-                        const { origin, coords } = getShapeCoordinates(shape, editor);
-                        polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
-                        const poly = polyShapeMap.current.get(shape.id);
-                        if (!poly) return;
-                        updateCollision(editor, shape, plugin, data);
-                    }
+                    onTldrawMount(); // Sets darkmode refs
+                    PluginUtil.setEditor(editor);
 
-                    editor.getCurrentPageShapes().forEach((shape) => {
-                        const { plugin, data } = unwrapShape(shape) ?? {};
-                        if (!plugin) return;
-                        if (plugin.id === 'file') {
-                            editor.deleteShape(shape.id);
-                            return;
-                        }
-                        initCollision(shape, plugin, data)
-                    });
-                    cleanup(editor);
+                    pluginStoreEventEmitter.on('ready', () => {
+                        console.debug(`Starting collision setup`)
+                        editor.getCurrentPageShapes().forEach((shape) => {
+                            console.debug(`Collision setup for ${shape.id}`)
+                            const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+                            if (!plugin) return;
+                            plugin.setEditor(editor);
+                            initCollision(editor, shape);
+                            console.debug('Success');
+                        });
+                        cleanup(editor);
+                    })
 
 
-                    // Set editor reference for all plugins
-                    const { plugins, onPluginAdded } = usePluginStore.getState();
-                    onPluginAdded((plugin) => plugin.setEditorRef(editor));
-                    plugins.forEach(({ plugin }) => plugin.setEditorRef(editor));
-
-
-
-                    onTldrawMount();
 
 
                     /*  Retrieve the current plugin and attach its ID as meta-data to every new shape
@@ -216,11 +214,12 @@ const Tlwrap = () => {
                         https://tldraw.dev/docs/shapes#Meta-information   */
                     editor.getInitialMetaForShape = (shape) => {
 
-                        const { selected, getPlugin } = usePluginStore.getState();
-                        const { plugin } = getPlugin(selected) ?? {};
+                        const { selected, getPluginConfig } = usePluginStore.getState();
+                        const config = selected && getPluginConfig(selected);
 
-                        if (!plugin) {
-                            console.warn('Unable to get current plugin info during shape creation!');
+
+                        if (!config) {
+                            console.warn('Unable to get active plugin config during shape creation!');
                             return shape.meta;
                         }
                         if (Object.keys(shape.meta).length > 0) {
@@ -232,9 +231,10 @@ const Tlwrap = () => {
                         }
 
 
+                        // Essential, store plugin config as "config" property on the shape meta which gets saved by tldraw
                         const meta: MetaPayload = {
-                            props: {
-                                ...plugin.properties,
+                            config: {
+                                ...config,
                                 pluginDataSchema: null // Schema is not json serializable so it's ignored here
                             },
                         };
@@ -248,16 +248,13 @@ const Tlwrap = () => {
                         // Sort event values to prioritize selected shapes
                         const selectedShapes = editor.getSelectedShapes().map(({ id }) => id);
                         const sortedUpdate = Object.values(updated).filter(([, to]) => to.typeName === 'shape').sort(([{ id }]) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
-                        const sortedRemoved = Object.values(removed).filter((r) => r.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
-                        const sortedAdded = Object.values(added).filter((a) => a.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+                        const sortedRemoved = Object.values(removed).filter((r): r is TLRecord => r.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
+                        const sortedAdded = Object.values(added).filter((a): a is TLShape => a.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
 
                         // ! Updated
-                        for (const [, to] of (sortedUpdate as [TLShape, TLShape][])) {
-                            const shape = editor.getShape(to.id) as TLShape;
-
-                            const { plugin, data } = unwrapShape(shape) ?? {};
-                            if (!plugin) continue;
-
+                        for (const [, shape] of (sortedUpdate as [TLShape, TLShape][])) {
+                            const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+                            plugin?.onShapeUpdate(shape);
 
                             if (shape.type === 'arrow') {
                                 const { isLocked, props } = shape as TLArrowShape;
@@ -272,23 +269,17 @@ const Tlwrap = () => {
                                             isLocked: false
                                         }).deleteShape(shape);
                                     }
-                                    return;
+                                    continue;
                                 }
                             }
 
-                            editor.bringToFront([to.id]);
-                            updateCollision(editor, shape, plugin, data);
+                            editor.bringToFront([shape.id]);
+                            updateCollision(editor, shape);
                         }
 
                         // ! Added
-                        for (const { id } of sortedAdded) {
-                            const shape = editor.getShape(id) as TLShape; // Cast because it can't be undefined when the added event is fired
-
-                            const { plugin, data } = unwrapShape(shape) ?? {};
-                            if (!plugin) continue;
-                            plugin.onCreate(editor, shape);
-                            plugin.registerShape(id);
-
+                        for (const shape of sortedAdded) {
+                            // Handle helper arrows first
                             if (shape.type === 'arrow') {
                                 const { isLocked, props } = shape as TLArrowShape;
                                 const [SType, EType] = [props.start.type, props.end.type];
@@ -302,27 +293,40 @@ const Tlwrap = () => {
                                             isLocked: false
                                         }).deleteShape(shape);
                                     }
-                                    return;
+                                    continue;
                                 };
                             }
+                            const { pluginConstructor, config } = PluginUtil.unwrapShape<JsonObject, BasePlugin, 'constructor'>(shape) ?? {};
 
-                            initCollision(shape, plugin, data);
+                            if (!pluginConstructor || !config) {
+                                console.error(`Attempted to create plugin ${config?.id} for shape ${shape.id} but there was no config or class constructor!`);
+                                continue;
+                            }
+                            const plugin = new pluginConstructor(config, shape, editor);
+
+                            if (!plugin) continue;
+
+                            // Not necessary maybe, plugins self register
+                            // const { registerInstance } = usePluginStore.getState();
+                            // registerInstance(id, plugin);
+
+                            initCollision(editor, shape);
+                            editor.setSelectedShapes([shape]);
+                            editor.setCurrentTool('select')
                         }
                         // ! Removed
                         for (const { id, meta } of sortedRemoved) {
-                            cleanup(editor);
-
-                            const { plugin, data } = unwrapShape({ meta }) ?? {};
-
-                            if (!plugin) return;
-
-                            plugin.unregisterShape(id);
-                            plugin.onDelete(editor, id, data);
-
+                            // Remove instance reference in pluginStore, send onDelete event, let plugin get garbage collected
+                            usePluginStore.getState().unregisterInstance(id as TLShapeId);
+                            const { plugin, data } = PluginUtil.unwrapShape({ meta, id: id as TLShapeId }) ?? {};
+                            if (!plugin) continue;
+                            plugin.onDelete();
                             // Collision Handling
-                            const poly = polyShapeMap.current.get(id);
+                            const poly = polyShapeMap.current.get(id as TLShapeId);
                             if (!poly) continue;
                             collisionSystem.remove(poly);
+
+                            cleanup(editor);
                         }
                     })
 

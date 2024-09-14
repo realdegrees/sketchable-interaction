@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
-import { TLShape, useEditor } from "tldraw";
-import folderPlugin from "@/plugins/folder/plugin";
-import { ReactPhotoEditor } from "react-photo-editor";
-import ImageEditorPlugin, { MagnifyData } from "./plugin";
-import { unwrapShape } from "@/util/pluginUtil";
-import { FileData } from "../file/plugin";
-import MagnifyPlugin from "./plugin";
+import {  useEditor } from "tldraw";
 import { getMimeType } from "@/util/getMimeType";
 import Image from "next/image";
 import { toDataUrl } from "@/util/blob";
-import plugin from "./plugin";
 import { ErrorBoundary } from "react-error-boundary";
 import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
-import { PluginComponent } from "@/stores/plugin";
+import { PluginComponent, usePluginStore } from "@/stores/plugin";
+import MagnifyPlugin from "./plugin";
+import { MagnifyData } from "./config";
+import { PluginUtil } from "@/util/pluginUtil";
+import { FolderData } from "../folder/config";
+import FolderPlugin from "@/plugins/folder/plugin";
+import { FileData } from "../file/config";
 
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
@@ -21,7 +20,7 @@ import { PluginComponent } from "@/stores/plugin";
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component: PluginComponent<MagnifyData> = ({ shape, data, plugin }) => {
+const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, plugin }) => {
 
     const [file, setFile] = useState<File>();
     const [dataUrl, setDataUrl] = useState<string>();
@@ -31,7 +30,9 @@ const Component: PluginComponent<MagnifyData> = ({ shape, data, plugin }) => {
     useEffect(() => {
         (async () => {
             const { sourceShape, extension, name } = fileData ?? {};
-            const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
+            const folderPlugin = sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
+
+            const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({name: fname}) => fname === `${name}.${extension}`);
 
             const file = await fileHandle?.getFile();
             const dataUrl = file && await toDataUrl(file);
@@ -39,14 +40,14 @@ const Component: PluginComponent<MagnifyData> = ({ shape, data, plugin }) => {
             setDataUrl(dataUrl);
         })();
 
-        const unsub = [
-            plugin.on<FileData>('file', shape.id, (data) => {
+        const unsub = plugin && [
+            plugin.on<FileData>('collisionstart', (data) => {
                 if(!fileData) setFileData(data);
             }),
-            plugin.on<FileData>('end', shape.id, setFileData),
-        ]
+            plugin.on<FileData>('collisionend', setFileData),
+        ];
         return () => {
-            unsub.forEach((f) => f())
+            unsub?.forEach((f) => f())
         }
     }, [setFile, editor, shape, fileData, plugin])
 
@@ -90,7 +91,6 @@ const Component: PluginComponent<MagnifyData> = ({ shape, data, plugin }) => {
         <hr className="h-1 w-full mb-0 mt-2"></hr>
         <div className="h-full w-full">
             <ErrorBoundary fallback={<p>Display Error</p>}>{content}</ErrorBoundary>
-            
         </div>
 
     </div>

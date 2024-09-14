@@ -1,4 +1,4 @@
-import { unwrapShape } from "@/util/pluginUtil";
+import { PluginUtil } from "@/util/pluginUtil";
 import { useEffect, useRef, useState } from "react";
 import { Editor, TLEventInfo, TLShape } from "tldraw";
 
@@ -10,7 +10,7 @@ import { Editor, TLEventInfo, TLShape } from "tldraw";
 export const useHoverEvent = (editor: Editor, shape: TLShape) => {
     const [isHovered, setHovered] = useState<boolean>(false);
     const isPointerDown = useRef(false);
-    const { plugin } = unwrapShape(shape) ?? {};
+    const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
 
     useEffect(() => {
         if (!plugin) return;
@@ -28,11 +28,11 @@ export const useHoverEvent = (editor: Editor, shape: TLShape) => {
 
             const hoveredShape = editor.getHoveredShape();
             if (!isHovered && hoveredShape?.id === shape.id) {
-                plugin.onShapeHovered(shape.id, editor);
+                plugin.onShapeHovered();
                 setHovered(true);
             }
             if (isHovered && hoveredShape?.id !== shape.id) {
-                plugin.onShapeUnhovered(shape.id, editor);
+                plugin.onShapeUnhovered();
                 setHovered(false);
             }
 

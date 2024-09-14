@@ -1,4 +1,4 @@
-import { Editor, TLUiDialog, TLUiToolItem } from "tldraw";
+import { Editor, TLUiToolItem } from "tldraw";
 
 export const ConveyorOverride = (editor: Editor): TLUiToolItem => ({
     id: 'conveyor',

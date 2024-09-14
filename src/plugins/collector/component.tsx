@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import {  useEditor } from "tldraw";
-import { CollectorData, CollectorPlugin } from "./plugin";
 import ArrowDown from '~icons/mingcute/down-fill.jsx';
 import Edit from '~icons/material-symbols/edit-outline';
 import { InputRow } from "./inputRow";
 import { PluginComponent } from "@/stores/plugin";
+import { CollectorData } from "./config";
+import CollectorPlugin from "./plugin";
 
 const FILTERS = [
     'all',
@@ -28,14 +29,14 @@ export type CollectorConnectionState = 'input' | 'output' | 'both' | 'none';
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component: PluginComponent<CollectorData> = ({ shape, data, plugin }) => {    
+const Component: PluginComponent<CollectorData, CollectorPlugin> = ({ shape, data, plugin }) => {    
     const editor = useEditor();
     const [connectionState, setConnectionState] = useState<CollectorConnectionState>('none');
     const [showMenu, setShowMenu] = useState<boolean>(false);
     const [collectorName, setCollectorName] = useState<string>('Filter');
 
     useEffect(() => {
-        return (plugin as CollectorPlugin).subscribeConnectionState(shape.id, setConnectionState);
+        return (plugin as CollectorPlugin).subscribeConnectionState(setConnectionState);
     }, [shape.id, data, plugin]);
 
 
@@ -84,10 +85,10 @@ const Component: PluginComponent<CollectorData> = ({ shape, data, plugin }) => {
                         ...filterValues,
                         [label]: value
                     });
-                    plugin.serializePluginData(shape, {
+                    plugin?.saveDataToShape({
                         ...filterValues,
                         [label]: value
-                    }, editor);
+                    });
                 }} />)}
             </form>}
 

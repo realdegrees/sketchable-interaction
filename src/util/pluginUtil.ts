@@ -1,44 +1,158 @@
-import BasePlugin, { PluginPropsSchema, SerializablePluginProps, SerializablePluginPropsSchema } from "@/plugins/base";
+import BasePlugin, { PluginConfig, PluginConfigSchema } from "@/plugins/base";
 import { PluginStore, usePluginStore } from "@/stores/plugin";
-import { Data } from "detect-collisions";
-import { JsonObject, TLShape } from "tldraw";
-import { z } from "zod";
+import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 
-export type MetaPayload<T = JsonObject> = {
-  [pluginId: string]: T | SerializablePluginProps;
+export type MetaPayload<T = JsonObject> =
+  | {
+      [pluginId: string]: T;
+    }
+  | {
+      config: Omit<PluginConfig, "pluginDataSchema"> & {
+        pluginDataSchema: null;
+      };
+    };
+
+export type PluginConstructor<PluginType = BasePlugin> = new (
+  config: PluginConfig,
+  shape: TLShape,
+  editor?: Editor
+) => PluginType;
+
+export type UnwrappedShape<
+  PluginType = BasePlugin,
+  PluginData = JsonObject
+> = PluginStore<PluginType> & {
+  data?: PluginData;
+} & {
+  pluginConstructor?: PluginConstructor<PluginType>;
 };
 
-export const unwrapShape = <PluginData = JsonObject, PluginType = BasePlugin>(
-  shape?: Partial<TLShape> & { meta: JsonObject }
-): (PluginStore<PluginType> & { data?: PluginData }) | undefined => {
-  if (!shape) return undefined;
+export class PluginUtil {
+  private static editor: Editor | undefined;
 
-  const { getPlugin } = usePluginStore.getState();
-
-  const props: SerializablePluginProps | undefined =
-    SerializablePluginPropsSchema.safeParse(shape?.meta["props"]).data;
-
-  const { plugin, Component, icon } = getPlugin(props?.id) ?? {};
-  if (!plugin || !props) {
-    // console.error(
-    //   `Unable to find attached plugin\nShape: ${shape?.id}`
-    // );
-    return;
+  public static setEditor(editor: Editor) {
+    this.editor = editor;
   }
 
-  const pluginDataSchema = plugin.properties.pluginDataSchema;
-  const data = pluginDataSchema.safeParse(shape.meta[props.id]).data as PluginData;
+  public static getPlugin<T = BasePlugin>(shapeId: TLShapeId): T | undefined {
+    return usePluginStore.getState().getPlugin(shapeId)?.plugin as T;
+  }
 
-  return {
-    plugin: plugin as PluginType,
-    Component,
-    data,
-    icon,
-  };
-};
+  public static getConnectedShapes(shape: TLShape): TLShapeId[] {
+    const { plugin } = this.unwrapShape(shape) ?? {};
+    if (!plugin) return [];
+    const { instances } = usePluginStore.getState();
+    return Array.from(
+      instances.get(plugin.id)?.[shape.id].connectedShapes ?? []
+    );
+  }
+  public static getShapesConnectedTo(
+    shape: TLShape,
+    options: { samePlugin: boolean } = { samePlugin: true }
+  ): TLShapeId[] {
+    const { config } = this.unwrapShape(shape) ?? {};
+    if (!config) return [];
 
-export const isPluginShape: (
-  shape?: Partial<TLShape> & { meta: JsonObject }
-) => boolean = (shape) => {
-  return !!unwrapShape(shape);
-};
+    const { instances } = usePluginStore.getState();
+
+    const parents: TLShapeId[] = [];
+
+    Array.from(instances.entries()).forEach(([pluginId, connectionMap]) => {
+      if (options.samePlugin && pluginId !== config.id) return;
+      const parentIds = Object.entries(connectionMap)
+        .map(([shapeId, plugin]) => {
+          const isParent = plugin.connectedShapes.has(shape.id);
+          if (isParent) return shapeId as TLShapeId;
+        })
+        .filter((id): id is TLShapeId => !!id);
+      parents.push(...parentIds);
+    });
+
+    return parents;
+  }
+
+  /**
+   * Unwraps a shape and initializes the plugin if it's not initialized yet
+   * @param shape
+   * @returns
+   */
+  public static unwrapShape<
+    PluginData = JsonObject,
+    PluginType = BasePlugin,
+    Constructor extends "constructor" | undefined = undefined
+  >(
+    shape?: Partial<TLShape> & { meta: JsonObject; id: TLShapeId }
+  ):
+    | (Constructor extends "constructor"
+        ? PluginStore<PluginType> & {
+            pluginConstructor?: PluginConstructor<PluginType>;
+          }
+        : PluginStore<PluginType> & { data?: PluginData })
+    | undefined {
+    if (!shape) return;
+
+    const { getPlugin, isRegistered, getConstructor, getPluginConfig } =
+      usePluginStore.getState();
+
+    const { id: pluginId } =
+      (PluginConfigSchema.omit({
+        pluginDataSchema: true,
+      }).safeParse(shape.meta["config"]).data as Omit<
+        PluginConfig,
+        "pluginDataSchema"
+      >) ?? {};
+
+    if (!pluginId) return; // Not a plugin shape
+
+    // Shape is not registered in the system yet, attempt tor egister it and continue
+    if (!isRegistered(shape.id)) {
+      const pluginConstructor = getConstructor(pluginId);
+      const pluginDefaultConfig = getPluginConfig(pluginId);
+
+      if (!pluginConstructor) {
+        console.warn(
+          `Attempted to unwrap shape ${shape.id} with valid config for plugin ${pluginId} but didn't find a matching plugin constructor!`
+        );
+        return;
+      }
+
+      if (!pluginDefaultConfig) {
+        console.warn(
+          `Attempted to unwrap shape ${shape.id} with valid config for plugin ${pluginId} but didn't find a matching config!`
+        );
+        return;
+      }
+
+      const plugin = new pluginConstructor(
+        pluginDefaultConfig as PluginConfig,
+        shape as TLShape
+      );
+      usePluginStore.getState().registerInstance(shape.id, plugin);
+    }
+
+    const { Component, config, pluginConstructor, icon, plugin } =
+      getPlugin(shape.id) ?? {};
+
+    if (!config || !plugin) {
+      console.error(
+        `Unwrapping failed at plugin store query!`,
+        shape,
+        pluginId
+      );
+      return;
+    }
+
+    const pluginDataSchema = config.pluginDataSchema;
+    const data = pluginDataSchema.safeParse(shape.meta[plugin.config.id])
+      .data as PluginData;
+
+    return {
+      plugin,
+      config,
+      pluginConstructor,
+      Component,
+      data,
+      icon,
+    } as UnwrappedShape<PluginType, PluginData>;
+  }
+}

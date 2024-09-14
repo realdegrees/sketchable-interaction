@@ -1,63 +1,39 @@
-import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
+import { Editor, JsonObject, TLShape } from "tldraw";
 import BasePlugin from "../base";
-import { z } from "zod";
-import { getMimeType } from "@/util/getMimeType";
-import { unwrapShape } from "@/util/pluginUtil";
-import { FileData } from "../file/plugin";
+import { PluginUtil } from "@/util/pluginUtil";
+import { MagnifyData } from "./config";
+import { FileData } from "../file/config";
 
-const MagnifyDataSchema = z.object({});
-export type MagnifyData = z.infer<typeof MagnifyDataSchema>;
 
-class Plugin extends BasePlugin<MagnifyData> {
+export default class MagnifyPlugin extends BasePlugin<MagnifyData> {
   public async onCollisionStart(
-    editor: Editor,
-    self: {
-      shape: TLShape;
-      data?: MagnifyData;
-    },
+    data: MagnifyData | undefined,
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
       data?: JsonObject;
     }
   ): Promise<void> {
-    const { plugin } = unwrapShape(colliding.shape) ?? {};
+    const { plugin } = PluginUtil.unwrapShape(colliding.shape) ?? {};
     if (!plugin || plugin.id !== "file") return; // Only switch UI when colliding with files
 
-    const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
+    const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
       colliding.data
     ).data as JsonObject as FileData | undefined;
 
-    this.informCollisionListeners("file", self.shape.id, fileData);
+    this.emit("collisionstart", fileData);
   }
   public async onCollisionEnd(
-    editor: Editor,
-    self: {
-      shape: TLShape;
-      data?: MagnifyData;
-    },
+    data: MagnifyData | undefined,
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
       data?: JsonObject;
     }
   ): Promise<void> {
-    const { plugin } = unwrapShape(colliding.shape) ?? {};
-    if (!plugin || plugin.id !== "file") return; // Only switch editor UI when colliding with files
+    if (colliding.plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
-    this.informCollisionListeners("end", self.shape.id, undefined);
+    this.emit("collisionend");
   }
-  public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(
-    editor: Editor,
-    shapeId: TLShapeId,
-    data?: MagnifyData
-  ): void {}
+  public onDelete(): void {}
 }
-
-export default new Plugin({
-  id: "magnify",
-  availableShapes: ["rect"],
-  useableAsTool: true,
-  pluginDataSchema: MagnifyDataSchema,
-});

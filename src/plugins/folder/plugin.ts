@@ -1,21 +1,15 @@
-import { Editor, JsonObject, T, TLShape, TLShapeId } from "tldraw";
+import { JsonObject, T, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginAttachment } from "../base";
-import { readFile } from "fs/promises";
-import { z } from "zod";
-import { FileData } from "../file/plugin";
-
-const FolderDataSchema = z.object({
-  startIn: z.string().optional(),
-  parentId: z.custom<TLShapeId>(),
-});
-export type FolderData = z.infer<typeof FolderDataSchema>;
+import { FolderData } from "./config";
+import { FileData } from "../file/config";
+import { PluginUtil } from "@/util/pluginUtil";
+import FilePlugin from "../file/plugin";
 
 type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
 // TODO add code to receive and store handles for each existing
-export class FolderPlugin extends BasePlugin<FolderData> {
+export default class FolderPlugin extends BasePlugin<FolderData> {
   public async onCollisionEnd(
-    editor: Editor,
-    self: { shape: TLShape; data?: FolderData },
+    data: FolderData | undefined,
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
@@ -45,50 +39,43 @@ export class FolderPlugin extends BasePlugin<FolderData> {
   public removeDetachedItem(folderShapeId: TLShapeId, itemShapeId: TLShapeId) {
     this._detachedMap.get(folderShapeId)?.delete(itemShapeId);
   }
-  private handleMap: Map<
-    TLShapeId,
-    {
-      files: FileSystemFileHandle[];
-      directories: FileSystemDirectoryHandle[];
-      directory: FileSystemDirectoryHandle;
-    }
-  > = new Map();
+  public handles:
+    | {
+        files: FileSystemFileHandle[];
+        directories: FileSystemDirectoryHandle[];
+        directory: FileSystemDirectoryHandle;
+      }
+    | undefined;
 
   public async onCollisionStart(
-    editor: Editor,
-    self: {
-      shape: TLShape;
-      data?: FolderData;
-    },
+    data: FolderData | undefined,
     colliding: {
       shape: TLShape;
-      plugin: BasePlugin;
-      data?: JsonObject;
+      plugin: FilePlugin; // can cast to FilePlugin because we only handle files
+      data?: FileData;
     }
   ): Promise<void> {
     if (colliding.plugin.id !== "file") return; // Only react to file shapes
 
-    const fileData = colliding.plugin.properties.pluginDataSchema.safeParse(
+    const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
       colliding.data
     ).data as JsonObject as FileData | undefined;
     const { sourceShape, extension, name, dir } = fileData ?? {};
 
-    if (!sourceShape || sourceShape === self.shape.id) {
+    const sourceFolderPlugin = PluginUtil.getPlugin<FolderPlugin>(
+      colliding.shape.id
+    );
+    if (!sourceShape || sourceShape === this.shape.id) {
       // trigger the deletion of the shape but make sure it doesn't get deleted as a file but instead
       return;
     }
 
     // TODO add utility function to retrieve colliding handles for re-use with other plugins
-    const selfDirectoryHandle = this.handleMap.get(self.shape.id)?.directory;
-    const collidingDirectoryHandle =
-      sourceShape && this.handleMap.get(sourceShape)?.directory;
-    const file =
-      dir && sourceShape
-        ? await this.handleMap
-            .get(sourceShape)
-            ?.files.find(({ name: fname }) => `${name}.${extension}` === fname)
-            ?.getFile()
-        : undefined;
+    const selfDirectoryHandle = this.handles?.directory;
+    const collidingDirectoryHandle = sourceFolderPlugin?.handles?.directory;
+    const file = await sourceFolderPlugin?.handles?.files
+      .find(({ name: fname }) => fname === name)
+      ?.getFile();
 
     if (
       !file ||
@@ -100,10 +87,10 @@ export class FolderPlugin extends BasePlugin<FolderData> {
       console.warn("Unable to handle file movement!");
       return;
     }
-    
-    editor.updateShape({
+
+    this.editor!.updateShape({
       ...colliding.shape,
-      opacity: 0
+      opacity: 0,
     });
 
     // Don't wait for this as it clogs up the system
@@ -139,7 +126,6 @@ export class FolderPlugin extends BasePlugin<FolderData> {
         tries = 0;
         do {
           try {
-          
             await collidingDirectoryHandle.removeEntry(`${name}.${extension}`);
             deleteSuccess = true;
           } catch (e) {
@@ -149,87 +135,36 @@ export class FolderPlugin extends BasePlugin<FolderData> {
           }
         } while (!deleteSuccess && tries <= maxTries);
       } else {
-        editor.updateShape({
+        this.editor!.updateShape({
           ...colliding.shape,
           opacity: 100,
         });
         console.warn(
           "Unable to delete file after transfer\n",
           `Sourceshape: ${sourceShape}\n`,
-          `Targetshape: ${self.shape.id}\n`,
+          `Targetshape: ${this.shape.id}\n`,
           `File: ${dir}/${name}/${extension}`
         );
       }
     })();
   }
 
-  // Signature for getting the parent directory handle
-  public getHandle(shapeId: TLShapeId): FileSystemDirectoryHandle | undefined;
-  // Signature for getting a subdirectory handle
-  public getHandle(
-    shapeId: TLShapeId,
-    name?: string
-  ): FileSystemDirectoryHandle | undefined;
-  // Signature for getting a file handle
-  public getHandle(
-    shapeId: TLShapeId,
-    name: string | undefined,
-    extension: string | undefined
-  ): FileSystemFileHandle | undefined;
-  // Implementation
-  public getHandle(
-    shapeId: TLShapeId,
-    name?: string,
-    extension?: string
-  ): FileSystemHandle | undefined {
-    const { directories, files, directory } =
-      this.handleMap.get(shapeId ?? ("" as TLShapeId)) ?? {};
-
-    if (!name) return directory;
-
-    // merge directories and files and return the  filehandle that matches the arguments
-    return [...(directories ?? []), ...(files ?? [])].find(
-      ({ name: hname }) => {
-        const [handleName, handleExtension] = hname.split(".");
-        return (
-          handleName === name && (!extension || extension === handleExtension)
-        );
-      }
-    );
-  }
-
   public async registerHandles(
-    shapeId: TLShapeId,
     handles: {
       files: FileSystemFileHandle[];
       directories: FileSystemDirectoryHandle[];
     },
     directoryHandle: FileSystemDirectoryHandle
   ): Promise<void> {
-    this.handleMap.set(shapeId, {
-      files: handles.files,
-      directories: handles.directories,
+    this.handles = {
+      ...handles,
       directory: directoryHandle,
-    });
+    };
   }
 
   // TODO add methods to delete/create/etc files via shapeId and filename (find the corresponding handle and manipulate the file)
   public unregisterHandles(shapeId: TLShapeId): void {
-    this.handleMap.delete(shapeId);
+    this.handles = undefined;
   }
-  public onCreate(editor: Editor, shape: TLShape): void {}
-  public onDelete(
-    editor: Editor,
-    shapeId: TLShapeId,
-    data?: JsonObject
-  ): void {}
+  public onDelete(): void {}
 }
-
-export default new FolderPlugin({
-  id: "folder",
-  useableAsTool: true,
-  availableShapes: ["rect"],
-  deletable: true,
-  pluginDataSchema: FolderDataSchema,
-  tickRate: 2000
-});

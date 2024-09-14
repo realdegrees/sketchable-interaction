@@ -8,16 +8,14 @@ const pluginPaths = readdirSync(pluginDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
 
-// ! This could also be represented as a custom styles panel in tldraw https://github.com/tldraw/tldraw/blob/main/apps/examples/src/examples/shape-with-custom-styles/ShapeWithCustomStylesExample.tsx
-// ! TODO: Dynamically adjust available tools when selecting a plugin (e.g. only rectangle for folder tool or only (customized-)draw tool for conveyor belt)
+
 const PluginBar = () => {
-    // TODO get editor reference (might have to put PluginBar inside of tldraw context)
     return (
         <div className="flex flex-col absolute top-2 left-1/2 -translate-x-1/2 z-50">
             <div id="pluginbar" className="flex bg-tldraw-tool-bg rounded-xl border border-opacity-25 border-zinc-100 shadow-sm shadow-slate-900">
                 {
-                    // ! Can pass funcion references here if needed as passing the entire instance is not supported in react
-                    pluginPaths.map((name) => <Plugin key={name} name={name} />)
+                    // Iterates the pluginPaths, loads each plugin and when all are loaded register them and emit that the pluginstore is ready
+                    pluginPaths.map((name) => <Plugin key={name} name={name} total={pluginPaths.length} />)
                 }
             </div>
         </div>

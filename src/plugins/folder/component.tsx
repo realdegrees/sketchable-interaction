@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PluginAttachment, PluginPropsSchema, SerializablePluginPropsSchema, SerializablePluginProps } from "../base";
+import { PluginAttachment, PluginConfig } from "../base";
 import { useFileSystem } from "@/hooks/useFileSystem";
 import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
-import { TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
-import plugin, { FolderData } from "./plugin";
-import FilePlugin, { FileData } from "@/plugins/file/plugin";
+import { TLArrowShape, TLShapeId, useEditor, Vec } from "tldraw";
 import FolderPlugin from "@/plugins/folder/plugin";
-import { MetaPayload, unwrapShape } from "@/util/pluginUtil";
+import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
 import FolderIcon from '~icons/ic/twotone-folder';
-import deepEqual from "deep-equal";
 import { getArrowCoordinates } from "@/util/collision";
 import PlusIcon from '~icons/mdi/plus.jsx';
 import { COLORS } from "@/util/constants";
-import { PluginComponent } from "@/stores/plugin";
+import { PluginComponent, usePluginStore } from "@/stores/plugin";
+import { FolderData } from "./config";
+import { FileData } from "../file/config";
 
 const TRANSFER_RATE = 2500;
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
@@ -21,33 +20,40 @@ const TRANSFER_RATE = 2500;
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component: PluginComponent<FolderData> = ({ shape, data }) => {
+const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plugin }) => {
     const editor = useEditor();
 
     const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
     const [addDirectoryUiEnabled, setAddDirectoryUiEnabled] = useState(false);
     const color = useRef<string>(COLORS[Math.floor(Math.random() * (COLORS.length - 1))]);
+    const { getPluginConfig } = usePluginStore();
+    const startIn = useRef(data?.startIn);
 
     const spawnDirectory = (name: string, coords: { x: number, y: number }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
-                                        When the file shape collides with another plugin shape, that plugin can use the attached metadata
-                                        To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
-        const meta: MetaPayload<FolderData> = {
-            props: {
-                ...plugin.properties,
-                pluginDataSchema: null
-            },
-            [plugin.properties.id]: {
+        When the file shape collides with another plugin shape, that plugin can use the attached metadata
+        To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
+
+        const folderPluginConfig = getPluginConfig('folder', { pluginDataSchema: null });
+
+        if (!folderPluginConfig) {
+            console.warn(`Unable to spawn directory due to missing config!`);
+            return;
+        }
+
+        const meta = {
+            [folderPluginConfig.id ?? 'folder']: {
                 parentId: shape.id,
                 startIn: name
-            }
-        };
+            },
+            config: { ...folderPluginConfig, pluginDataSchema: null }
+        } as MetaPayload<FolderData>;
 
         const id = ('shape:' + Date.now() + name) as TLShapeId;
         const { x, y, props } = editor.getShape(shape) ?? { x: coords.x, y: coords.y, props: { w: 0 } };
         const w = ('w' in props && props.w) || 0;
 
-        const dirShape = editor.createShape({
+        editor.createShape({
             id,
             type: 'rect',
             x: x + w,
@@ -57,50 +63,40 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
                 w: 500,
                 h: 500
             }
-        }).getShape(id);
+        });
 
-        if (dirShape) {
-            plugin?.connectShape(shape.id, dirShape.id, editor, true);
+        plugin?.connectShape(id, true);
 
-            setDetached([
-                ...detached,
-                {
-                    shapeId: dirShape.id,
-                    attachment: {
-                        dir: name,
-                        sourceShape: shape.id
-                    }
+        setDetached([
+            ...detached,
+            {
+                shapeId: id,
+                attachment: {
+                    dir: name,
+                    sourceShape: shape.id
                 }
-            ]);
-
-            // FolderPlugin.addDetachedItem(shape.id, dirShape.id, {
-            //     dir: directoryHandle.name,
-            //     sourceShape: dirShape.id
-            // })
-        }
+            }
+        ]);
     }
     const spawnFile = useCallback((name: string, extension: string, root: string, coords: { x: number, y: number }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
         When the file shape collides with another plugin shape, that plugin can use the attached metadata
         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
-
-        const meta: MetaPayload<FileData> = {
-            [FilePlugin.properties.id]: {
+        const filePluginConfig = getPluginConfig('file', { pluginDataSchema: null });
+        const meta = {
+            [filePluginConfig?.id ?? 'file']: {
                 name,
                 dir: root,
                 extension,
                 sourceShape: shape.id
             },
-            props: {
-                ...FilePlugin.properties,
-                pluginDataSchema: null
-            }
-        };
+            config: { ...filePluginConfig, pluginDataSchema: null }
+        } as MetaPayload<FileData>;
 
 
         const id = ('shape:' + name + '-' + Date.now()) as TLShapeId;
 
-        const fileShape = editor.createShape({
+        editor.createShape({
             id,
             type: 'rect',
             x: coords.x - 50,
@@ -110,42 +106,30 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
                 w: 100,
                 h: 125
             }
-        }).getShape(id);
+        });
 
-        if (fileShape) {
-            plugin?.connectShape(shape.id, fileShape.id, editor, true);
+        plugin?.connectShape(id, true);
 
-            setDetached([
-                ...detached,
-                {
-                    shapeId: fileShape.id,
-                    attachment: {
-                        dir: root,
-                        name,
-                        extension,
-                        sourceShape: shape.id
-                    }
+        setDetached([
+            ...detached,
+            {
+                shapeId: id,
+                attachment: {
+                    dir: root,
+                    name,
+                    extension,
+                    sourceShape: shape.id
                 }
-            ]);
-        }
-    }, [detached, editor, shape]);
-
-    const startInHandle = (data?.startIn && data.parentId) ? plugin.getHandle(data.parentId, data.startIn) : undefined;
-    const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
-        onChange: (previous, current) => {
-            const danglingDetached = detached.filter(({ attachment: { dir, extension, name } }) =>
-                !current.files.find(({ name: fullname }) => fullname === `${name}.${extension}`)
-                && !current.directories.find(({ name }) => name === dir));
-
-
-            if (danglingDetached.length) {
-                setDetached(detached.filter(({ shapeId }) => !danglingDetached.find(({ shapeId: id }) => id === shapeId)));
-                editor.deleteShapes(danglingDetached.map(({ shapeId }) => shapeId));
             }
-        },
-        onOpen: async (directoryHandle) => {
+        ]);
+    }, [detached, editor, shape, plugin, getPluginConfig]);
+
+    const startInDirectoryHandle = data?.parentId && startIn ? PluginUtil.getPlugin<FolderPlugin>(data.parentId)?.handles?.directories.find(({ name }) => name === startIn.current) : undefined;
+    const { files, directories, rootHandle, showDirectoryPicker, isDirectoryPickerSupported } = useFileSystem({
+        onOpen: async ({ directories, files, rootHandle }) => {
+
             // Create and delete file to prompt user permissions
-            const newFileHandle = await directoryHandle.getFileHandle(
+            const newFileHandle = await rootHandle.getFileHandle(
                 `si-temp`,
                 {
                     create: true,
@@ -155,14 +139,31 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
             const writeable = await newFileHandle.createWritable();
             await writeable.write('1');
             await writeable.close();
-            await directoryHandle.removeEntry(`si-temp`);
+            await rootHandle.removeEntry(`si-temp`);
         },
         ignorePattern: /^(si-temp|\.crswap|.*\.crswap)$/,
-        startIn: startInHandle,
+        startIn: startInDirectoryHandle,
         pollInterval: 500
     });
 
     useEffect(() => {
+        rootHandle && plugin?.registerHandles({ directories, files }, rootHandle)
+        startIn.current = rootHandle?.name;
+        // data && plugin?.saveDataToShape({
+        //     ...data,
+        //     startIn: startIn.current
+        // })
+        const danglingDetached = detached.filter(({ attachment: { dir, extension, name } }) =>
+            !files.find(({ name: fullname }) => fullname === `${name}.${extension}`)
+            && !directories.find(({ name }) => name === dir));
+
+
+
+        if (danglingDetached.length) {
+            setDetached(detached.filter(({ shapeId }) => !danglingDetached.find(({ shapeId: id }) => id === shapeId)));
+            editor.deleteShapes(danglingDetached.map(({ shapeId }) => shapeId));
+        }
+
         /* https://tldraw.dev/examples/editor-api/store-events */
         // This reattaches detached files
         const unsubscribeEditor = editor.store.listen(({ changes: { removed } }) => {
@@ -181,7 +182,7 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
         })
 
 
-        const tickSubscription = plugin.tick(() => {
+        const tickSubscription = plugin?.on('tick', () => {
             const selectedShapes = editor.getSelectedShapes();
             const isFolderSelected = selectedShapes.find(({ id }) => id === shape.id);
             // Don't act if the folder shape is currently selected
@@ -191,10 +192,10 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
                 if (handleId !== 'start') return;
                 const shape: TLArrowShape = editor.getShape(arrowId) as TLArrowShape;
                 if (shape?.isLocked) return;
-                const { plugin } = unwrapShape(shape) ?? {};
+                const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
                 return plugin?.id === 'conveyor' ? shape : undefined;
             }).filter((shape): shape is TLArrowShape => {
-                if(!shape) return false;
+                if (!shape) return false;
                 const isArrowsSelected = selectedShapes.find(({ id }) => id === shape.id)
                 return !isArrowsSelected;
             });
@@ -217,10 +218,10 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
         });
 
         return () => {
-            tickSubscription();
+            tickSubscription?.();
             unsubscribeEditor();
         }
-    }, [detached, editor, files, rootHandle, shape, spawnFile])
+    }, [detached, editor, files, rootHandle, shape, spawnFile, plugin, directories])
 
     if (!isDirectoryPickerSupported) {
         return (
@@ -243,11 +244,7 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
         </button>
     }
 
-    // TODO instead of registering handles to the folder plugin, register them to the shapes that are created from folders (saved within either folder or file plugin)
-    plugin.registerHandles(shape.id, {
-        directories,
-        files
-    }, rootHandle); // Stores the handles in the plugin instance for other plugins to use    
+
 
     const DirectoryAddUI = ({ }: {}) => {
         const [value, setValue] = useState('New Folder');
@@ -354,7 +351,7 @@ const Component: PluginComponent<FolderData> = ({ shape, data }) => {
                         // ! Detached File UI
                         ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {
                             return <div
-                                key={name + '-' + shapeId}
+                                key={name + '-' + shapeId + '-detached'}
                                 className={`w-full h-full pointer-events-none opacity-20`}
                             >
                                 <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />

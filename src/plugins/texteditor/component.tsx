@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { TLShape, useEditor } from "tldraw";
-import folderPlugin from "@/plugins/folder/plugin";
+import { useEditor } from "tldraw";
 import ReactQuill from "react-quill";
-import TextEditorPlugin, { TextEditorData } from "./plugin";
-import { unwrapShape } from "@/util/pluginUtil";
-import { FileData } from "../file/plugin";
-import plugin from "./plugin";
 import { getMimeType } from "@/util/getMimeType";
-import { PluginComponent } from "@/stores/plugin";
+import { PluginComponent, usePluginStore } from "@/stores/plugin";
+import TextEditorPlugin from "./plugin";
+import { TextEditorData } from "./config";
+import FolderPlugin from "../folder/plugin";
+import { FileData } from "../file/config";
+import { PluginUtil } from "@/util/pluginUtil";
 
+const OVERRIDE_ON_COLLISION = true;
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
 
@@ -16,7 +17,7 @@ import { PluginComponent } from "@/stores/plugin";
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component: PluginComponent<TextEditorData> = ({ shape, data, plugin }) => {
+const Component: PluginComponent<TextEditorData, TextEditorPlugin> = ({ shape, data, plugin }) => {
     const editor = useEditor();
     const [text, setText] = useState<string>();
     const [fileData, setFileData] = useState<FileData>();
@@ -25,23 +26,24 @@ const Component: PluginComponent<TextEditorData> = ({ shape, data, plugin }) => 
         editor.bringForward([shape]);
         (async () => {
             const { sourceShape, extension, name } = fileData ?? {};
-            const fileHandle = sourceShape && folderPlugin.getHandle(sourceShape, name, extension);
+            const folderPlugin = (sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape));
+            const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
 
             const file = await fileHandle?.getFile();
             const text = file && await file.text();
             setText(text);
         })();
 
-        const unsub = [
-            plugin.on<FileData>('file', shape.id, (data) => {
-                if (!fileData) setFileData(data);
+        const unsub = plugin && [
+            plugin.on<FileData>('file', (data) => {
+                if (!fileData || OVERRIDE_ON_COLLISION) setFileData(data);
             }),
-            plugin.on<FileData>('end', shape.id, setFileData),
+            plugin.on<FileData>('end', setFileData),
         ]
         return () => {
-            unsub.forEach((f) => f())
+            unsub?.forEach((f) => f())
         }
-    }, [editor, shape, fileData])
+    }, [editor, shape, fileData, plugin])
 
     if (!text) return <p>Drag a text file here to edit it</p>;
     if (!fileData?.extension || getMimeType(fileData.extension) !== 'text') return <p>{`${fileData?.extension} file extension is not supported!`}</p>;
@@ -51,13 +53,9 @@ const Component: PluginComponent<TextEditorData> = ({ shape, data, plugin }) => 
         onPointerDown={(e) => e.stopPropagation()}
     >
         <ReactQuill theme="snow" value={text} onChange={async (newValue) => {
-            const connectedFile = Array.from(TextEditorPlugin.connectedShapes.keys())[0];
-            const { data } = (connectedFile && unwrapShape<FileData>(editor.getShape(connectedFile))) ?? {};
-            const { sourceShape, extension, name } = data ?? {};
-
-            if (!sourceShape) return;
-
-            const originalFileHandle = folderPlugin.getHandle(sourceShape, name, extension);
+            const { sourceShape, extension, name } = fileData;
+            const folderPlugin = sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
+            const originalFileHandle = folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
             const writeStream = await originalFileHandle?.createWritable();
             await writeStream?.write(newValue);
             await writeStream?.close();

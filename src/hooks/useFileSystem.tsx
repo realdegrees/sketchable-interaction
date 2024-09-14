@@ -27,7 +27,11 @@ export const useFileSystem = ({
         files: FileSystemFileHandle[],
         directories: FileSystemDirectoryHandle[]
     }) => void;
-    onOpen?: (directoryHandle: FileSystemDirectoryHandle) => void;
+    onOpen?: (handles: {
+        files: FileSystemFileHandle[],
+        directories: FileSystemDirectoryHandle[],
+        rootHandle: FileSystemDirectoryHandle,
+    }) => void;
 }) => {
     const directoryHandle = useRef<FileSystemDirectoryHandle | undefined>(startIn);
     const pollingInterval = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -36,7 +40,7 @@ export const useFileSystem = ({
     const filesRef = useRef<FileSystemFileHandle[]>([]);
     const [directories, setDirectories] = useState<FileSystemDirectoryHandle[]>([]);
     const directoriesRef = useRef<FileSystemDirectoryHandle[]>([]);
-
+    const hasPolled = useRef(false);
 
 
     const poll = useCallback(async () => {
@@ -49,10 +53,10 @@ export const useFileSystem = ({
 
             // TODO find a way to run this async iterator in parallel
             // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/values
-            for await (const handle of directoryHandle.current.values()) {                
+            for await (const handle of directoryHandle.current.values()) {
                 if (ignorePattern?.test(handle.name)) {
                     console.debug('Ignoring file ' + handle.name);
-                    continue;                    
+                    continue;
                 }
                 if (handle instanceof FileSystemDirectoryHandle) {
                     currentDirectories.push(handle);
@@ -123,7 +127,11 @@ export const useFileSystem = ({
             // @ts-ignore
             directoryHandle.current = await window.showDirectoryPicker?.();
             if (directoryHandle.current) {
-                onOpen?.(directoryHandle.current);
+                onOpen?.({
+                    files,
+                    directories,
+                    rootHandle: directoryHandle.current,
+                });
                 startPolling();
             }
         } catch (error) {

@@ -12,7 +12,7 @@ const CustomTldrawUiMenuItem = ({ name }: { name: string}) => {
 // ! This component decides which tools are shown in the toolbar for the currently selected plugin based on its properties
 const Toolbar = () => {    
     const { plugins, selected } = usePluginStore();
-    const selectedPluginAvailableShapes = plugins.find(({ plugin: { properties: { id } } }) => id === selected)?.plugin.properties.availableShapes;
+    const selectedPluginAvailableShapes = plugins.map(({config}) => config).find(({id}) => id === selected)?.availableShapes;
     
     const tools = useTools();
     console.debug(tools);
