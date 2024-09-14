@@ -5,7 +5,9 @@ import { unwrapShape } from "@/util/pluginUtil";
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import plugin from "tailwindcss";
 import { TLBaseShape, TLDefaultColorStyle, Geometry2d, Rectangle2d, HTMLContainer, getDefaultColorTheme, BaseBoxShapeUtil, useEditor, TLGeoShape, HistoryEntry, TLRecord } from "tldraw";
+import { z } from "zod";
 
 type CustomRectShape = TLBaseShape<
     'rect',
@@ -80,6 +82,11 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
             };
         }, [shape, setDebugData, editor]);
 
+        if(!plugin){
+            console.warn('Plugin is undefined on component creation!');
+                return;
+        }
+
         const fallback = icon ? <Image src={icon} alt="logo" loading="lazy" className="pointer-events-none w-2/3 h-2/3" /> : <p>{plugin?.properties.label ?? plugin?.properties.id ?? 'Unable to load icon or component'}</p>;
         // * Adjust style to filter which tldraw styling panel options are available
         // ? https://tldraw.dev/examples/shapes/tools/shape-with-tldraw-styles
@@ -98,7 +105,7 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
                     {/* Add custom component in the shape's context if it exists */}
                     {Component ? < ErrorBoundary fallback={fallback} onError={() => (console.warn(`Unable to load custom component for ${plugin?.properties.id}`))}>
                         <Suspense fallback={<p>Loading</p>}>
-                            <Component data={data} shape={shape} />
+                            <Component data={data} shape={shape} plugin={plugin} />
                         </Suspense>
                     </ErrorBoundary> : fallback}
                 </div>

@@ -1,10 +1,12 @@
-import { TLShape, useEditor } from "tldraw";
+import { JsonObject, TLShape, useEditor } from "tldraw";
 import { createRef, useRef, useState } from "react";
 import TrashPlugin, { TrashData } from "./plugin";
 import { unwrapShape } from "@/util/pluginUtil";
+import { PluginComponent } from "@/stores/plugin";
+import BasePlugin from "../base";
 
 
-const Component = ({ shape, data }: { shape: TLShape, data?: TrashData }) => {    
+const Component: PluginComponent<TrashData> = ({ shape, data, plugin }) => {    
     const editor = useEditor();
     const inputEl = useRef<HTMLInputElement | null>(null);
 

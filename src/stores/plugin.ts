@@ -5,9 +5,10 @@ import { ComponentType } from "react";
 import { JsonObject, TLShape } from "tldraw";
 import { create } from "zustand";
 
-export type PluginComponent = ComponentType<{
+export type PluginComponent<T = JsonObject> = ComponentType<{
   shape: TLShape;
-  data?: JsonObject;
+  plugin: BasePlugin<T>
+  data?: T;
 }>;
 export interface PluginStore<PluginType = BasePlugin> {
   plugin: PluginType;

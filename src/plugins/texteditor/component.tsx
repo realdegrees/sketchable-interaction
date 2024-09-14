@@ -7,6 +7,7 @@ import { unwrapShape } from "@/util/pluginUtil";
 import { FileData } from "../file/plugin";
 import plugin from "./plugin";
 import { getMimeType } from "@/util/getMimeType";
+import { PluginComponent } from "@/stores/plugin";
 
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
@@ -15,7 +16,7 @@ import { getMimeType } from "@/util/getMimeType";
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component = ({ shape, data }: { shape: TLShape, data?: TextEditorData }) => {
+const Component: PluginComponent<TextEditorData> = ({ shape, data, plugin }) => {
     const editor = useEditor();
     const [text, setText] = useState<string>();
     const [fileData, setFileData] = useState<FileData>();

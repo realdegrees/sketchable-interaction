@@ -25,7 +25,7 @@ const CollectorDataSchema = z.object({
 });
 export type CollectorData = z.infer<typeof CollectorDataSchema>;
 
-class CollectorPlugin extends BasePlugin<CollectorData> {
+export class CollectorPlugin extends BasePlugin<CollectorData> {
   private settingsMap: Map<TLShapeId, CollectorData> = new Map(); // TODO create methods to set filter options (for collector shape id) on collision these can the be evaluated by the plugin and sent to the appropriate shape on the canvas)
   private connectionStateSubscriptionMap: Map<
     TLShapeId,

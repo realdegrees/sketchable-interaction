@@ -12,6 +12,7 @@ import { toDataUrl } from "@/util/blob";
 import plugin from "./plugin";
 import { ErrorBoundary } from "react-error-boundary";
 import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
+import { PluginComponent } from "@/stores/plugin";
 
 
 // TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
@@ -20,7 +21,7 @@ import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component = ({ shape, data }: { shape: TLShape, data?: MagnifyData }) => {
+const Component: PluginComponent<MagnifyData> = ({ shape, data, plugin }) => {
 
     const [file, setFile] = useState<File>();
     const [dataUrl, setDataUrl] = useState<string>();
@@ -47,7 +48,7 @@ const Component = ({ shape, data }: { shape: TLShape, data?: MagnifyData }) => {
         return () => {
             unsub.forEach((f) => f())
         }
-    }, [setFile, editor, shape, fileData])
+    }, [setFile, editor, shape, fileData, plugin])
 
     if (!fileData || !fileData.name || !fileData.extension) return <p>Drag a file here to view its content</p>;
     if (!file || !dataUrl) return <LoadingIcon className="w-1/2 h-1/2"/>;

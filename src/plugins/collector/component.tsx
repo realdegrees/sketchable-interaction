@@ -1,11 +1,10 @@
-import { createRef, useCallback, useEffect, useRef, useState } from "react";
-import { TLShape, useEditor } from "tldraw";
-import collectorPlugin, { CollectorData } from "./plugin";
-import plugin from "./plugin";
+import { useEffect, useState } from "react";
+import {  useEditor } from "tldraw";
+import { CollectorData, CollectorPlugin } from "./plugin";
 import ArrowDown from '~icons/mingcute/down-fill.jsx';
 import Edit from '~icons/material-symbols/edit-outline';
-import { MetaPayload, unwrapShape } from "@/util/pluginUtil";
 import { InputRow } from "./inputRow";
+import { PluginComponent } from "@/stores/plugin";
 
 const FILTERS = [
     'all',
@@ -29,15 +28,15 @@ export type CollectorConnectionState = 'input' | 'output' | 'both' | 'none';
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component = ({ shape, data }: { shape: TLShape, data?: CollectorData }) => {
+const Component: PluginComponent<CollectorData> = ({ shape, data, plugin }) => {    
     const editor = useEditor();
     const [connectionState, setConnectionState] = useState<CollectorConnectionState>('none');
     const [showMenu, setShowMenu] = useState<boolean>(false);
     const [collectorName, setCollectorName] = useState<string>('Filter');
 
     useEffect(() => {
-        return plugin.subscribeConnectionState(shape.id, setConnectionState);
-    }, [shape.id, data]);
+        return (plugin as CollectorPlugin).subscribeConnectionState(shape.id, setConnectionState);
+    }, [shape.id, data, plugin]);
 
 
     const [filterValues, setFiltervalues] = useState<CollectorData>(data ?? {

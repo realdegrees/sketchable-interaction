@@ -13,6 +13,7 @@ import deepEqual from "deep-equal";
 import { getArrowCoordinates } from "@/util/collision";
 import PlusIcon from '~icons/mdi/plus.jsx';
 import { COLORS } from "@/util/constants";
+import { PluginComponent } from "@/stores/plugin";
 
 const TRANSFER_RATE = 2500;
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
@@ -20,7 +21,7 @@ const TRANSFER_RATE = 2500;
 -> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
 When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
 */
-const Component = ({ shape, data }: { shape: TLShape, data?: FolderData }) => {
+const Component: PluginComponent<FolderData> = ({ shape, data }) => {
     const editor = useEditor();
 
     const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
