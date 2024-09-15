@@ -38,7 +38,7 @@ const Tlwrap = () => {
         poly?.setPosition(origin.x, origin.y);
         poly?.setPoints(coords.map(({ x, y }) => new SATVector(x, y)));
 
-        const getDifference = <T = unknown>(a?: Set<T>, b?: Set<T>): Set<T> => {
+        const getDifference = (a?: Set<unknown>, b?: Set<unknown>): Set<unknown> => {
             const difference = new Set();
             const [largerSet, smallerSet] = ((a?.size ?? -Infinity) > (b?.size ?? -Infinity)) ? [a, b] : [b, a];
             largerSet?.forEach((item) => {
@@ -47,13 +47,13 @@ const Tlwrap = () => {
                 }
             })
 
-            return difference as Set<T>;
+            return difference;
         }
 
 
         const cachedShapeCollisions = collisionTable.current.get(shape.id);
         const previousShapeCollisions = previousCollisions.current.get(shape.id) ?? new Set();
-        const difference = getDifference(cachedShapeCollisions, previousShapeCollisions); // This is every cached collision that is not happening anymore and needs to be cleaned up
+        const difference = getDifference(cachedShapeCollisions, previousShapeCollisions) as Set<TLShapeId>; // This is every cached collision that is not happening anymore and needs to be cleaned up
 
         await Promise.all(Array.from(difference?.values() ?? []).map(async (dirtyCollisionId) => {
 
@@ -201,7 +201,7 @@ const Tlwrap = () => {
                             const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
                             if (!plugin) return;
                             console.log('Editor set for ' + shape.id);
-                            
+
                             plugin.setEditor(editor);
                             initCollision(editor, shape);
                             console.debug('Success');
@@ -298,7 +298,7 @@ const Tlwrap = () => {
                                     continue;
                                 };
                             }
-                            let { config, plugin} = PluginUtil.unwrapShape<JsonObject, BasePlugin>(shape) ?? {};
+                            let { config, plugin } = PluginUtil.unwrapShape<JsonObject, BasePlugin>(shape) ?? {};
 
                             if (!config || !plugin) {
                                 console.error(`Attempted to create plugin for shape ${shape.id} but there was no config or class constructor!`);
@@ -308,7 +308,6 @@ const Tlwrap = () => {
                             plugin.setEditor(editor);
                             editor.bringToFront([shape.id]);
                             initCollision(editor, shape);
-                            editor.setSelectedShapes([shape]);
                         }
                         // ! Removed
                         for (const { id, meta } of sortedRemoved) {

@@ -89,7 +89,7 @@ export const usePluginStore = create<PluginStoreData>((set, get) => ({
     return (
       store && {
         ...store,
-        plugin: plugin,
+        plugin,
         config: plugin?.config ?? store.config,
       }
     );
@@ -101,14 +101,16 @@ export const usePluginStore = create<PluginStoreData>((set, get) => ({
     const store = plugins.find(({ config }) => config.id === pluginId);
 
     return pluginInstances
+      ?.filter((instance) => !!instance)
       ?.map(
         (instance) =>
           store && {
             ...store,
             plugin: instance,
           }
-      )
-      .filter((v) => !!v);
+      ) as
+      | (PluginStore & { pluginConstructor: PluginConstructor })[]
+      | undefined;
   },
   getPluginConfig: (pluginId) => {
     const { plugins } = get();

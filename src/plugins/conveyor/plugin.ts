@@ -8,8 +8,8 @@ import { usePluginStore } from "@/stores/plugin";
 const SPEED = 8;
 export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShape> {
   private unsubTick: (() => void) | undefined;
-  constructor(props: PluginConfig, shape: TLArrowShape, editor: Editor) {
-    super(props, shape, editor);
+  constructor(props: PluginConfig, shape: TLArrowShape) {
+    super(props, shape);
     this.unsubTick = this.moveConnectedShapes.bind(this);
     this.on("tick", this.unsubTick);
   }

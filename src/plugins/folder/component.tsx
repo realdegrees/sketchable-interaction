@@ -29,7 +29,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
     const { getPluginConfig } = usePluginStore();
     const startIn = useRef(data?.startIn);
 
-    const spawnDirectory = (name: string, coords: { x: number, y: number }) => {
+    const spawnDirectory = (name: string, coords: { x: number, y: number }, options?: { selectOnSpawn?: boolean }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
         When the file shape collides with another plugin shape, that plugin can use the attached metadata
         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
@@ -66,7 +66,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         });
 
         plugin?.connectShape(id, true);
-
+        options?.selectOnSpawn && editor.setSelectedShapes([id]);
         setDetached([
             ...detached,
             {
@@ -78,7 +78,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             }
         ]);
     }
-    const spawnFile = useCallback((name: string, extension: string, root: string, coords: { x: number, y: number }) => {
+    const spawnFile = useCallback((name: string, extension: string, root: string, coords: { x: number, y: number }, options?: { selectOnSpawn?: boolean }) => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
         When the file shape collides with another plugin shape, that plugin can use the attached metadata
         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
@@ -109,6 +109,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         });
 
         plugin?.connectShape(id, true);
+        options?.selectOnSpawn && editor.setSelectedShapes([id]);
 
         setDetached([
             ...detached,
@@ -282,7 +283,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
                     e.stopPropagation();
 
                     const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
-                    spawnFile(name, extension, rootHandle.name, coords);
+                    spawnFile(name, extension, rootHandle.name, coords, { selectOnSpawn: true });
                 }}
             >
                 <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />

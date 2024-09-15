@@ -4,6 +4,7 @@ import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import { PluginUtil } from "@/util/pluginUtil";
 import FilePlugin from "../file/plugin";
+import { transferFileWithWebWorker } from "@/util/fileTransfer";
 
 type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
 // TODO add code to receive and store handles for each existing
@@ -62,19 +63,15 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
     ).data as JsonObject as FileData | undefined;
     const { sourceShape, extension, name, dir } = fileData ?? {};
 
-    const sourceFolderPlugin = PluginUtil.getPlugin<FolderPlugin>(
-      colliding.shape.id
-    );
-    if (!sourceShape || sourceShape === this.shape.id) {
-      // trigger the deletion of the shape but make sure it doesn't get deleted as a file but instead
+    if (!fileData || !sourceShape || sourceShape === this.shape.id) {
       return;
     }
+    const sourceFolderPlugin = PluginUtil.getPlugin<FolderPlugin>(sourceShape);
 
-    // TODO add utility function to retrieve colliding handles for re-use with other plugins
     const selfDirectoryHandle = this.handles?.directory;
     const collidingDirectoryHandle = sourceFolderPlugin?.handles?.directory;
     const file = await sourceFolderPlugin?.handles?.files
-      .find(({ name: fname }) => fname === name)
+      .find(({ name: fname }) => fname === `${name}.${extension}`)
       ?.getFile();
 
     if (
@@ -88,65 +85,29 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
       return;
     }
 
-    this.editor!.updateShape({
-      ...colliding.shape,
-      opacity: 0,
-    });
+    // this.editor!.updateShape({
+    //   ...colliding.shape,
+    //   opacity: 0,
+    // });
 
-    // Don't wait for this as it clogs up the system
-    (async () => {
-      let transferSuccess = false;
-      let tries = 0;
-      const maxTries = 100;
-      const timeout = 500;
+    // ! Start webworker
+    console.log("Starting webworker");
+    this.editor?.deleteShape(colliding.shape.id);
+    const fileHandle = PluginUtil.getPlugin<FolderPlugin>(
+      sourceShape
+    )?.handles?.files.find(
+      ({ name: fname }) => fname === `${name}.${extension}`
+    );
 
-      do {
-        try {
-          const newFileHandle = await selfDirectoryHandle.getFileHandle(
-            `${name}.${extension}`,
-            {
-              create: true,
-            }
-          );
+    fileHandle &&
+      transferFileWithWebWorker({
+        fileHandle,
+        sourceDir: collidingDirectoryHandle,
+        targetDir: selfDirectoryHandle,
+      }).then((success) => {
+        console.log(success ? 'File transferred' : 'File transfer failed');
+      });
 
-          const writeable = await newFileHandle.createWritable();
-          await writeable.write(file);
-          await writeable.close();
-          transferSuccess = true;
-        } catch (e) {
-          console.debug(`File transfer failed retrying in ${timeout}ms\n`, e);
-          await new Promise((res) => setTimeout(res, timeout));
-          tries++;
-        }
-      } while (!transferSuccess && tries <= maxTries);
-
-      if (transferSuccess) {
-        console.debug("File transferred\n", `${dir}/${name}.${extension}`);
-        let deleteSuccess = false;
-        tries = 0;
-        do {
-          try {
-            await collidingDirectoryHandle.removeEntry(`${name}.${extension}`);
-            deleteSuccess = true;
-          } catch (e) {
-            console.debug(`File deletion failed retrying in ${timeout}ms`);
-            await new Promise((res) => setTimeout(res, timeout));
-            tries++;
-          }
-        } while (!deleteSuccess && tries <= maxTries);
-      } else {
-        this.editor!.updateShape({
-          ...colliding.shape,
-          opacity: 100,
-        });
-        console.warn(
-          "Unable to delete file after transfer\n",
-          `Sourceshape: ${sourceShape}\n`,
-          `Targetshape: ${this.shape.id}\n`,
-          `File: ${dir}/${name}/${extension}`
-        );
-      }
-    })();
   }
 
   public async registerHandles(

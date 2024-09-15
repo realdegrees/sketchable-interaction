@@ -6,7 +6,7 @@ export const fromBlob = (content: string, mimeType: string): Blob => {
 };
 export const toDataUrl = async (file: File | Blob): Promise<string> => {
   return new Promise((res, rej) => {
-    const worker = new Worker(new URL("./dataUrlWorker.ts", import.meta.url));
+    const worker = new Worker(new URL("./workers/dataUrlWorker.ts", import.meta.url));
     worker.onmessage = ({ data }) => {
       worker.terminate();
       res(data);

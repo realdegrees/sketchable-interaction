@@ -243,7 +243,8 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
     const originalFileHandle = folderPlugin?.handles?.files.find(
       ({ name: fname }) => fname === `${name}.${extension}`
     );
-    const bytes = (await originalFileHandle?.getFile())?.size;
+    const file = await originalFileHandle?.getFile();
+    const bytes = file?.size;
     const fileSize = bytes && Math.round((bytes / 1048576) * 100) / 100;
     const mimeType = extension && getMimeType(extension);
 
