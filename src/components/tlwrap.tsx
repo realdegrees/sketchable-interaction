@@ -163,7 +163,7 @@ const Tlwrap = () => {
             .deleteShapes(unboundConnectorArrows);
     }
 
-    const initCollision = (editor: Editor, shape: TLShape): void => {
+    const initCollision = (editor: Editor, shape: TLShape, options: { check: boolean } = { check: true }): void => {
         // Collision Handling
         const { origin, coords } = getShapeCoordinates(shape, editor);
         polyShapeMap.current.set(shape.id, collisionSystem.createPolygon(origin, coords));
@@ -172,6 +172,7 @@ const Tlwrap = () => {
 
         console.debug(`Loaded in collision system: ${shape.id}`);
 
+        if (!options.check) return;
         updateCollision(editor, shape);
     }
 
@@ -199,6 +200,8 @@ const Tlwrap = () => {
                             console.debug(`Collision setup for ${shape.id}`)
                             const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
                             if (!plugin) return;
+                            console.log('Editor set for ' + shape.id);
+                            
                             plugin.setEditor(editor);
                             initCollision(editor, shape);
                             console.debug('Success');
@@ -273,7 +276,6 @@ const Tlwrap = () => {
                                 }
                             }
 
-                            editor.bringToFront([shape.id]);
                             updateCollision(editor, shape);
                         }
 
@@ -296,23 +298,17 @@ const Tlwrap = () => {
                                     continue;
                                 };
                             }
-                            const { pluginConstructor, config } = PluginUtil.unwrapShape<JsonObject, BasePlugin, 'constructor'>(shape) ?? {};
+                            let { config, plugin} = PluginUtil.unwrapShape<JsonObject, BasePlugin>(shape) ?? {};
 
-                            if (!pluginConstructor || !config) {
-                                console.error(`Attempted to create plugin ${config?.id} for shape ${shape.id} but there was no config or class constructor!`);
+                            if (!config || !plugin) {
+                                console.error(`Attempted to create plugin for shape ${shape.id} but there was no config or class constructor!`);
                                 continue;
                             }
-                            const plugin = new pluginConstructor(config, shape, editor);
 
-                            if (!plugin) continue;
-
-                            // Not necessary maybe, plugins self register
-                            // const { registerInstance } = usePluginStore.getState();
-                            // registerInstance(id, plugin);
-
+                            plugin.setEditor(editor);
+                            editor.bringToFront([shape.id]);
                             initCollision(editor, shape);
                             editor.setSelectedShapes([shape]);
-                            editor.setCurrentTool('select')
                         }
                         // ! Removed
                         for (const { id, meta } of sortedRemoved) {

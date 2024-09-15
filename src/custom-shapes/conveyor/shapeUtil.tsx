@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */ // ESLint thinks this is a class component but it's not according to tldraw documentation
 
+import { PluginUtil } from "@/util/pluginUtil";
 import { Geometry2d, HTMLContainer, ShapeUtil, TLBaseShape, TLArrowShapeProps } from "tldraw";
 
 // ? Syntax and structure reference https://gist.github.com/mdroidian/55927b143bbf8ed19ba730e49a76194b
@@ -30,7 +31,7 @@ export default class ConveyorShapeUtil extends ShapeUtil<CustomArrowShape> {
 
 
     component(shape: CustomArrowShape) {
-
+        const { plugin, Component, icon, data } = PluginUtil.unwrapShape(shape) ?? {};
         return <HTMLContainer style={{  }}/>
     }
 }

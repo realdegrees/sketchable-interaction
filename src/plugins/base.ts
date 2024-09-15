@@ -38,12 +38,9 @@ export default abstract class BasePlugin<
   public connectedShapes: Set<TLShapeId> = this.loadConnectedShapes();
   private interval: NodeJS.Timeout | undefined;
   private eventEmitter: EventEmitter = new EventEmitter();
+  protected editor?: Editor;
 
-  constructor(
-    private _config: PluginConfig,
-    protected shape: ShapeType,
-    protected editor?: Editor
-  ) {
+  constructor(private _config: PluginConfig, protected shape: ShapeType) {
     if (_config.tickRate) {
       this.interval = setInterval(() => {
         this.eventEmitter.emit("tick");
@@ -53,11 +50,13 @@ export default abstract class BasePlugin<
 
   public setEditor(editor: Editor) {
     this.editor = editor;
+    console.log(`Editor set ${this.shape.id}`);
     this.eventEmitter.emit("editor", editor);
   }
 
   public onEditorSet(callback: (editor: Editor) => void): () => void {
     this.eventEmitter.on("editor", callback);
+    if (this.editor) callback(this.editor);
     return () => this.eventEmitter.off("editor", callback);
   }
 
@@ -274,7 +273,7 @@ export default abstract class BasePlugin<
     return () => this.eventEmitter.off(type, callback);
   }
 
-  protected emit(type: string, payload?: unknown) {
+  public emit(type: string, payload?: unknown) {
     this.eventEmitter.emit(type, payload);
   }
 

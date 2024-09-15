@@ -15,6 +15,7 @@ import { getMimeType } from "@/util/getMimeType";
 import { CollectorData } from "./config";
 import { FileData } from "../file/config";
 import FolderPlugin from "../folder/plugin";
+import { usePluginStore } from "@/stores/plugin";
 
 export default class CollectorPlugin extends BasePlugin<CollectorData> {
   private settingsMap: Map<TLShapeId, CollectorData> = new Map(); // TODO create methods to set filter options (for collector shape id) on collision these can the be evaluated by the plugin and sent to the appropriate shape on the canvas)
@@ -64,9 +65,30 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
   ): Promise<void> {
     // Check if colliding shape is a collector and only connect if it is
     if (colliding.plugin?.id === this.id) {
+      const isSelected = !!this.editor
+        ?.getSelectedShapeIds()
+        .includes(this.shape.id);
+      const pluginInstances = usePluginStore.getState().instances.get(this.id);
+      const collidingParent =
+        pluginInstances &&
+        Object.entries(pluginInstances).filter(([shapeId, plugin]) =>
+          plugin.connectedShapes.has(colliding.shape.id)
+        )?.[0]?.[0];
+      const collidingChildren = Array.from(colliding.plugin.connectedShapes);
       if (
-        this.connectionStateSubscription.lastState === "input" ||
-        this.connectionStateSubscription.lastState === "none"
+        this.connectionStateSubscription.lastState === "none" &&
+        !isSelected
+      ) {
+        this.connectShape(colliding.shape.id);
+      }
+      if (this.connectionStateSubscription.lastState === "input" && !collidingParent) {
+          this.connectShape(colliding.shape.id);
+      }
+      if (
+        (this.connectionStateSubscription.lastState === "output" ||
+          this.connectionStateSubscription.lastState === "both") &&
+        !collidingParent &&
+        !collidingChildren.length
       ) {
         this.connectShape(colliding.shape.id);
       }
@@ -182,7 +204,7 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
     }
 
     // Update shape
-    this.editor!.updateShape({
+    this.editor?.updateShape({
       ...colliding.shape,
       x: coords.x + offset.x,
       y: coords.y + offset.y,
@@ -200,7 +222,7 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
     const plugin = PluginUtil.unwrapShape(colliding.shape)?.plugin;
     if (plugin?.id === this.id) {
       this.disconnectShape(colliding.shape.id);
-
+      colliding.plugin.disconnectShape(this.shape.id);
       // Calculate state and cache it
       this.connectionStateSubscription.lastState = this.getState();
 

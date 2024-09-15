@@ -11,7 +11,7 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
   constructor(props: PluginConfig, shape: TLArrowShape, editor: Editor) {
     super(props, shape, editor);
     this.unsubTick = this.moveConnectedShapes.bind(this);
-    super.on("tick", this.unsubTick);
+    this.on("tick", this.unsubTick);
   }
 
   public override onShapeUpdate(shape: TLArrowShape) {

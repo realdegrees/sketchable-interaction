@@ -63,7 +63,6 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
                 for (const [, { id }] of Object.values(updated)) {
                     if (id === shape.id) {
                         const updatedShape = editor.getShape(id) as TLGeoShape;
-                        const { plugin } = PluginUtil.unwrapShape(updatedShape) ?? {};
                         setDebugData({
                             id: updatedShape.id,
                             x: updatedShape.x,
@@ -76,7 +75,6 @@ export default class RectShapeUtil extends BaseBoxShapeUtil<CustomRectShape> {
             }
             editor.addListener('change', listener);
             const editorListener = plugin?.onEditorSet(() => {
-                console.log('setting editor');
                 const updatedShape = editor.getShape(shape.id) as TLGeoShape;
                 setDebugData({
                     id: updatedShape.id,
