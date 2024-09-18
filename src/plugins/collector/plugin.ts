@@ -81,8 +81,11 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
       ) {
         this.connectShape(colliding.shape.id);
       }
-      if (this.connectionStateSubscription.lastState === "input" && !collidingParent) {
-          this.connectShape(colliding.shape.id);
+      if (
+        this.connectionStateSubscription.lastState === "input" &&
+        !collidingParent
+      ) {
+        this.connectShape(colliding.shape.id);
       }
       if (
         (this.connectionStateSubscription.lastState === "output" ||
@@ -256,45 +259,43 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
       if (!value) {
         continue;
       }
+      let condition: boolean;
       switch (key as keyof CollectorData) {
         case "Name": {
-          new RegExp(value, "i").test(name) && filterScore++;
+          condition = new RegExp(value, "i").test(name);
           break;
         }
         case "Mediatype": {
-          new RegExp(value, "i").test(mimeType) && filterScore++;
+          condition = new RegExp(value, "i").test(mimeType);
           break;
         }
         case "Extension(s)": {
-          value.split(",").some((filter) => filter === extension) &&
-            filterScore++;
+          condition = value.split(",").some((filter) => filter === extension);
           break;
         }
         case "Size Max (MB)": {
           const maxSize = Number.parseInt(value);
-
           if (isNaN(maxSize)) {
-            break;
+            continue; // skip filter assignment
           }
-          filterScore += maxSize >= fileSize ? 1 : -Infinity;
+          condition = maxSize >= fileSize;
           break;
         }
         case "Size Min (MB)": {
           const minSize = Number.parseInt(value);
-
           if (isNaN(minSize)) {
-            break;
+            continue; // skip filter assignment
           }
-          filterScore += minSize <= fileSize ? 1 : -Infinity;
+          condition = minSize <= fileSize;
           break;
         }
         default: {
           console.warn(`${key} filter not implemented!`);
-          break;
+          continue; // skip filter assignment
         }
       }
+      filterScore += condition ? 1 : -Infinity; // adds score 
     }
-
     return filterScore;
   }
   public onCreate(editor: Editor, shape: TLShape): void {}
