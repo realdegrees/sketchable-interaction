@@ -13,6 +13,7 @@ import { COLORS } from "@/util/constants";
 import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
+import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
 
 const TRANSFER_RATE = 2500;
 // TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
@@ -25,6 +26,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
 
     const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
     const [addDirectoryUiEnabled, setAddDirectoryUiEnabled] = useState(false);
+    const [addFileUiEnabled, setAddFileUiEnabled] = useState(false);
     const color = useRef<string>(COLORS[Math.floor(Math.random() * (COLORS.length - 1))]);
     const { getPluginConfig } = usePluginStore();
     const startIn = useRef(data?.startIn);
@@ -270,6 +272,44 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             </input>
         </div>
     }
+    const FileAddUI = ({ }: {}) => {
+        const [value, setValue] = useState('New File');
+        const [warning, setWarning] = useState<string | undefined>(undefined);
+
+        const createFile = async () => {
+            let exists: FileSystemFileHandle | undefined;
+            try {
+                exists = await rootHandle.getFileHandle(value, {
+                    create: false
+                });
+            } catch (e) { }
+
+            if (exists) {
+                setWarning('Filename already exists!');
+            } else {
+                await rootHandle.getFileHandle(value, {
+                    create: true
+                });
+                setWarning(undefined);
+            }
+            setAddFileUiEnabled(false);
+        }
+        return <div className="flex flex-col justify-center items-center min-w-48 h-auto max-h-52 w-2/5 pb-8">
+            <SimpleFileIcon className="w-full h-full" />
+            <input
+                autoFocus
+                className="w-full h-fit text-black text-xl rounded-full px-4 text-ellipsis"
+                placeholder="File name.."
+                onChange={({ currentTarget: { value } }) => {
+                    setValue(value);
+                    setWarning(undefined);
+                }}
+                onKeyDown={async ({ code }) => code === 'Enter' && createFile()}
+                onBlur={createFile}>
+            </input>
+            {warning && <p className="text-red-600 text-lg">{warning}</p>}
+        </div>
+    }
     const FileComponent = ({ fileHandle }: { fileHandle: FileSystemFileHandle }) => {
         // TODO use fileHandle to show preview of e.g. image files
         const [name, extension] = fileHandle.name.split('.') ?? [];
@@ -320,6 +360,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center scrollbar-thin scrollbar-track-black scrollbar-thumb-slate-400 ">
                 <p className="m-2 font-bold text-3xl">{rootHandle.name}</p>
                 <hr className={`w-full min-h-1 bg-${color.current}-500`}></hr>
+                {<p className="text-start w-full p-2 pb-0 font-bold">Folders</p>}
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(4rem,_10%))] gap-2 p-4 w-full h-fit items-start text-3xl auto-rows-min">
                     {[
                         // ! Add Directory Button
@@ -339,15 +380,32 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
                     // ! Add Directory UI
                     addDirectoryUiEnabled && <DirectoryAddUI key={shape.id + 'directoryadd'} />
                 }
+                {
+                    // ! Add File UI
+                    addFileUiEnabled && <FileAddUI key={shape.id + 'fileadd'} />
+                }
+                <hr className={`w-full min-h-1 opacity-20`}></hr>
+                {<p className="text-start w-full p-2 pb-0 font-bold">Files</p>}
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(3rem,_8%))] gap-3 p-4 w-full items-start text-3xl">
                     {[
                         // ! File UI
                         ...files.filter(({ name: fullname }) =>
                             !detached.find(({ attachment: { name, extension } }) =>
-                                fullname === `${name}.${extension}`)).map((fileHandle, i) => <FileComponent fileHandle={fileHandle} key={fileHandle.name + '-' + i + '-' + shape.id} />)
+                                fullname === `${name}.${extension}`)).map((fileHandle, i) => <FileComponent fileHandle={fileHandle} key={fileHandle.name + '-' + i + '-' + shape.id} />),
+                        // ! Add File Button
+                        <button key={shape.id + "fileAddButton"} className={`w-full h-2/3 flex flex-col hover:brightness-110 hover:scale-110 disabled:opacity-50  transition-all duration-100`} disabled={addFileUiEnabled} onPointerDown={(e) => e.stopPropagation()} onClick={() => {
+                            setAddFileUiEnabled(true);
+                        }}>
+                            <div className="w-full h-full bg-zinc-500 rounded-lg flex justify-center items-center">
+                                <PlusIcon className="w-full h-full my-auto py-1" />
+
+                            </div>
+                        </button>
                     ]}
                 </div>
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(2rem,_5%))] gap-2 p-4 w-full items-start text-3xl mt-auto">
+                <hr className={`w-full min-h-1 opacity-20`}></hr>
+                {!!detached.length && <p className="text-start w-full p-2 pb-0 font-bold mt-auto">Files on canvas</p>}
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(2rem,_5%))] gap-2 p-4 w-full items-start text-3xl">
                     {[
                         // ! Detached File UI
                         ...detached.filter(({ attachment: { name } }) => !!name).map(({ shapeId, attachment: { extension, name } }) => {

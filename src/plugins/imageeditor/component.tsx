@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useEditor } from "tldraw";
 import { ReactPhotoEditor } from "react-photo-editor";
 import ImageEditorPlugin from "./plugin";
@@ -22,12 +22,20 @@ const Component: PluginComponent<ImageEditorData, ImageEditorPlugin> = ({ shape,
     const [file, setFile] = useState<File>();
     const [fileData, setFileData] = useState<FileData>();
 
+    const debouncedSave = useCallback(async (editedFile: File) => {
+        const { sourceShape, extension, name } = fileData ?? {};
+        const folderPlugin = sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
+        const originalFileHandle = folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
+        const writeStream = await originalFileHandle?.createWritable();
+        await writeStream?.write(editedFile);
+        await writeStream?.close();
+    }, [fileData]);
+
     useEffect(() => {
         editor.bringForward([shape]);
         (async () => {
             const { sourceShape, extension, name } = fileData ?? {};
-            const folderShape = sourceShape && editor.getShape(sourceShape);
-            const { plugin: folderPlugin } = (folderShape && PluginUtil.unwrapShape<FolderData, FolderPlugin>(folderShape)) ?? {};
+            const folderPlugin = (sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape));
             const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
 
             const file = await fileHandle?.getFile();
@@ -49,17 +57,12 @@ const Component: PluginComponent<ImageEditorData, ImageEditorPlugin> = ({ shape,
     if (!fileData?.extension || getMimeType(fileData.extension) !== 'image') return <p>{`${fileData?.extension} file extension is not supported!`}</p>;
 
     return <div
-        className={`flex items-center justify-center relative !p-8`}
+        className={`m-8`}
         onPointerDown={(e) => e.stopPropagation()}
     >
         <ReactPhotoEditor file={file} open={!!file} onSaveImage={async (editedFile) => {
             {
-                const { sourceShape, extension, name } = fileData;
-                const folderPlugin = sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
-                const originalFileHandle = folderPlugin?.handles?.files.find(({name: fname}) => fname === `${name}.${extension}`);
-                const writeStream = await originalFileHandle?.createWritable();
-                await writeStream?.write(editedFile);
-                await writeStream?.close();
+                debouncedSave(editedFile);
             }
         }} />
     </div>

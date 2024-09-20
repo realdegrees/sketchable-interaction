@@ -18,7 +18,7 @@ export default class Plugin extends BasePlugin<ImageEditorData> {
       colliding.data
     ).data as JsonObject as FileData | undefined;
 
-    this.emit("collisionstart", fileData);
+    this.emit("file", fileData);
   }
   public async onCollisionEnd(
     data: ImageEditorData | undefined,
@@ -30,7 +30,7 @@ export default class Plugin extends BasePlugin<ImageEditorData> {
   ): Promise<void> {
     if (colliding.plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
-    this.emit("collisionend");
+    this.emit("end");
   }
   public onDelete(): void {}
 }

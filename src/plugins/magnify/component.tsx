@@ -24,6 +24,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
 
     const [file, setFile] = useState<File>();
     const [dataUrl, setDataUrl] = useState<string>();
+    const [text, setText] = useState<string>();
     const [fileData, setFileData] = useState<FileData>();
     const editor = useEditor();
 
@@ -36,15 +37,17 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
 
             const file = await fileHandle?.getFile();
             const dataUrl = file && await toDataUrl(file);
+            const text = file && await file.text();
             setFile(file);
             setDataUrl(dataUrl);
+            setText(text);
         })();
 
         const unsub = plugin && [
-            plugin.on<FileData>('collisionstart', (data) => {
+            plugin.on<FileData>('file', (data) => {
                 if(!fileData) setFileData(data);
             }),
-            plugin.on<FileData>('collisionend', setFileData),
+            plugin.on<FileData>('end', setFileData),
         ];
         return () => {
             unsub?.forEach((f) => f())
@@ -61,7 +64,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
                 return <Image src={dataUrl} alt={fileData.name} width={500} height={500} />;
             }
             case 'text': {
-                return <p>text not implemented</p>;
+                return <p>{text}</p>;
             }
             case 'audio': {
                 return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {

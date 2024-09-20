@@ -22,7 +22,7 @@ const Tlwrap = () => {
     const { onTldrawMount } = useTldrawDarkModeObserver(wrapperElRef);
     const polyShapeMap = useRef<Map<TLShapeId, Polygon>>(new Map());
     const collisionTable = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
-    const previousCollisions = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
+    const prevCollisionTable = useRef<Map<TLShapeId, Set<TLShapeId>>>(new Map());
     const { eventEmitter: pluginStoreEventEmitter } = usePluginStore();
     const [collisionSystem, setCollisionSystem] = useState(new System());
 
@@ -52,7 +52,7 @@ const Tlwrap = () => {
 
 
         const cachedShapeCollisions = collisionTable.current.get(shape.id);
-        const previousShapeCollisions = previousCollisions.current.get(shape.id) ?? new Set();
+        const previousShapeCollisions = prevCollisionTable.current.get(shape.id) ?? new Set();
         const difference = getDifference(cachedShapeCollisions, previousShapeCollisions) as Set<TLShapeId>; // This is every cached collision that is not happening anymore and needs to be cleaned up
 
         await Promise.all(Array.from(difference?.values() ?? []).map(async (dirtyCollisionId) => {
@@ -89,7 +89,7 @@ const Tlwrap = () => {
 
         }));
 
-        previousCollisions.current.get(shape.id)?.clear();
+        prevCollisionTable.current.get(shape.id)?.clear();
         poly && collisionSystem.checkOne(poly, (response) => {
             onCollision(editor, shape, plugin, data)(response);
         });
@@ -144,7 +144,7 @@ const Tlwrap = () => {
         collisionTable.current.set(shape.id, collisionsWithShape);
         collisionTable.current.set(compareShape.id, collisionsWithCompareShape);
 
-        previousCollisions.current.set(shape.id, (previousCollisions.current.get(shape.id) ?? new Set()).add(compareShape.id));
+        prevCollisionTable.current.set(shape.id, (prevCollisionTable.current.get(shape.id) ?? new Set()).add(compareShape.id));
     }
 
     const cleanup = (editor: Editor) => {
@@ -184,7 +184,7 @@ const Tlwrap = () => {
                 shapeUtils={[RectShapeUtil, ConveyorShapeUtil]} // TODO Add toolbar buttons for shapes
                 tools={[RectShapeTool, ConveyorShapeTool]}
                 overrides={overrides}
-                persistenceKey="si"
+                //persistenceKey="si"
                 components={{
                     Toolbar
                     // TODO override color/shape component as well to remove several options

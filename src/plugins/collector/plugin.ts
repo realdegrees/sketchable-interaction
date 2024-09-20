@@ -150,18 +150,21 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
       })
     );
 
-    // Reduce the map to the
-    const bestMatch =
-      collectorScoreMap.reduce<
-        { shape: TLShape; matchScore: number } | undefined
-      >((bestMatch, currentMatch) => {
-        return !bestMatch ||
-          (currentMatch?.matchScore ?? -1) > bestMatch.matchScore
-          ? currentMatch
-          : bestMatch;
-      }, undefined)?.shape ?? this.shape; // Use own shape if no destination is found (in case of connected conveyors)
+    const bestMatch = collectorScoreMap.reduce<
+      { shape: TLShape; matchScore: number } | undefined
+    >((bestMatch, currentMatch) => {
+      if (
+        currentMatch &&
+        currentMatch.matchScore >= 0 &&
+        (!bestMatch || currentMatch.matchScore > bestMatch.matchScore)
+      ) {
+        return currentMatch;
+      }
+      return bestMatch;
+    }, undefined);
 
-    const destination = bestMatch;
+    const destination =
+      bestMatch && bestMatch.matchScore >= 0 ? bestMatch?.shape : this.shape;
 
     // Utility function
     const getConnectedConveyors = (shape: TLShape) => {
@@ -294,7 +297,7 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
           continue; // skip filter assignment
         }
       }
-      filterScore += condition ? 1 : -Infinity; // adds score 
+      filterScore += condition ? 1 : -Infinity; // adds score
     }
     return filterScore;
   }
