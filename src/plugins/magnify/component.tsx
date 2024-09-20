@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import {  useEditor } from "tldraw";
+import { useEditor } from "tldraw";
 import { getMimeType } from "@/util/getMimeType";
 import Image from "next/image";
 import { toDataUrl } from "@/util/blob";
@@ -14,12 +14,6 @@ import FolderPlugin from "@/plugins/folder/plugin";
 import { FileData } from "../file/config";
 
 
-// TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
-
-/* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
--> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
-When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
-*/
 const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, plugin }) => {
 
     const [file, setFile] = useState<File>();
@@ -33,7 +27,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
             const { sourceShape, extension, name } = fileData ?? {};
             const folderPlugin = sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
 
-            const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({name: fname}) => fname === `${name}.${extension}`);
+            const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
 
             const file = await fileHandle?.getFile();
             const dataUrl = file && await toDataUrl(file);
@@ -45,7 +39,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
 
         const unsub = plugin && [
             plugin.on<FileData>('file', (data) => {
-                if(!fileData) setFileData(data);
+                if (!fileData) setFileData(data);
             }),
             plugin.on<FileData>('end', setFileData),
         ];
@@ -55,7 +49,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
     }, [setFile, editor, shape, fileData, plugin])
 
     if (!fileData || !fileData.name || !fileData.extension) return <p>Drag a file here to view its content</p>;
-    if (!file || !dataUrl) return <LoadingIcon className="w-1/2 h-1/2"/>;
+    if (!file || !dataUrl) return <LoadingIcon className="w-1/2 h-1/2" />;
 
     const mimeType = fileData.extension && getMimeType(fileData.extension);
     const content = (() => {
@@ -79,7 +73,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
                 </video>;
             }
             case 'model': {
-                return <p>model not implemented</p>; // TODO maybe add a nice 3d model viewer if there are any for react
+                return <p>model not implemented</p>;
             }
             default: {
                 return <p>This filetype cannot be displayed</p>;

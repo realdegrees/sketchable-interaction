@@ -56,7 +56,6 @@ export interface PluginStoreData {
   listeners: Set<(plugin: BasePlugin) => void>;
 }
 
-// TODO adjust plugin store to not only store the id of the currently selected plugin but also a reference to all plugin instances
 export const usePluginStore = create<PluginStoreData>((set, get) => ({
   plugins: [],
   totalPlugins: undefined,

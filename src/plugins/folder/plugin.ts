@@ -7,7 +7,6 @@ import FilePlugin from "../file/plugin";
 import { transferFileWithWebWorker } from "@/util/fileTransfer";
 
 type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
-// TODO add code to receive and store handles for each existing
 export default class FolderPlugin extends BasePlugin<FolderData> {
   public async onCollisionEnd(
     data: FolderData | undefined,
@@ -123,7 +122,6 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
     };
   }
 
-  // TODO add methods to delete/create/etc files via shapeId and filename (find the corresponding handle and manipulate the file)
   public unregisterHandles(shapeId: TLShapeId): void {
     this.handles = undefined;
   }

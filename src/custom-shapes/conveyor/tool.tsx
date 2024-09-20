@@ -4,14 +4,7 @@ export default class ConveyorShapeTool extends StateNode {
     static override id = 'conveyor';
     static override initial = 'idle';
     override shapeType = 'conveyor';
-
     private currentArrow: TLArrowShape | undefined;
-
-    // TODO change to several rectangles that get placed along the mouse trail while held down
-    /*
-        - Variable drawing
-        - on mouse up group boxes and register them with conveyor plugin
-    */
 
     onPointerDown = () => {
         const { x, y, z } = this.editor.inputs.currentPagePoint;
@@ -30,14 +23,12 @@ export default class ConveyorShapeTool extends StateNode {
                 fill: 'pattern',
                 font: 'draw',
             }
-            // Define additional properties for your shape here
         });
         this.currentArrow = this.editor.getShape(id);
     };
     onPointerUp?: TLPointerEvent | undefined = () => {
         this.currentArrow = undefined;
         this.editor.setCurrentTool('select');
-        // TODO: add logic to bind arrow's end to hoveredshape
     };
     onPointerMove?: TLPointerEvent | undefined = () => {
         this.currentArrow = this.currentArrow && this.editor.getShape(this.currentArrow.id);

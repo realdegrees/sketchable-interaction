@@ -18,7 +18,7 @@ import FolderPlugin from "../folder/plugin";
 import { usePluginStore } from "@/stores/plugin";
 
 export default class CollectorPlugin extends BasePlugin<CollectorData> {
-  private settingsMap: Map<TLShapeId, CollectorData> = new Map(); // TODO create methods to set filter options (for collector shape id) on collision these can the be evaluated by the plugin and sent to the appropriate shape on the canvas)
+  private settingsMap: Map<TLShapeId, CollectorData> = new Map(); 
   private connectionStateSubscription: {
     callback?: (state: CollectorConnectionState) => void;
     lastState: CollectorConnectionState;

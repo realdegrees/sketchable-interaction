@@ -181,13 +181,12 @@ const Tlwrap = () => {
 
             <Tldraw
                 inferDarkMode
-                shapeUtils={[RectShapeUtil, ConveyorShapeUtil]} // TODO Add toolbar buttons for shapes
+                shapeUtils={[RectShapeUtil, ConveyorShapeUtil]}
                 tools={[RectShapeTool, ConveyorShapeTool]}
                 overrides={overrides}
                 //persistenceKey="si"
                 components={{
                     Toolbar
-                    // TODO override color/shape component as well to remove several options
                 }}
 
                 onMount={(editor) => {

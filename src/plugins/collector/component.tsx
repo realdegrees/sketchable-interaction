@@ -20,15 +20,10 @@ export type FilterSettings = {
     'Size Max (MB)': string,
     'Size Min (MB)': string,
 }
-// TODO possibly use https://www.npmjs.com/package/file-icons-js to display specific icons for each file extension
 
 
 export type CollectorConnectionState = 'input' | 'output' | 'both' | 'none';
 
-/* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
--> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
-When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
-*/
 const Component: PluginComponent<CollectorData, CollectorPlugin> = ({ shape, data, plugin }) => {    
     const editor = useEditor();
     const [connectionState, setConnectionState] = useState<CollectorConnectionState>('none');

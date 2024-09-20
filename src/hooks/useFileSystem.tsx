@@ -9,7 +9,6 @@ import {
 } from 'react';
 import { useUnmount } from './useUnmount';
 
-// TODO add 'flatten' arg to optionally flatten all subfolders and return all files
 export const useFileSystem = ({
     pollInterval = 500,
     onChange,
@@ -51,7 +50,6 @@ export const useFileSystem = ({
             const prevFiles = filesRef.current;
             const prevDirectories = directoriesRef.current;
 
-            // TODO find a way to run this async iterator in parallel
             // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/values
             for await (const handle of directoryHandle.current.values()) {
                 if (ignorePattern?.test(handle.name)) {
@@ -65,7 +63,6 @@ export const useFileSystem = ({
                 }
             }
 
-            // TODO possibly add an option to check for deep file content changes
             // Check if there are any differences in file or directory names compared to the previous poll state
             const hasFileChanges = prevFiles.length !== currentFiles.length
                 || (prevFiles.length === currentFiles.length

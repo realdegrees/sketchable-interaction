@@ -16,11 +16,6 @@ import { FileData } from "../file/config";
 import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
 
 const TRANSFER_RATE = 2500;
-// TODO attempt to rework folders so that they include files as shapes from the start which are grouped together and the folder just encompasses them all
-/* TODO when a file is dragged out of the folder create a new shape that holds the file info (path is probably enough)(create file plugin for these shapes) 
--> Attach the handle to that shape (maybe add handle to PluginData.files type) so that the file can be manipulated by plugins that interact with it
-When the file is moved/renamed/deleted etc the UI of this component will automatically update to the fileSystem hook
-*/
 const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plugin }) => {
     const editor = useEditor();
 
@@ -311,7 +306,6 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         </div>
     }
     const FileComponent = ({ fileHandle }: { fileHandle: FileSystemFileHandle }) => {
-        // TODO use fileHandle to show preview of e.g. image files
         const [name, extension] = fileHandle.name.split('.') ?? [];
         //const isFileDetached = !!isDetached(fileHandle);
 
@@ -331,7 +325,6 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         )
     }
     const FolderComponent = ({ directoryHandle }: { directoryHandle: FileSystemDirectoryHandle }) => {
-        // TODO use fileHandle to show preview of e.g. image files
         const [isDetached, setIsDetached] = useState(detached.find(({ attachment: { dir } }) => dir === directoryHandle.name));
 
         useEffect(() => {

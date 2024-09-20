@@ -3,9 +3,6 @@ import EventEmitter from "events";
 import { Editor, JsonObject, TLArrowShape, TLShape, TLShapeId } from "tldraw";
 import z, { ZodSchema } from "zod";
 
-// ! TODO: create react component for each plugin that gets loaded in the plugin component and saved to the plugin library so that it can be attached to shapes for custom UI ona  per-plugin basis
-// TODO implement basic functions like deletability
-// TODO add tldraw's props type as Partial for default props like color, border, font etc. so they can be inserted directly at shape creation
 export const PluginConfigSchema = z.object({
   id: z.string(),
   label: z.string().nullish(),
@@ -28,9 +25,6 @@ export const PluginAttachment = z.object({
   sourceShape: z.custom<TLShapeId>(),
 });
 export type PluginAttachment = z.infer<typeof PluginAttachment>;
-
-// ? possibly add an array that holds references to all shapes of the plugin type (maintained in onCreate and onDelete)
-// TODO add a data structure that holds references to other shapes (e.g. conveyor belt holds references to items on it)
 export default abstract class BasePlugin<
   DataSchema = JsonObject,
   ShapeType extends TLShape = TLShape
