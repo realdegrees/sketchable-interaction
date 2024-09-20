@@ -42,24 +42,42 @@ export default abstract class BasePlugin<
     }
   }
 
+  /**
+   * Used to set the editor reference
+   * @param editor Tldraw editor instance
+   */
   public setEditor(editor: Editor) {
     this.editor = editor;
     console.log(`Editor set ${this.shape.id}`);
     this.eventEmitter.emit("editor", editor);
   }
 
+  /**
+   * Subscribe to an event that gets fired when the editor reference has been set
+   * @param callback
+   * @returns An unsubscribe method
+   */
   public onEditorSet(callback: (editor: Editor) => void): () => void {
     this.eventEmitter.on("editor", callback);
     if (this.editor) callback(this.editor);
     return () => this.eventEmitter.off("editor", callback);
   }
 
+  /**
+   * This is a utility method to see if a constructor is of type BasePlugin
+   * @param constructor
+   * @returns
+   */
   public static isSubclass(
     constructor?: new (...args: unknown[]) => unknown
   ): boolean {
     return !!constructor && constructor.prototype instanceof this;
   }
 
+  /**
+   * This gets called when the tldraw editor updates the internal shape reference
+   * @param shape The updated shape
+   */
   public onShapeUpdate(shape: ShapeType) {
     const previousConfig = this.config;
     this.shape = shape;
@@ -67,6 +85,7 @@ export default abstract class BasePlugin<
     if (previousConfig?.tickRate !== this.config?.tickRate)
       this.restartInterval();
   }
+
   private restartInterval() {
     clearInterval(this.interval);
     const tickRate = this.config?.tickRate || this._config.tickRate;
@@ -75,6 +94,7 @@ export default abstract class BasePlugin<
       this.eventEmitter.emit("tick");
     }, tickRate);
   }
+
   /**
    * Gets the current config for the plugin from the shape's meta
    */
@@ -118,6 +138,11 @@ export default abstract class BasePlugin<
     this.saveToMeta("config", validated);
   }
 
+  /**
+   * Saves the provided data to the shape's meta
+   * @param data This data must match the zod schema provided in the plugin's config.ts
+   * @returns
+   */
   public saveDataToShape(data: DataSchema): boolean {
     if (!this.updateShapeReference()) return false;
 
@@ -139,7 +164,13 @@ export default abstract class BasePlugin<
   private saveConnectedShapes() {
     this.saveToMeta("connectedShapes", Array.from(this.connectedShapes));
   }
-  // ! Check if arrays are actually serializable for tldraw (they should be)
+
+  /**
+   * Internal Method to save a jsonobject to the shape's meta
+   * @param key
+   * @param jsonObject
+   * @returns
+   */
   private saveToMeta(
     key: string,
     jsonObject: Partial<JsonObject> | Partial<JsonObject>[] | string[] | string
@@ -170,6 +201,9 @@ export default abstract class BasePlugin<
     }
   }
 
+  /**
+   * The id of the associated shape
+   */
   public get id(): string {
     return this._config.id;
   }
@@ -185,6 +219,12 @@ export default abstract class BasePlugin<
     }
   }
 
+  /**
+   * Connected shapes are saved in memory accessible via the connectedShapesproperty and persisted on a shape's meta property
+   * @param shapeId
+   * @param createArrow Should a locked transparent arrow be added going from this shape to the colliding shape?
+   * @returns
+   */
   public connectShape(shapeId: TLShapeId, createArrow: boolean = false): void {
     if (this.connectedShapes.has(shapeId)) return;
 
@@ -223,15 +263,25 @@ export default abstract class BasePlugin<
       },
     });
   }
+  /**
+   * Disconnects the specified shape, connected indicator arrows are cleaned up autoamtically
+   * @param shapeId
+   * @returns
+   */
   public disconnectShape(shapeId: TLShapeId): void {
     if (!this.connectedShapes.delete(shapeId)) return;
     this.saveConnectedShapes();
   }
+
   public disconnectAllShapes(): void {
     this.connectedShapes = new Set();
     this.saveConnectedShapes();
   }
-  // ! might need to pass a reference to the editor as well here (probably for all methods)
+  /**
+   * Called when another shape starts a collision with this one
+   * @param data The data attached to this shape
+   * @param colliding The shape, plugin and attached data of the colliding shape
+   */
   public abstract onCollisionStart(
     data: DataSchema | undefined,
     colliding: {
@@ -240,25 +290,45 @@ export default abstract class BasePlugin<
       data?: JsonObject;
     }
   ): Promise<void>;
+  /**
+   * Called when another shape ends a collision with this one
+   * @param data The data attached to this shape
+   * @param colliding The shape, plugin and attached data of the colliding shape
+   */
   public abstract onCollisionEnd(
     data: DataSchema | undefined,
-
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
       data?: JsonObject;
     }
   ): Promise<void>;
+
+  /**
+   * Called when the shape is deleted in tldraw
+   */
   public onDelete(): void {
     this.disconnectAllShapes();
   }
+  /**
+   * Called when the shape is being hovered by the pointer
+   */
   public onShapeHovered(): void {
     this.updateArrows({ opacity: 0.2 });
   }
+  /**
+   * Called when the shape is being unhovered by the pointer
+   */
   public onShapeUnhovered(): void {
     this.updateArrows({ opacity: 0 });
   }
 
+  /**
+   * Subscribe to an event emitted by the plugin instance via BasePlugin.emit
+   * @param type The event id string
+   * @param callback A callback method that gets called when the specified event fires
+   * @returns 
+   */
   public on<T = unknown>(
     type: string,
     callback: (value?: T) => void
@@ -267,6 +337,12 @@ export default abstract class BasePlugin<
     return () => this.eventEmitter.off(type, callback);
   }
 
+  /**
+   * Use this to emit the specified payload in the specified type event channel
+   * Can be utilized to communicate with the plugin component
+   * @param type 
+   * @param payload 
+   */
   public emit(type: string, payload?: unknown) {
     this.eventEmitter.emit(type, payload);
   }

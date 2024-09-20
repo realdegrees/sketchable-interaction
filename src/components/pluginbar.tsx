@@ -6,7 +6,8 @@ import { readdirSync } from "fs";
 const pluginDir = path.join(process.cwd(), 'src/plugins');
 const pluginPaths = readdirSync(pluginDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
+    .map(dirent => dirent.name)
+    .filter((name) => !name.startsWith('_'));
 
 
 const PluginBar = () => {
