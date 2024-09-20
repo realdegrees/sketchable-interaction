@@ -4,6 +4,7 @@ import TemplatePlugin from "./plugin";
 import { useEditor } from "tldraw";
 import { useEffect } from "react";
 
+// ! Enable debug mode in the top-left menu of the editor to see important debug data directly on the canvas
 type ExampleDataType = {
     example: string;
 }
