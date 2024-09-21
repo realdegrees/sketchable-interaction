@@ -10,11 +10,11 @@ const Component: PluginComponent<FileData, FilePlugin> = ({ shape, data, plugin 
     const isHovered = editor.getHoveredShapeId() === shape.id;
 
     return <div
-        title={data?.name ?? undefined}
+        title={data?.name ?? '<Missing name>'}
         className={`flex items-center justify-center relative`}
     >
         <div>
-            <FileIcon extension={isHovered ? (data?.extension ?? 'unknown') : data?.name ?? undefined} {...(data?.extension ? defaultStyles[data?.extension as DefaultExtensionType] : defaultStyles.cs)} fold={isHovered} />
+            <FileIcon extension={isHovered ? (data?.extension ?? 'unknown') : data?.name ?? '<Missing name>'} {...(data?.extension ? defaultStyles[data?.extension as DefaultExtensionType] : defaultStyles.cs)} fold={isHovered} />
         </div>
     </div>
 

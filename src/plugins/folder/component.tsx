@@ -75,7 +75,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             }
         ]);
     }
-    const spawnFile = useCallback((name: string, extension: string, root: string, coords: { x: number, y: number }, options?: { selectOnSpawn?: boolean }) => {
+    const spawnFile = useCallback((name: string, extension: string, root: string, coords: { x: number, y: number }, options?: { selectOnSpawn?: boolean }): TLShapeId => {
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
         When the file shape collides with another plugin shape, that plugin can use the attached metadata
         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
@@ -120,6 +120,8 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
                 }
             }
         ]);
+
+        return id;
     }, [detached, editor, shape, plugin, getPluginConfig]);
 
     const startInDirectoryHandle = data?.parentId && startIn ? PluginUtil.getPlugin<FolderPlugin>(data.parentId)?.handles?.directories.find(({ name }) => name === startIn.current) : undefined;
@@ -200,7 +202,8 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             if (!connectedConveyors[0] || !rootHandle) return;
             const { coords: [{ x, y }], origin } = getArrowCoordinates(connectedConveyors[0], editor);
             const coords = Vec.Add(origin, { x, y });
-
+            const { plugin: conveyorPlugin } = PluginUtil.unwrapShape(connectedConveyors[0]) ?? {};
+            
             const file = files.find((file) => {
                 const [name, extension] = file.name.split('.') ?? [];
                 if (!detached.find(({ attachment }) => name === attachment.name && extension === attachment.extension)) {
@@ -211,7 +214,8 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
 
             const [name, extension] = file.name.split('.') ?? [];
 
-            spawnFile(name, extension, rootHandle.name, coords);
+            const spawnedShapeId = spawnFile(name, extension, rootHandle.name, coords);
+            conveyorPlugin?.connectShape(spawnedShapeId);
         });
 
         return () => {

@@ -19,6 +19,9 @@ export default class FilePlugin extends BasePlugin<FileData> {
       plugin: BasePlugin<unknown>;
       data?: unknown;
     }
-  ): Promise<void> {}
+  ): Promise<void> {
+    console.log(`Colliding with ${colliding.plugin.config.id}`);
+    
+  }
   public onDelete(): void {}
 }
