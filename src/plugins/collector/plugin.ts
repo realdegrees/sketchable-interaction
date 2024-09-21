@@ -135,11 +135,9 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
         if (!shape) return;
         const { data: childFilterSettings, plugin } =
           PluginUtil.unwrapShape<CollectorData, CollectorPlugin>(shape) ?? {};
-        let matchScore: number = -1;
-
-        if (!childFilterSettings || !plugin) {
-          matchScore = 0;
-        } else {
+          
+        let matchScore: number = 0;
+        if (childFilterSettings && plugin) {
           matchScore = await plugin.doesFilterMatch(
             childFilterSettings,
             fileData
@@ -250,14 +248,13 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
       ({ name: fname }) => fname === `${name}.${extension}`
     );
     const file = await originalFileHandle?.getFile();
-    const bytes = file?.size;
-    const fileSize = bytes && Math.round((bytes / 1048576) * 100) / 100;
+    const fileSize = file && file.size / 1048576;
     const mimeType = extension && getMimeType(extension);
 
     if (!name || !extension || !mimeType || !fileSize) return -1;
 
     // Add one score for each matching filter
-    let filterScore: number = -1;
+    let filterScore: number = 0;
     for (const [key, value] of Object.entries(filterSettings)) {
       if (!value) {
         continue;

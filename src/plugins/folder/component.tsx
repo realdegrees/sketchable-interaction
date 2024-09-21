@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileSystem } from "@/hooks/useFileSystem";
 import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
-import { TLArrowShape, TLShapeId, useEditor, Vec } from "tldraw";
+import { JsonObject, TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
 import FolderPlugin from "@/plugins/folder/plugin";
 import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
@@ -9,10 +9,12 @@ import FolderIcon from '~icons/ic/twotone-folder';
 import { getArrowCoordinates } from "@/util/collision";
 import PlusIcon from '~icons/mdi/plus.jsx';
 import { COLORS } from "@/util/constants";
-import { PluginComponent, usePluginStore } from "@/stores/plugin";
+import { PluginComponent, PluginStore, usePluginStore } from "@/stores/plugin";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
+import BasePlugin from "../base";
+import deepEqual from "deep-equal";
 
 const TRANSFER_RATE = 2500;
 type DetachedItem = { shapeId: TLShapeId, attachment: FileData };
@@ -182,6 +184,24 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         })
 
         const tickSubscription = plugin?.on('tick', () => {
+            const currentDetached = usePluginStore.getState().getPlugins('file')
+                ?.map(({ plugin }) => plugin?.shape.id)
+                .map((shapeId) => shapeId && editor.getShape(shapeId))
+                .map(PluginUtil.unwrapShape<FileData>)
+                .filter((unwrapped): unwrapped is (PluginStore<BasePlugin<JsonObject, TLShape>> & {
+                    data: FileData;
+                }) => !!unwrapped)
+                .filter(({ data }) => data?.sourceShape === shape.id)
+                .map(({ plugin, data }) => ({
+                    attachment: data,
+                    shapeId: plugin?.shape.id
+                } as DetachedItem))
+                .filter((item): item is DetachedItem => !!item) ?? [];
+
+            if(!deepEqual(currentDetached, detached)){
+                setDetached(currentDetached);
+            }
+
             const selectedShapes = editor.getSelectedShapes();
             const isFolderSelected = selectedShapes.find(({ id }) => id === shape.id);
             // Don't act if the folder shape is currently selected
@@ -203,7 +223,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             const { coords: [{ x, y }], origin } = getArrowCoordinates(connectedConveyors[0], editor);
             const coords = Vec.Add(origin, { x, y });
             const { plugin: conveyorPlugin } = PluginUtil.unwrapShape(connectedConveyors[0]) ?? {};
-            
+
             const file = files.find((file) => {
                 const [name, extension] = file.name.split('.') ?? [];
                 if (!detached.find(({ attachment }) => name === attachment.name && extension === attachment.extension)) {

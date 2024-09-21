@@ -196,7 +196,7 @@ export default abstract class BasePlugin<
   }
 
   /**
-   * The id of the associated shape
+   * The id of the plugin
    */
   public get id(): string {
     return this._config.id;

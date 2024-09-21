@@ -76,8 +76,37 @@ const Tlwrap = () => {
         const endedCollisions = cachedShapeCollisions.filter((endedCollisionShape) => !currentShapeCollisions.includes(endedCollisionShape));
         const startedCollisions = currentShapeCollisions.filter((endedCollisionShape) => !cachedShapeCollisions.includes(endedCollisionShape));
 
+
+
+        // Handle started collisions
+        for (const startedCollision of startedCollisions) {
+            const compareShape = editor.getShape(startedCollision);
+            if (!compareShape) continue;
+
+            const compareShapePluginStore = PluginUtil.unwrapShape(compareShape);
+            if (!compareShapePluginStore?.plugin) continue;
+
+            await plugin.onCollisionStart(
+                data,
+                {
+                    data: compareShapePluginStore.data,
+                    plugin: compareShapePluginStore.plugin,
+                    shape: compareShape,
+                }
+            );
+
+            await compareShapePluginStore.plugin.onCollisionStart(
+                compareShapePluginStore.data,
+                {
+                    data: data,
+                    plugin: plugin,
+                    shape: shape as TLShape,
+                }
+            );
+
+        }
         // Handle ended collisions
-        endedCollisions.forEach(async (endedCollision) => {
+        for (const endedCollision of endedCollisions) {
             // Remove the collisionId from own table entry and other references
             collisionTable.current.get(endedCollision)?.delete(shape.id);
             collisionTable.current.get(shape.id)?.delete(endedCollision);
@@ -106,37 +135,7 @@ const Tlwrap = () => {
                     shape: shape,
                 }
             );
-        });
-
-        // Handle started collisions
-        startedCollisions.forEach(async (startedCollision) => {
-            
-            const compareShape = editor.getShape(startedCollision);
-            if (!compareShape) return;
-
-            const compareShapePluginStore = PluginUtil.unwrapShape(compareShape);
-            if (!compareShapePluginStore?.plugin) return;
-
-            await plugin.onCollisionStart(
-                data,
-                {
-                    data: compareShapePluginStore.data,
-                    plugin: compareShapePluginStore.plugin,
-                    shape: compareShape,
-                }
-            );
-
-            await compareShapePluginStore.plugin.onCollisionStart(
-                compareShapePluginStore.data,
-                {
-                    data: data,
-                    plugin: plugin,
-                    shape: shape as TLShape,
-                }
-            );
-        })
-
-
+        }
     }
 
     const cleanup = (editor: Editor) => {
