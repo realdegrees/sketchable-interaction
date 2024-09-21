@@ -30,11 +30,12 @@ export default abstract class BasePlugin<
   ShapeType extends TLShape = TLShape
 > {
   public connectedShapes: Set<TLShapeId> = this.loadConnectedShapes();
+  public destroyed: boolean = false;
   private interval: NodeJS.Timeout | undefined;
   private eventEmitter: EventEmitter = new EventEmitter();
   protected editor?: Editor;
 
-  constructor(private _config: PluginConfig, protected shape: ShapeType) {
+  constructor(private _config: PluginConfig, public shape: ShapeType) {
     if (_config.tickRate) {
       this.interval = setInterval(() => {
         this.eventEmitter.emit("tick");
@@ -298,7 +299,7 @@ export default abstract class BasePlugin<
   public abstract onCollisionEnd(
     data: DataSchema | undefined,
     colliding: {
-      shape: TLShape;
+      shape: Partial<TLShape> & { id: TLShapeId; meta: JsonObject };
       plugin: BasePlugin;
       data?: JsonObject;
     }
@@ -327,7 +328,7 @@ export default abstract class BasePlugin<
    * Subscribe to an event emitted by the plugin instance via BasePlugin.emit
    * @param type The event id string
    * @param callback A callback method that gets called when the specified event fires
-   * @returns 
+   * @returns
    */
   public on<T = unknown>(
     type: string,
@@ -340,8 +341,8 @@ export default abstract class BasePlugin<
   /**
    * Use this to emit the specified payload in the specified type event channel
    * Can be utilized to communicate with the plugin component
-   * @param type 
-   * @param payload 
+   * @param type
+   * @param payload
    */
   public emit(type: string, payload?: unknown) {
     this.eventEmitter.emit(type, payload);

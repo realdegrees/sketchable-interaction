@@ -16,10 +16,11 @@ import { FileData } from "../file/config";
 import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
 
 const TRANSFER_RATE = 2500;
+type DetachedItem = { shapeId: TLShapeId, attachment: PluginAttachment };
 const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plugin }) => {
     const editor = useEditor();
 
-    const [detached, setDetached] = useState<{ shapeId: TLShapeId, attachment: PluginAttachment }[]>([]);
+    const [detached, setDetached] = useState<DetachedItem[]>([]);
     const [addDirectoryUiEnabled, setAddDirectoryUiEnabled] = useState(false);
     const [addFileUiEnabled, setAddFileUiEnabled] = useState(false);
     const color = useRef<string>(COLORS[Math.floor(Math.random() * (COLORS.length - 1))]);
@@ -84,7 +85,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             [filePluginConfig?.id ?? 'file']: {
                 name,
                 dir: root,
-                extension,
+                extension: extension ?? null,
                 sourceShape: shape.id
             },
             config: { ...filePluginConfig, pluginDataSchema: null }
@@ -179,7 +180,6 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             setDetached(detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)));
         })
 
-
         const tickSubscription = plugin?.on('tick', () => {
             const selectedShapes = editor.getSelectedShapes();
             const isFolderSelected = selectedShapes.find(({ id }) => id === shape.id);
@@ -218,8 +218,12 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         return () => {
             tickSubscription?.();
             unsubscribeEditor();
+            if (!editor.getShape(shape.id)) {
+                detached.forEach(({ shapeId }) => editor.deleteShape(shapeId));
+            }
         }
     }, [detached, editor, files, rootHandle, shape, spawnFile, plugin, directories])
+
 
     if (!isDirectoryPickerSupported) {
         return (

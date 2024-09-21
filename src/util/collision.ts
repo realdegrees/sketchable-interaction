@@ -5,17 +5,21 @@ import {
   TLShape,
   Editor,
   Vec,
+  TLShapeId,
+  JsonObject,
 } from "tldraw";
 
 type Poly = Vec[];
 
 export const getShapeCoordinates = (
-  shape: TLShape,
+  shape: Partial<TLShape> & { id: TLShapeId; meta: JsonObject },
   editor: Editor
-): { origin: Vec; coords: Poly } => {
-  if (shape.type === "arrow")
+): { origin: Vec; coords: Poly } | undefined => {
+  if (shape.type === "arrow") {
     return getArrowCoordinates(shape as TLArrowShape, editor);
-  else return getRectCoordinates(shape as TLGeoShape);
+  } else {
+    return getRectCoordinates(shape);
+  }
 };
 export const getArrowCoordinates = (
   shape: TLArrowShape,
@@ -86,8 +90,9 @@ export const getArrowCoordinates = (
 };
 
 export const getRectCoordinates = (
-  shape: TLShape & { props: { w: number; h: number } }
-): { origin: Vec; coords: Poly } => {
+  shape: Partial<TLShape> & { id: TLShapeId, meta: JsonObject }
+): { origin: Vec; coords: Poly } | undefined => {
+  if(typeof shape.rotation === 'undefined' || !shape.props || !('w' in shape.props) || !('h' in shape.props)) return;
   const rotationCos = Math.cos(shape.rotation);
   const rotationSin = Math.sin(shape.rotation);
 

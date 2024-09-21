@@ -53,7 +53,7 @@ const Component: PluginComponent<TextEditorData, TextEditorPlugin> = ({ shape, d
     if (!fileData.extension || getMimeType(fileData.extension) !== 'text') return <p>{`${fileData?.extension} file extension is not supported!`}</p>;
 
     return <div
-        className={`overflow-auto p-4 w-full h-full`}
+        className={`overflow-auto p-2 w-full h-fit`}
         onPointerDown={(e) => e.stopPropagation()}
     >
         <ReactQuill theme="snow" value={text} onChange={async (newValue) => {

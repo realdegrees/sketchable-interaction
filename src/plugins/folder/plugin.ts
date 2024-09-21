@@ -1,4 +1,4 @@
-import { JsonObject, T, TLShape, TLShapeId } from "tldraw";
+import { JsonObject, TLShape, TLShapeId } from "tldraw";
 import BasePlugin, { PluginAttachment } from "../base";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
@@ -17,28 +17,6 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
     }
   ): Promise<void> {}
 
-  private _detachedMap: Map<TLShapeId, ItemShapeMap> = new Map();
-
-  public get detachedMap(): Map<TLShapeId, ItemShapeMap> {
-    return this._detachedMap;
-  }
-
-  public setDetachedItems(folderShapeId: TLShapeId, itemMap: ItemShapeMap) {
-    this._detachedMap.set(folderShapeId, itemMap);
-  }
-  public addDetachedItem(
-    folderShapeId: TLShapeId,
-    itemShapeId: TLShapeId,
-    item: PluginAttachment
-  ) {
-    this._detachedMap.set(
-      folderShapeId,
-      (this._detachedMap.get(folderShapeId) ?? new Map()).set(itemShapeId, item)
-    );
-  }
-  public removeDetachedItem(folderShapeId: TLShapeId, itemShapeId: TLShapeId) {
-    this._detachedMap.get(folderShapeId)?.delete(itemShapeId);
-  }
   public handles:
     | {
         files: FileSystemFileHandle[];
@@ -51,7 +29,7 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
     data: FolderData | undefined,
     colliding: {
       shape: TLShape;
-      plugin: FilePlugin; // can cast to FilePlugin because we only handle files
+      plugin: BasePlugin<FileData>; // can cast to FilePlugin because we only handle files
       data?: FileData;
     }
   ): Promise<void> {

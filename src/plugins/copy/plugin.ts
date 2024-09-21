@@ -78,36 +78,36 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
       name: copyName
     } as FileData);
 
-    // const filePluginConfig = usePluginStore.getState().getPluginConfig("file", {
-    //   pluginDataSchema: null,
-    // });
-    // const meta = {
-    //   [filePluginConfig?.id ?? "file"]: {
-    //     name: copyName,
-    //     dir,
-    //     extension,
-    //     sourceShape,
-    //   },
-    //   config: { ...filePluginConfig, pluginDataSchema: null },
-    // } as MetaPayload<FileData>;
+    const filePluginConfig = usePluginStore.getState().getPluginConfig("file", {
+      pluginDataSchema: null,
+    });
+    const meta = {
+      [filePluginConfig?.id ?? "file"]: {
+        name: copyName,
+        dir,
+        extension,
+        sourceShape,
+      },
+      config: { ...filePluginConfig, pluginDataSchema: null },
+    } as MetaPayload<FileData>;
 
-    // const id = ("shape:" + copyName + "-" + Date.now()) as TLShapeId;
+    const id = ("shape:" + copyName + "-" + Date.now()) as TLShapeId;
 
-    // this.connectShape(id);
+    this.connectShape(id);
 
-    // const w = "w" in colliding.shape.props ? colliding.shape.props.w : 0;
-    // const h = "h" in colliding.shape.props ? colliding.shape.props.h : 0;
-    // this.editor?.createShape({
-    //   id,
-    //   type: "rect",
-    //   x: this.shape.x - (w + 5) ,
-    //   y: this.shape.y + h / 2,
-    //   meta,
-    //   props: {
-    //     w: 100,
-    //     h: 125,
-    //   },
-    // });
+    const w = "w" in colliding.shape.props ? colliding.shape.props.w : 0;
+    const h = "h" in colliding.shape.props ? colliding.shape.props.h : 0;
+    this.editor?.createShape({
+      id,
+      type: "rect",
+      x: this.shape.x + w / 2,
+      y: this.shape.y + h / 2,
+      meta,
+      props: {
+        w: 100,
+        h: 125,
+      },
+    });
   }
   public async onCollisionEnd(
     data: CollectorData | undefined,

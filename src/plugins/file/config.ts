@@ -4,8 +4,8 @@ import { TLShapeId } from "tldraw";
 
 export const FileDataSchema = z.object({
   dir: z.string(),
-  extension: z.string().optional(),
-  name: z.string().optional(),
+  extension: z.string().nullish().optional(),
+  name: z.string().nullish().optional(),
   sourceShape: z.custom<TLShapeId>(),
 });
 export type FileData = z.infer<typeof FileDataSchema>;
