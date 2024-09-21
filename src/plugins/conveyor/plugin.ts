@@ -1,4 +1,4 @@
-import { Editor, TLArrowShape, TLShape, Vec } from "tldraw";
+import { Editor, JsonObject, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
 import BasePlugin, { PluginConfig } from "../base";
 import { PluginUtil } from "@/util/pluginUtil";
 import { getArrowCoordinates } from "@/util/collision";
@@ -136,7 +136,7 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
   public async onCollisionEnd(
     data: ConveyorData | undefined,
     colliding: {
-      shape: TLShape;
+      shape: Partial<TLShape> & { id: TLShapeId; meta: JsonObject };
       plugin: BasePlugin<unknown>;
       data?: unknown;
     }

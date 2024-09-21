@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PluginAttachment, PluginConfig } from "../base";
 import { useFileSystem } from "@/hooks/useFileSystem";
 import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
 import { TLArrowShape, TLShapeId, useEditor, Vec } from "tldraw";
@@ -16,7 +15,7 @@ import { FileData } from "../file/config";
 import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
 
 const TRANSFER_RATE = 2500;
-type DetachedItem = { shapeId: TLShapeId, attachment: PluginAttachment };
+type DetachedItem = { shapeId: TLShapeId, attachment: FileData };
 const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plugin }) => {
     const editor = useEditor();
 
@@ -410,7 +409,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
                                 key={name + '-' + shapeId + '-detached'}
                                 className={`w-full h-full pointer-events-none opacity-20`}
                             >
-                                <FileIcon extension={name} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
+                                <FileIcon extension={name ?? undefined} {...(extension ? defaultStyles[extension as DefaultExtensionType] : defaultStyles.cs)} />
                             </div>;
                         })
                     ]}

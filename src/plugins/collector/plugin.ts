@@ -7,7 +7,7 @@ import {
   Vec,
   VecModel,
 } from "tldraw";
-import BasePlugin, { PluginAttachment } from "../base";
+import BasePlugin from "../base";
 import { PluginUtil } from "@/util/pluginUtil";
 import { CollectorConnectionState } from "./component";
 import { getArrowCoordinates } from "@/util/collision";
@@ -240,7 +240,7 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
   }
   private async doesFilterMatch(
     filterSettings: CollectorData,
-    attachment: PluginAttachment
+    attachment: FileData
   ): Promise<number> {
     const { name, extension } = attachment;
     const folderPlugin = PluginUtil.getPlugin<FolderPlugin>(

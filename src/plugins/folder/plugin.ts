@@ -1,12 +1,12 @@
 import { JsonObject, TLShape, TLShapeId } from "tldraw";
-import BasePlugin, { PluginAttachment } from "../base";
+import BasePlugin from "../base";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import { PluginUtil } from "@/util/pluginUtil";
 import FilePlugin from "../file/plugin";
 import { transferFileWithWebWorker } from "@/util/fileTransfer";
 
-type ItemShapeMap = Map<TLShapeId, PluginAttachment>;
+type ItemShapeMap = Map<TLShapeId, FileData>;
 export default class FolderPlugin extends BasePlugin<FolderData> {
   public async onCollisionEnd(
     data: FolderData | undefined,

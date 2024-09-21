@@ -18,13 +18,6 @@ export const PluginConfigSchema = z.object({
 });
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;
 
-export const PluginAttachment = z.object({
-  dir: z.string(),
-  extension: z.string().optional(),
-  name: z.string().optional(),
-  sourceShape: z.custom<TLShapeId>(),
-});
-export type PluginAttachment = z.infer<typeof PluginAttachment>;
 export default abstract class BasePlugin<
   DataSchema = JsonObject,
   ShapeType extends TLShape = TLShape

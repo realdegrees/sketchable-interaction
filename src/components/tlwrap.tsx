@@ -44,8 +44,10 @@ const Tlwrap = () => {
             cachedShapeCollisions
                 .map((id) => editor.getShape(id))
                 .map(PluginUtil.unwrapShape)
-                .filter((unwrappedShape) => !!unwrappedShape)
-                .forEach(({ plugin: cachedCollisionPlugin, data: cachedCollisionData }) => {
+                .forEach((unwrappedShape) => {
+                    const cachedCollisionPlugin = unwrappedShape?.plugin;
+                    const cachedCollisionData = unwrappedShape?.data;
+
                     cachedCollisionPlugin && cachedCollisionPlugin?.onCollisionEnd(cachedCollisionData, {
                         plugin,
                         shape,
