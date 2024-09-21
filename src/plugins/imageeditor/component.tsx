@@ -7,7 +7,6 @@ import { PluginComponent } from "@/stores/plugin";
 import { ImageEditorData } from "./config";
 import { FileData } from "../file/config";
 import { PluginUtil } from "@/util/pluginUtil";
-import { FolderData } from "../folder/config";
 import FolderPlugin from "../folder/plugin";
 
 

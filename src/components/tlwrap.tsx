@@ -323,21 +323,6 @@ const Tlwrap = () => {
                             cleanup(editor);
                         }
                     })
-
-                    /* https://tldraw.dev/docs/editor#Side-effects */
-                    // editor.sideEffects.registerAfterCreateHandler('shape', (shape) => {
-                    //   if (shape.type === 'draw') {
-                    //     shapeIDs.push(shape.id);
-                    //   }
-                    // })
-
-                    /* https://tldraw.dev/examples/editor-api/canvas-events*/
-                    editor.on('event', ({ type, name }) => {
-                        if (type === 'pointer' && name === 'pointer_up') {
-
-
-                        }
-                    })
                 }} />
         </div>
     )
