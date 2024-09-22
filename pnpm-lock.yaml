@@ -51,27 +51,6 @@ importers:
         specifier: ^4.5.2
         version: 4.5.2(@types/react@18.3.3)(react@18.3.1)
     devDependencies:
-      '@iconify-json/ic':
-        specifier: ^1.1.17
-        version: 1.1.17
-      '@iconify-json/line-md':
-        specifier: ^1.1.38
-        version: 1.1.38
-      '@iconify-json/lucide':
-        specifier: ^1.1.199
-        version: 1.1.199
-      '@iconify-json/material-symbols':
-        specifier: ^1.1.83
-        version: 1.1.83
-      '@iconify-json/mingcute':
-        specifier: ^1.1.18
-        version: 1.1.18
-      '@iconify-json/svg-spinners':
-        specifier: ^1.1.2
-        version: 1.1.2
-      '@iconify-json/tdesign':
-        specifier: ^1.1.7
-        version: 1.1.7
       '@iconify/json':
         specifier: ^2.2.247
         version: 2.2.247
@@ -280,27 +259,6 @@ packages:
 
   '@humanwhocodes/object-schema@2.0.3':
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
-
-  '@iconify-json/ic@1.1.17':
-    resolution: {integrity: sha512-EvAjZzVESmN36zlyefylePUNaU2BQ3eRKVZ6KQSQ2bG01ppoZaiFZRri74VTyvp5Mlv2yn68ux1fgCoT+etGmA==}
-
-  '@iconify-json/line-md@1.1.38':
-    resolution: {integrity: sha512-W+y4G/7QqO1sTGUypwsm0UUwjbGt/BjRg4kZylek7BwH5EG8f1uUJgcZwRASjsH4xGL+LVQbw6FAGbQ1UHNCow==}
-
-  '@iconify-json/lucide@1.1.199':
-    resolution: {integrity: sha512-v/LEtxQ1mjncAm9Na8ZVyVH0ET3oYBj8hNRk3FYiDDfh6Ta0koUy/S+tQ0pdmlITbQKJstK4Q32qGFE2nOU5eQ==}
-
-  '@iconify-json/material-symbols@1.1.83':
-    resolution: {integrity: sha512-CBO1pPp6YRzqkM8XwRmWY9Vi19wYpkl7lS8XhLDUssDnjQaaYbmE4O1SWCBr1AVn1x48qmCWXLk4HKWLvvQpvA==}
-
-  '@iconify-json/mingcute@1.1.18':
-    resolution: {integrity: sha512-P5szgBqUMv8XVjZpbVT5eG1XtqpRPgfvZWxOR/uSqBwmVroHpxN5+nbLTHj9HJxL16msMsNbA294b69MNEQzaw==}
-
-  '@iconify-json/svg-spinners@1.1.2':
-    resolution: {integrity: sha512-Aab6SqkORaTJ1W+ooufn6C8BsBitrn3uk8iRQLPA6pjhyvQAhkKCGMctyXIL5ZjrycnoFVsZ4mx7KnwEMra8qg==}
-
-  '@iconify-json/tdesign@1.1.7':
-    resolution: {integrity: sha512-Oq5Olm7ZHPEQZHxTE3fUWx/W41d/Q1630g0JHyTJgBhj4ROzDyPAFEDE81c9l2AZjXyVxRDDDqI6BYjX0OmXkg==}
 
   '@iconify/json@2.2.247':
     resolution: {integrity: sha512-i3Vm3VDAxtw0KxUR56o2zlNJcfmy4KDddSptxEw17Ze1O6FWA/JMNMI3em7FoaAqJLfcHMycWpzWx0Sbl/NUsA==}
@@ -2966,34 +2924,6 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/object-schema@2.0.3': {}
-
-  '@iconify-json/ic@1.1.17':
-    dependencies:
-      '@iconify/types': 2.0.0
-
-  '@iconify-json/line-md@1.1.38':
-    dependencies:
-      '@iconify/types': 2.0.0
-
-  '@iconify-json/lucide@1.1.199':
-    dependencies:
-      '@iconify/types': 2.0.0
-
-  '@iconify-json/material-symbols@1.1.83':
-    dependencies:
-      '@iconify/types': 2.0.0
-
-  '@iconify-json/mingcute@1.1.18':
-    dependencies:
-      '@iconify/types': 2.0.0
-
-  '@iconify-json/svg-spinners@1.1.2':
-    dependencies:
-      '@iconify/types': 2.0.0
-
-  '@iconify-json/tdesign@1.1.7':
-    dependencies:
-      '@iconify/types': 2.0.0
 
   '@iconify/json@2.2.247':
     dependencies:
