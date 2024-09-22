@@ -25,13 +25,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@iconify-json/ic": "^1.1.17",
-    "@iconify-json/line-md": "^1.1.38",
-    "@iconify-json/lucide": "^1.1.199",
-    "@iconify-json/material-symbols": "^1.1.83",
-    "@iconify-json/mingcute": "^1.1.18",
-    "@iconify-json/svg-spinners": "^1.1.2",
-    "@iconify-json/tdesign": "^1.1.7",
+    
     "@iconify/json": "^2.2.247",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
