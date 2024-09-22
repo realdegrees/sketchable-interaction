@@ -15,5 +15,5 @@ export default {
   availableShapes: ["rect"],
   deletable: true,
   pluginDataSchema: FolderDataSchema,
-  tickRate: 2000
+  tickRate: 1500
 } as PluginConfig;

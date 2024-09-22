@@ -16,7 +16,6 @@ import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
 import BasePlugin from "../base";
 import deepEqual from "deep-equal";
 
-const TRANSFER_RATE = 2500;
 type DetachedItem = { shapeId: TLShapeId, attachment: FileData };
 const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plugin }) => {
     const editor = useEditor();

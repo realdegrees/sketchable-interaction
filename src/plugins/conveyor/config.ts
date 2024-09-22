@@ -8,5 +8,5 @@ export default {
   availableShapes: ["conveyor"],
   useableAsTool: true,
   pluginDataSchema: ConveyorDataSchema,
-  tickRate: 20,
+  tickRate: 40,
 };

@@ -6,7 +6,6 @@ import { PluginUtil } from "@/util/pluginUtil";
 import FilePlugin from "../file/plugin";
 import { transferFileWithWebWorker } from "@/util/fileTransfer";
 
-type ItemShapeMap = Map<TLShapeId, FileData>;
 export default class FolderPlugin extends BasePlugin<FolderData> {
   public async onCollisionEnd(
     data: FolderData | undefined,

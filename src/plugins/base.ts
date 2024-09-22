@@ -10,7 +10,7 @@ export const PluginConfigSchema = z.object({
   availableShapes: z.array(z.union([z.string(), z.enum(["rect"])])),
   continousCollision: z.boolean().nullish(),
   useableAsTool: z.boolean().nullish(),
-  moveable: z.boolean().nullish(),
+  movable: z.boolean().nullish(),
   deletable: z.boolean().nullish(),
   onlyCustomComponent: z.boolean().nullish(),
   pluginDataSchema: z.instanceof(ZodSchema),

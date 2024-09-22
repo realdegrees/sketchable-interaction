@@ -5,7 +5,7 @@ import { getArrowCoordinates } from "@/util/collision";
 import { ConveyorData } from "./config";
 import { usePluginStore } from "@/stores/plugin";
 
-const SPEED = 8;
+const SPEED = 12;
 export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShape> {
   private unsubTick: (() => void) | undefined;
   constructor(props: PluginConfig, shape: TLArrowShape) {
@@ -64,7 +64,7 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
     const source = Vec.Add(origin, start);
     const selectedShapes = this.editor.getSelectedShapeIds();
 
-    this.connectedShapes.forEach((shapeId) => {
+    const shapeUpdates = Array.from(this.connectedShapes.values()).map((shapeId) => {
       if (!this.editor) return;
       if (selectedShapes.includes(shapeId)) return;
       this.editor.bringToFront([shapeId]); // Bring shapes moving on a coneyor forward
@@ -107,12 +107,13 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
       const normalized = Vec.Div(direction, magnitude);
       const speedVector = Vec.Mul(normalized, speed);
 
-      this.editor.updateShape({
+      return {
         ...shape,
         x: x + speedVector.x,
         y: y + speedVector.y,
-      });
+      };
     });
+    this.editor.updateShapes(shapeUpdates);
   }
   public async onCollisionStart(
     data: ConveyorData | undefined,
@@ -122,7 +123,7 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
       data?: unknown;
     }
   ): Promise<void> {
-    const moveable = colliding.plugin.config.moveable;
+    const moveable = colliding.plugin.config.movable;
     if (!moveable) return;
 
     // Disconnect from any other conveyor belts

@@ -72,6 +72,8 @@ export const useFileSystem = ({
                     && !prevDirectories.every(({ name }) => currentDirectories.find(({ name: cdname }) => name === cdname)));
 
             if (hasFileChanges || hasDirectoryChanges) {
+                console.log('changes detected');
+                
                 // Fire onChange event with previous and current values
                 onChange?.({
                     files,

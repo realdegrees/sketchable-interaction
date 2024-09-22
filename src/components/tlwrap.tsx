@@ -239,7 +239,7 @@ const Tlwrap = () => {
                         const sortedAdded = Object.values(added).filter((a): a is TLShape => a.typeName === 'shape').sort(({ id }) => selectedShapes.includes(id as TLShapeId) ? 1 : -1);
 
                         // ! Updated
-                        for (const [, shape] of (sortedUpdate as [TLShape, TLShape][])) {
+                        for (const [prev, shape] of (sortedUpdate as [TLShape, TLShape][])) {
                             const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
                             plugin?.onShapeUpdate(shape);
                             if (shape.type === 'arrow') {

@@ -15,7 +15,7 @@ export default {
   availableShapes: ["rect"],
   useableAsTool: false,
   onlyCustomComponent: true,
-  moveable: true,
+  movable: true,
   deletable: true,
   pluginDataSchema: FileDataSchema,
 } as PluginConfig;
