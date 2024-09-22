@@ -117,7 +117,6 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
       data?: JsonObject;
     }
   ): Promise<void> {
-    console.log(`${colliding.shape.id} left`);
 
     this.disconnectShape(colliding.shape.id);
   }

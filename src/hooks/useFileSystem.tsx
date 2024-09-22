@@ -53,7 +53,6 @@ export const useFileSystem = ({
             // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/values
             for await (const handle of directoryHandle.current.values()) {
                 if (ignorePattern?.test(handle.name)) {
-                    console.debug('Ignoring file ' + handle.name);
                     continue;
                 }
                 if (handle instanceof FileSystemDirectoryHandle) {
@@ -72,7 +71,6 @@ export const useFileSystem = ({
                     && !prevDirectories.every(({ name }) => currentDirectories.find(({ name: cdname }) => name === cdname)));
 
             if (hasFileChanges || hasDirectoryChanges) {
-                console.log('changes detected');
                 
                 // Fire onChange event with previous and current values
                 onChange?.({
@@ -87,9 +85,7 @@ export const useFileSystem = ({
                 if (hasFileChanges) setFiles(currentFiles);
                 if (hasDirectoryChanges) setDirectories(currentDirectories);
             }
-        } catch (e) {
-            console.debug(`Error polling: ${directoryHandle.current?.name}`);
-            console.debug(e);
+        } catch (e) {;
 
             clearInterval(pollingInterval.current);
             setFiles([]);

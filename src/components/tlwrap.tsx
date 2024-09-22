@@ -179,16 +179,12 @@ const Tlwrap = () => {
                     PluginUtil.setEditor(editor);
 
                     pluginStoreEventEmitter.on('ready', () => {
-                        console.debug(`Starting collision setup`)
                         editor.getCurrentPageShapes().forEach((shape) => {
-                            console.debug(`Collision setup for ${shape.id}`)
                             const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
                             if (!plugin) return;
-                            console.log('Editor set for ' + shape.id);
 
                             plugin.setEditor(editor);
                             initCollision(editor, shape);
-                            console.debug('Success');
                         });
                         cleanup(editor);
                     })

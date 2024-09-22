@@ -156,9 +156,7 @@ export const usePluginStore = create<PluginStoreData>((set, get) => ({
     const { plugins, eventEmitter, failedToLoad } = usePluginStore.getState();
     const totalLoadedPlugins = plugins.length + failedToLoad.length;
     if (totalLoadedPlugins === total) {
-      console.debug(`Loaded ${plugins.length} of ${total} successfully!`);
       if (!!failedToLoad.length) {
-        console.debug("Failed:", failedToLoad);
       }
       eventEmitter.emit("ready");
     }

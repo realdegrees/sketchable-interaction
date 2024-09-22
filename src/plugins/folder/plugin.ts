@@ -67,7 +67,6 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
     // });
 
     // ! Start webworker
-    console.log("Starting webworker");
     this.editor?.deleteShape(colliding.shape.id);
     const fileHandle = PluginUtil.getPlugin<FolderPlugin>(
       sourceShape
@@ -81,7 +80,6 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
         sourceDir: collidingDirectoryHandle,
         targetDir: selfDirectoryHandle,
       }).then((success) => {
-        console.log(success ? 'File transferred' : 'File transfer failed');
       });
 
   }

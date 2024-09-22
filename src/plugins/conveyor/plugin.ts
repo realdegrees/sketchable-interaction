@@ -95,7 +95,6 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
       const speed = distanceToLine > SPEED * 4 ? SPEED * 4 : SPEED;
 
       if (distanceToDestination <= SPEED) {
-        console.debug("Destination reached, disonnecting " + shapeId);
         this.disconnectShape(shapeId);
         return;
       }

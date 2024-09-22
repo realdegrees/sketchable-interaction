@@ -21,7 +21,7 @@ addEventListener(
       await writeable.close();
       transferSuccess = true;
     } catch (e) {
-        console.debug(
+        console.warn(
           `Unable to create file in targetfolder`,
           `${sourceDir.name} -> ${file.name} -> ${targetDir.name}`
         );
@@ -33,7 +33,7 @@ addEventListener(
         await sourceDir.removeEntry(file.name);
         deleteSuccess = true;
       } catch (e) {
-        console.debug(
+        console.warn(
           `Unable to delete file in sourcefolder`,
           `${sourceDir.name} -> ${file.name} -> ${targetDir.name}`
         );

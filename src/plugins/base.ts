@@ -42,7 +42,6 @@ export default abstract class BasePlugin<
    */
   public setEditor(editor: Editor) {
     this.editor = editor;
-    console.log(`Editor set ${this.shape.id}`);
     this.eventEmitter.emit("editor", editor);
   }
 
