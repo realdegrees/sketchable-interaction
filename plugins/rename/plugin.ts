@@ -25,6 +25,10 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
 
     if (!name || !extension || !sourceShape || !dir) return;
 
+    const patternMatcher = new RegExp(data.pattern, "g");
+    let newName = name.replaceAll(patternMatcher, data.replace ?? "");
+    if (newName === name) return;
+
     const folderPlugin = PluginUtil.getPlugin<FolderPlugin>(sourceShape);
 
     const folderHandle = folderPlugin?.handles?.directory;
@@ -34,9 +38,6 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
     const file = await originalFileHandle?.getFile();
 
     if (!file || !folderHandle) return;
-    const patternMatcher = new RegExp(data.pattern, "g");
-    let newName = name.replaceAll(patternMatcher, data.replace ?? "");
-    if (newName === name) return;
 
     // Create a copy of the file with the new name
     const getCopyName = (name: string, cnt: number) =>
@@ -114,7 +115,9 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
         h,
         w,
         id,
-        selectOnSpawn: this.editor?.getSelectedShapeIds().includes(colliding.shape.id)
+        selectOnSpawn: this.editor
+          ?.getSelectedShapeIds()
+          .includes(colliding.shape.id),
       },
     });
 
