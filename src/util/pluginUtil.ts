@@ -76,19 +76,12 @@ export class PluginUtil {
    * @param shape
    * @returns
    */
-  public static unwrapShape<
-    PluginData = JsonObject,
-    PluginType = BasePlugin,
-    Constructor extends "constructor" | undefined = undefined
-  >(
-    shape?: Partial<TLShape> & { meta: JsonObject; id: TLShapeId }
-  ):
-    | (Constructor extends "constructor"
-        ? PluginStore<PluginType> & {
-            pluginConstructor?: PluginConstructor<PluginType>;
-          }
-        : PluginStore<PluginType> & { data?: PluginData })
-    | undefined {
+  public static unwrapShape<PluginData = JsonObject, PluginType = BasePlugin>(
+    shape?: Partial<TLShape> & { meta: JsonObject; id: TLShapeId },
+    options?: {
+      omit?: (keyof UnwrappedShape)[];
+    }
+  ): UnwrappedShape<PluginType, PluginData> | undefined {
     if (!shape) return;
 
     const { getPlugin, isRegistered, getConstructor, getPluginConfig } =
@@ -146,13 +139,21 @@ export class PluginUtil {
     const data = pluginDataSchema.safeParse(shape.meta[plugin.config.id])
       .data as PluginData;
 
-    return {
+    const unwrappedShape = {
       plugin,
       config,
       pluginConstructor,
       Component,
       data,
       icon,
-    } as UnwrappedShape<PluginType, PluginData>;
+    } as UnwrappedShape;
+
+    const filteredUnwrappedShape = { ...unwrappedShape } as Record<
+      string,
+      unknown
+    >;
+    options?.omit &&
+      options?.omit.forEach((key) => delete filteredUnwrappedShape[key]);
+    return filteredUnwrappedShape as unknown as UnwrappedShape;
   }
 }

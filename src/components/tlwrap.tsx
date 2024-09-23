@@ -43,7 +43,7 @@ const Tlwrap = () => {
         if (plugin.destroyed) {
             cachedShapeCollisions
                 .map((id) => editor.getShape(id))
-                .map(PluginUtil.unwrapShape)
+                .map((shape) => PluginUtil.unwrapShape(shape))
                 .forEach((unwrappedShape) => {
                     const cachedCollisionPlugin = unwrappedShape?.plugin;
                     const cachedCollisionData = unwrappedShape?.data;

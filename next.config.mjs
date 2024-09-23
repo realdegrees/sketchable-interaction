@@ -2,6 +2,7 @@ import Icons from 'unplugin-icons/webpack';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    output: "standalone",
     reactStrictMode: false,
     webpack(config) {
         config.plugins.push(

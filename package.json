@@ -25,7 +25,6 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    
     "@iconify/json": "^2.2.247",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",

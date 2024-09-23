@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileSystem } from "@/hooks/useFileSystem";
 import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
-import { JsonObject, TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
+import { TLArrowShape, TLShapeId, useEditor, Vec } from "tldraw";
 import FolderPlugin from "@/plugins/folder/plugin";
 import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
@@ -9,11 +9,10 @@ import FolderIcon from '~icons/ic/twotone-folder';
 import { getArrowCoordinates } from "@/util/collision";
 import PlusIcon from '~icons/mdi/plus.jsx';
 import { COLORS } from "@/util/constants";
-import { PluginComponent, PluginStore, usePluginStore } from "@/stores/plugin";
+import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
-import BasePlugin from "../base";
 import deepEqual from "deep-equal";
 
 type DetachedItem = { shapeId: TLShapeId, attachment: FileData };
@@ -186,10 +185,8 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             const currentDetached = usePluginStore.getState().getPlugins('file')
                 ?.map(({ plugin }) => plugin?.shape.id)
                 .map((shapeId) => shapeId && editor.getShape(shapeId))
-                .map(PluginUtil.unwrapShape<FileData>)
-                .filter((unwrapped): unwrapped is (PluginStore<BasePlugin<JsonObject, TLShape>> & {
-                    data: FileData;
-                }) => !!unwrapped)
+                .map((shape) => PluginUtil.unwrapShape<FileData>(shape))
+                .filter((unwrapped) => !!unwrapped)
                 .filter(({ data }) => data?.sourceShape === shape.id)
                 .map(({ plugin, data }) => ({
                     attachment: data,
