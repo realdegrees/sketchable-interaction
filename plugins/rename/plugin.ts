@@ -1,32 +1,21 @@
-import {
-  Editor,
-  JsonObject,
-  TLArrowShape,
-  TLShape,
-  TLShapeId,
-  Vec,
-} from "tldraw";
+import { JsonObject, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
 import BasePlugin from "../base";
-import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
+import { RenameData } from "./config";
 import { FileData } from "../file/config";
+import { PluginUtil } from "@/util/pluginUtil";
 import FolderPlugin from "../folder/plugin";
-import { usePluginStore } from "@/stores/plugin";
-import { CopyData } from "./config";
-import { CollectorData } from "../collector/config";
 import { getArrowCoordinates } from "@/util/collision";
 
-export default class CopyPlugin extends BasePlugin<CopyData> {
+export default class RenamePlugin extends BasePlugin<RenameData> {
   public async onCollisionStart(
-    data: CopyData | undefined,
+    data: RenameData | undefined,
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
       data?: JsonObject;
     }
   ): Promise<void> {
-    if (colliding.plugin?.id !== "file") return;
-    if (this.connectedShapes.has(colliding.shape.id)) return; // Stops infinite loop of new files sending a collision event
-    this.connectShape(colliding.shape.id);
+    if (!data?.pattern || colliding.plugin.id !== "file") return; // Only switch editor UI when colliding with files
 
     const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
       colliding.data
@@ -37,6 +26,7 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
     if (!name || !extension || !sourceShape || !dir) return;
 
     const folderPlugin = PluginUtil.getPlugin<FolderPlugin>(sourceShape);
+    console.log(folderPlugin);
 
     const folderHandle = folderPlugin?.handles?.directory;
     const originalFileHandle = folderPlugin?.handles?.files.find(
@@ -45,15 +35,20 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
     const file = await originalFileHandle?.getFile();
 
     if (!file || !folderHandle) return;
+    const patternMatcher = new RegExp(data.pattern, "g");
+    let newName = name.replaceAll(patternMatcher, data.replace ?? "");
+    if (newName === name) return;
+
+    // Create a copy of the file with the new name
     const getCopyName = (name: string, cnt: number) =>
-      `${name} - copy (${cnt})`;
-    let copyCnt = 1;
+      cnt === 0 ? name : `${name} (${cnt})`;
+    let copyCnt = 0;
     let copyHandle: FileSystemFileHandle | undefined;
     while (true) {
       let exists: FileSystemFileHandle | undefined;
       try {
         exists = await folderHandle.getFileHandle(
-          `${getCopyName(name, copyCnt)}.${extension}`,
+          `${getCopyName(newName, copyCnt)}.${extension}`,
           {
             create: false,
           }
@@ -63,13 +58,12 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
         copyCnt++;
       } else {
         copyHandle = await folderHandle.getFileHandle(
-          `${getCopyName(name, copyCnt)}.${extension}`,
+          `${getCopyName(newName, copyCnt)}.${extension}`,
           { create: true }
         );
         break;
       }
     }
-
     if (!copyHandle) return;
 
     const copyName = copyHandle.name
@@ -78,26 +72,16 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
       .join(".");
 
     const writeable = await copyHandle.createWritable();
-    // No need to wait for this
-    writeable
-      .write(file)
-      .then(() => writeable.close())
-      .then(() =>
-        this.emit("filecopied", {
-          dir,
-          sourceShape,
-          extension,
-          name: copyName,
-        } as FileData)
-      );
+    writeable.write(file).then(() => writeable.close());
+    // Delete the old file
+    await folderHandle.removeEntry(`${name}.${extension}`);
+    this.editor?.deleteShape(colliding.shape.id);
 
     const w = "w" in colliding.shape.props ? colliding.shape.props.w : 0;
     const h = "h" in colliding.shape.props ? colliding.shape.props.h : 0;
-    const shapeW = "w" in this.shape.props ? this.shape.props.w : 0;
-    const shapeH = "h" in this.shape.props ? this.shape.props.h : 0;
     const coords = {
-      x: this.shape.x + shapeW / 2,
-      y: this.shape.y + shapeH / 2,
+      x: colliding.shape.x + w / 2,
+      y: colliding.shape.y + h / 2,
     };
 
     const connectedConveyor = this.editor
@@ -123,7 +107,6 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
     }
 
     const id = `shape:${copyName}-${extension}-${Date.now()}` as TLShapeId;
-    this.connectShape(id);
     await folderPlugin.spawnFile({
       coords,
       extension,
@@ -132,6 +115,7 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
         h,
         w,
         id,
+        selectOnSpawn: this.editor?.getSelectedShapeIds().includes(colliding.shape.id)
       },
     });
 
@@ -142,15 +126,15 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
     }
   }
   public async onCollisionEnd(
-    data: CollectorData | undefined,
+    data: RenameData | undefined,
     colliding: {
       shape: TLShape;
       plugin: BasePlugin;
       data?: JsonObject;
     }
   ): Promise<void> {
+    if (colliding.plugin.id !== "file") return; // Only switch editor UI when colliding with files
     this.disconnectShape(colliding.shape.id);
+    this.emit("end");
   }
-
-  public onCreate(editor: Editor, shape: TLShape): void {}
 }

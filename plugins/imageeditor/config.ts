@@ -6,7 +6,7 @@ export type ImageEditorData = z.infer<typeof ImageEditorDataSchema>;
 
 export default {
   id: "imageeditor",
-  label: "Image Edtior",
+  label: "Image Editor",
   availableShapes: ["rect"],
   useableAsTool: true,
   pluginDataSchema: ImageEditorDataSchema,

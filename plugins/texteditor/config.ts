@@ -6,7 +6,7 @@ export type TextEditorData = z.infer<typeof TextEditorDataSchema>;
 
 export default {
   id: "texteditor",
-  label: "Text Edtior",
+  label: "Text Editor",
   availableShapes: ["rect"],
   useableAsTool: true,
   pluginDataSchema: TextEditorDataSchema,

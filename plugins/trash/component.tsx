@@ -10,7 +10,7 @@ const Component: PluginComponent<TrashData, TrashPlugin> = ({ shape, data, plugi
     const [deleteFiles, setDeleteFiles] = useState(!!data?.delete)
 
     return <div key={shape.id + '-checkbox'} className="w-fit max-w-full max-h-full h-fit flex flex-col justify-center" onPointerDown={(e) => e.stopPropagation()}>
-        <p className="text-lg mb-2 text-nowrap overflow-hidden h-fit">{deleteFiles ? 'Delete Files' : 'Send back to folder'}</p>
+        <p className="text-lg mb-2 text-nowrap overflow-hidden h-fit">{deleteFiles ? 'Delete from file system (!)' : 'Remove from canvas'}</p>
         <label htmlFor={`toggle-${shape.id}`} className="m-auto bg-gray-50 cursor-pointer relative max-w-20 h-8 rounded-lg w-full">
             <input type="checkbox" id={`toggle-${shape.id}`} checked={deleteFiles} className="sr-only peer group" onChange={({currentTarget: {checked}}) => {                
                 plugin?.saveDataToShape({

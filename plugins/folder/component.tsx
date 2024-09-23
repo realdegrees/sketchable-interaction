@@ -51,8 +51,6 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
 
 
             if (danglingDetached.length) {
-                console.log('Removing danglers');
-
                 setDetached(detached.filter(({ shapeId }) => !danglingDetached.find(({ shapeId: id }) => id === shapeId)));
                 editor.deleteShapes(danglingDetached.map(({ shapeId }) => shapeId));
             }
@@ -112,12 +110,13 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         ]);
     }
     const spawnFile = useCallback((args: SpawnFileArgs): TLShapeId | undefined => {
-        if(!rootHandle) {
+        if (!rootHandle) {
             plugin?.emit('filespawncallback');
             return;
         }
 
         const { coords, options, extension, name } = args;
+
         /* Creates a shape and adds the file data and source shape (folder) to the meta data
         When the file shape collides with another plugin shape, that plugin can use the attached metadata
         To retrieve the corresponding FileSystemHandle from the folder plugin and manipulate it accordingly */
@@ -141,7 +140,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             meta,
             props: {
                 w: options?.w ?? 100,
-                h: options?.h ??  125
+                h: options?.h ?? 125
             }
         });
 
@@ -190,11 +189,12 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             for (const { id } of removedShapes) {
                 if (detached.find(({ shapeId }) => id === shapeId)) {
                     reattachQueue.push(id as TLShapeId);
+                    plugin?.disconnectShape(id as TLShapeId);
                 }
             }
             const onCanvas: DetachedItem[] = []
             for (const { id, data } of addedShapes) {
-                if (data?.sourceShape === shape.id && !detached.find(({shapeId}) => id === shapeId)) {
+                if (data?.sourceShape === shape.id && !detached.find(({ shapeId }) => id === shapeId)) {
                     onCanvas.push({
                         shapeId: id as TLShapeId,
                         attachment: data
@@ -203,7 +203,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             }
 
             // No need for a state update if nothing changed
-            if(!reattachQueue.length && !onCanvas.length) return;
+            if (!reattachQueue.length && !onCanvas.length) return;
 
             setDetached([...detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)), ...onCanvas]);
         })
@@ -229,16 +229,19 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             const { plugin: conveyorPlugin } = PluginUtil.unwrapShape(connectedConveyor) ?? {};
 
             const file = files.find((file) => {
-                const [name, extension] = file.name.split('.') ?? [];
+                const name = file.name.split('.').slice(0, file.name.includes('.') ? -1 : 0).join('.');
+                const extension = file.name.split('.').pop();
+
                 if (!detached.find(({ attachment }) => name === attachment.name && extension === attachment.extension)) {
                     return file;
                 }
             });
             if (!file) return;
 
-            const [name, extension] = file.name.split('.') ?? [];
+            const name = file.name.split('.').slice(0, file.name.includes('.') ? -1 : 0).join('.');
+            const extension = file.name.split('.').pop();
 
-            const spawnedShapeId = spawnFile({ name, extension, coords });
+            const spawnedShapeId = extension && spawnFile({ name, extension, coords });
             spawnedShapeId && conveyorPlugin?.connectShape(spawnedShapeId);
         });
         const externalFileSpawnSubscription = plugin?.on<SpawnFileArgs>('spawnfile', (args) => {
@@ -341,7 +344,9 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         </div>
     }
     const FileComponent = ({ fileHandle }: { fileHandle: FileSystemFileHandle }) => {
-        const [name, extension] = fileHandle.name.split('.') ?? [];
+        const name = fileHandle.name.split('.').slice(0, fileHandle.name.includes('.') ? -1 : 0).join('.');
+        const extension = fileHandle.name.split('.').pop();
+
         //const isFileDetached = !!isDetached(fileHandle);
 
         return (
@@ -352,7 +357,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
                     e.stopPropagation();
 
                     const coords = editor.screenToPage({ x: e.pageX, y: e.pageY });
-                    spawnFile({ name, extension, coords, options: { selectOnSpawn: true } });
+                    extension && spawnFile({ name, extension, coords, options: { selectOnSpawn: true } });
                 }
                 }
             >

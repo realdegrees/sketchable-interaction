@@ -22,17 +22,32 @@ export default class TrashPlugin extends BasePlugin<TrashData> {
       return;
     }
 
-    const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
-      colliding.data
-    ).data as JsonObject as FileData | undefined;
-    const { sourceShape, extension, name } = fileData ?? {};
+    if (colliding.plugin.id === 'file') {
+      const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
+        colliding.data
+      ).data as JsonObject as FileData | undefined;
+      const { sourceShape, extension, name } = fileData ?? {};
 
-    const folderPlugin =
-      sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
+      const folderPlugin =
+        sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
 
-    const parentDirectoryHandle = folderPlugin?.handles?.directory;
-    await parentDirectoryHandle?.removeEntry(`${name}.${extension}`);
-    this.editor?.deleteShape(colliding.shape);
+      const parentDirectoryHandle = folderPlugin?.handles?.directory;
+      await parentDirectoryHandle?.removeEntry(`${name}.${extension}`);
+      this.editor?.deleteShape(colliding.shape);
+    }else if(colliding.plugin.id === 'folder') {
+      const folderData = colliding.plugin.config.pluginDataSchema.safeParse(
+        colliding.data
+      ).data as JsonObject as FolderData | undefined;
+      const { parentId, startIn } = folderData ?? {};
+
+
+      const folderPlugin =
+        parentId && PluginUtil.getPlugin<FolderPlugin>(parentId);
+
+      const parentDirectoryHandle = folderPlugin?.handles?.directory;
+      await parentDirectoryHandle?.removeEntry(`${startIn}`);
+      this.editor?.deleteShape(colliding.shape);
+    }
   }
   public async onCollisionEnd(): Promise<void> {}
 }
