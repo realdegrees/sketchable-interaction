@@ -10,7 +10,7 @@ import MagnifyPlugin from "./plugin";
 import { MagnifyData } from "./config";
 import { PluginUtil } from "@/util/pluginUtil";
 import { FolderData } from "../folder/config";
-import FolderPlugin from "@/plugins/folder/plugin";
+import FolderPlugin from "../folder/plugin";
 import { FileData } from "../file/config";
 
 const supportedMimeTypes = ['image', 'video', 'text', 'audio'];

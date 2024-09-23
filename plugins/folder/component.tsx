@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileSystem } from "@/hooks/useFileSystem";
 import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
 import { TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
-import FolderPlugin from "@/plugins/folder/plugin";
+import FolderPlugin from "./plugin";
 import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
 import FolderIcon from '~icons/ic/twotone-folder';

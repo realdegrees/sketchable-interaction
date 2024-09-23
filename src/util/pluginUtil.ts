@@ -1,4 +1,4 @@
-import BasePlugin, { PluginConfig, PluginConfigSchema } from "@/plugins/base";
+import BasePlugin, { PluginConfig, PluginConfigSchema } from "../../plugins/base";
 import { PluginStore, usePluginStore } from "@/stores/plugin";
 import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 

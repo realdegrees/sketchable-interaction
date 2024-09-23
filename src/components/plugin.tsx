@@ -1,6 +1,6 @@
 'use client'
 
-import BasePlugin, { PluginConfig, PluginConfigSchema } from "@/plugins/base";
+import BasePlugin, { PluginConfig, PluginConfigSchema } from "../../plugins/base";
 import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 import Image from "next/image";
@@ -20,10 +20,10 @@ const Plugin = ({ name, total }: { name: string, total: number }) => {
     useEffect(() => {
         // Loads a plugin and - if loaded correctly - register it with the PluginStore
         Promise.allSettled([
-            import(`../plugins/${name}/plugin`), // Load plugin instance
-            import(`../plugins/${name}/config`), // Load plugin config
-            import(`../plugins/${name}/icon.svg`), // Load plugin icon
-            import(`../plugins/${name}/component`), // Load component
+            import(`../../plugins/${name}/plugin`), // Load plugin instance
+            import(`../../plugins/${name}/config`), // Load plugin config
+            import(`../../plugins/${name}/icon.svg`), // Load plugin icon
+            import(`../../plugins/${name}/component`), // Load component
         ]).then(async ([pluginResult, configResult, iconResult, componentResult]) => {
             let pluginConstructor: PluginConstructor | undefined;
             let config: PluginConfig | undefined;

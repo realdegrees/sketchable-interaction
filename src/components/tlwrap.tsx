@@ -7,7 +7,7 @@ import RectShapeUtil from "@/custom-shapes/rect/shapeUtil";
 import ConveyorShapeUtil from "@/custom-shapes/conveyor/shapeUtil";
 import RectShapeTool from "@/custom-shapes/rect/tool";
 import ConveyorShapeTool from "@/custom-shapes/conveyor/tool";
-import BasePlugin from "@/plugins/base";
+import BasePlugin from "../../plugins/base";
 import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { overrides } from "./overrides";
 import { useRef, useState } from "react";

@@ -1,4 +1,4 @@
-import { FileData } from "@/plugins/file/config";
+import { FileData } from "../../../plugins/file/config";
 import { FileWorkerData } from "../fileTransfer";
 
 addEventListener(

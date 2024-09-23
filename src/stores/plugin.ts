@@ -1,4 +1,4 @@
-import BasePlugin, { PluginConfig } from "@/plugins/base";
+import BasePlugin, { PluginConfig } from "../../plugins/base";
 import { PluginConstructor } from "@/util/pluginUtil";
 import EventEmitter from "events";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";

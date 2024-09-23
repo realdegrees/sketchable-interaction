@@ -3,7 +3,7 @@ import Plugin from "./plugin";
 import { readdirSync } from "fs";
 
 // Imports all
-const pluginDir = path.join(process.cwd(), 'src/plugins');
+const pluginDir = path.join(process.cwd(), 'plugins');
 const pluginPaths = readdirSync(pluginDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name)

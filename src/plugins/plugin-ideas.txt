@@ -1,9 +1,0 @@
-filter/gate plugin, check colliding files for a specific condition (condition maybe defined through drops downs or regex in custom UI) and return the result ina  callback to whoever asked
-magnet plugin, attract specific files based on e.g filter/gate plugin that can be attached to it
-splitter plugin, attach e.g. filter/gate plugin to output files that collide with the splitter at the attached filter location based on filter results
-conveyor belt plugin, use arrow/line shape to be able to connect different plugins via the belt (arrows autoamtically move with their anchors)
-
-Heuristics tasks: (any simple GUI task that can be implemented in react can be implemented with the framework due to the anture of just inserting a react component into the tldraw shape)
-e.g. clock plugin could get a file on collision and append the current time to the file (if it's text)
-
-file renamer (maybe with pattern)
