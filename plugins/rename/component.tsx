@@ -16,7 +16,7 @@ const Component: PluginComponent<RenameData, RenamePlugin> = ({ shape, data, plu
     })
     return <div className="w-fit max-w-full max-h-full h-fit flex flex-col justify-center" onPointerDown={(e) => e.stopPropagation()}>
         <InputRow label="Pattern" value={pattern} onChange={setPattern} />
-        <InputRow label="Replace with" value={replace} onChange={setReplace} />
+        <InputRow label="Replace" value={replace} onChange={setReplace} />
     </div>
 
 }
