@@ -28,16 +28,6 @@ const Component: PluginComponent<TextEditorData, TextEditorPlugin> = ({ shape, d
         let unsub: (() => void)[] | undefined;
         (async () => {
             if (text) return;
-            unsub = plugin && [
-                plugin.on<FileData>('file', (data) => {
-                    if (!fileData) setFileData(data);
-                }),
-                plugin.on<FileData>('end', () => {
-                    setFileData(undefined);
-                    setText(undefined);
-                }),
-            ];
-
             const { sourceShape, extension, name } = fileData ?? {};
             const isText = !!extension && getMimeType(extension) === 'text';
             if(!isText) return;
@@ -51,6 +41,15 @@ const Component: PluginComponent<TextEditorData, TextEditorPlugin> = ({ shape, d
 
         })();
 
+        unsub = plugin && [
+            plugin.on<FileData>('file', (data) => {
+                if (!fileData) setFileData(data);
+            }),
+            plugin.on<FileData>('end', () => {
+                setFileData(undefined);
+                setText(undefined);
+            }),
+        ];
 
         return () => {
             unsub?.forEach((f) => f())
@@ -64,9 +63,10 @@ const Component: PluginComponent<TextEditorData, TextEditorPlugin> = ({ shape, d
         className={`overflow-auto p-2 w-full h-fit`}
         onPointerDown={(e) => e.stopPropagation()}
     >
-        <ReactQuill theme="snow" value={text} onChange={async (newValue) => {
-            setText(newValue);
-            debouncedSave(newValue);
+        <ReactQuill theme="snow" value={text} onChange={async (_v, _d, _s, editor) => {
+            const text = editor.getText();            
+            setText(text);
+            debouncedSave(text);
         }} />
     </div>
 

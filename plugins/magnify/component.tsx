@@ -70,7 +70,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
                 return <Image className={'w-full h-full pointer-events-none'} src={dataUrl} alt={fileData.name} width={500} height={500} />;
             }
             case 'text': {
-                return <p className="w-full h-full overflow-hidden">{text}</p>;
+                return <p className="w-full h-full break-all max-w-full overflow-hidden">{text}</p>;
             }
             case 'audio': {
                 return <audio className={'w-full h-full pointer-events-none'} src={dataUrl} autoPlay={true} onPlay={({ currentTarget }) => {
@@ -94,11 +94,11 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
     })();
 
     return <div
-        className={`flex items-center justify-center flex-col relative h-full p-4`}
+        className={`flex items-center justify-center flex-col relative h-full w-full p-4`}
     >
         <p className="mb-1">{`${fileData.dir}/${fileData.name}.${fileData.extension}`}</p>
         <hr className="h-1 w-full mb-0"></hr>
-        <div className="aspect-auto w-full h-full">
+        <div className="aspect-auto w-full h-full rounded-lg bg-zinc-800 p-4">
             <Suspense fallback={<LoadingIcon className="w-1/2 h-1/2 animate-spin" />}>
                 <ErrorBoundary fallback={<p>Display Error</p>}>{content}</ErrorBoundary>
             </Suspense>
