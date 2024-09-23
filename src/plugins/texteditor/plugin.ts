@@ -18,7 +18,7 @@ export default class TextEditorPlugin extends BasePlugin<TextEditorData> {
       colliding.data
     ).data as JsonObject as FileData | undefined;
 
-    this.connectShape(colliding.shape.id, true);
+    this.connectShape(colliding.shape.id);
     this.emit("file", fileData);
   }
   public async onCollisionEnd(
@@ -30,7 +30,6 @@ export default class TextEditorPlugin extends BasePlugin<TextEditorData> {
     }
   ): Promise<void> {
     if (colliding.plugin.id !== "file") return; // Only switch editor UI when colliding with files
-
     this.disconnectShape(colliding.shape.id);
 this.emit("end");  }
 }

@@ -22,35 +22,43 @@ const Component: PluginComponent<TextEditorData, TextEditorPlugin> = ({ shape, d
         await writeStream?.write(newValue);
         await writeStream?.close();
     }, [fileData]);
-    
+
     useEffect(() => {
         editor.bringForward([shape]);
         let unsub: (() => void)[] | undefined;
         (async () => {
+            if (text) return;
             unsub = plugin && [
                 plugin.on<FileData>('file', (data) => {
                     if (!fileData) setFileData(data);
                 }),
-                plugin.on<FileData>('end', setFileData),
+                plugin.on<FileData>('end', () => {
+                    setFileData(undefined);
+                    setText(undefined);
+                }),
             ];
 
             const { sourceShape, extension, name } = fileData ?? {};
+            const isText = !!extension && getMimeType(extension) === 'text';
+            if(!isText) return;
+
             const folderPlugin = (sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape));
             const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
 
             const file = await fileHandle?.getFile();
-            const text = file && await file.text();            
-            setText(text);
+            const _text = file && await file.text();
+            setText(_text);
+
         })();
 
-        
+
         return () => {
             unsub?.forEach((f) => f())
         }
-    }, [editor, shape, fileData, plugin])
+    }, [editor, shape, fileData, plugin, text])
 
-    if (!fileData) return <p>Drag a text file here to edit it</p>;
-    if (!fileData.extension || getMimeType(fileData.extension) !== 'text') return <p>{`${fileData?.extension} file extension is not supported!`}</p>;
+    if (!fileData && !text) return <p>Drag a text file here to edit it</p>;
+    if (!fileData?.extension || getMimeType(fileData.extension) !== 'text') return <p>{`${fileData?.extension} file extension is not supported!`}</p>;
 
     return <div
         className={`overflow-auto p-2 w-full h-fit`}

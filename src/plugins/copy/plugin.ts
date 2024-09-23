@@ -1,4 +1,11 @@
-import { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
+import {
+  Editor,
+  JsonObject,
+  TLArrowShape,
+  TLShape,
+  TLShapeId,
+  Vec,
+} from "tldraw";
 import BasePlugin from "../base";
 import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { FileData } from "../file/config";
@@ -6,6 +13,7 @@ import FolderPlugin from "../folder/plugin";
 import { usePluginStore } from "@/stores/plugin";
 import { CopyData } from "./config";
 import { CollectorData } from "../collector/config";
+import { getArrowCoordinates } from "@/util/collision";
 
 export default class CopyPlugin extends BasePlugin<CopyData> {
   public async onCollisionStart(
@@ -40,74 +48,95 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
     const getCopyName = (name: string, cnt: number) =>
       `${name} - copy (${cnt})`;
     let copyCnt = 1;
-    let copyName: string = getCopyName(name, 1);
+    let copyHandle: FileSystemFileHandle | undefined;
     while (true) {
+      let exists: FileSystemFileHandle | undefined;
       try {
-        const exists = await folderHandle.getFileHandle(
+        exists = await folderHandle.getFileHandle(
           `${getCopyName(name, copyCnt)}.${extension}`,
           {
             create: false,
           }
         );
-        if (exists) {
-          copyCnt++;
-        } else {
-          break;
-        }
-      } catch (e) {
+      } catch (e) {}
+      if (exists) {
+        copyCnt++;
+      } else {
+        copyHandle = await folderHandle.getFileHandle(
+          `${getCopyName(name, copyCnt)}.${extension}`,
+          { create: true }
+        );
         break;
       }
     }
-    const copyHandle = await folderHandle.getFileHandle(
-      `${getCopyName(name, copyCnt)}.${extension}`,
-      {
-        create: true,
-      }
-    );
+
+    if (!copyHandle) return;
 
     const writeable = await copyHandle.createWritable();
-    await writeable.write(file);
-    await writeable.close();
-    
-    copyName = copyHandle.name.split(".")[0]; // fetch new file name in case the file existed and was name changed
+    // No need to wait for this
+    writeable
+      .write(file)
+      .then(() => writeable.close())
+      .then(() =>
+        this.emit("filecopied", {
+          dir,
+          sourceShape,
+          extension,
+          name: copyName,
+        } as FileData)
+      );
 
-    this.emit("filecopied", {
-      dir,
-      sourceShape,
-      extension,
-      name: copyName
-    } as FileData);
-
-    const filePluginConfig = usePluginStore.getState().getPluginConfig("file", {
-      pluginDataSchema: null,
-    });
-    const meta = {
-      [filePluginConfig?.id ?? "file"]: {
-        name: copyName,
-        dir,
-        extension,
-        sourceShape,
-      },
-      config: { ...filePluginConfig, pluginDataSchema: null },
-    } as MetaPayload<FileData>;
-
-    const id = ("shape:" + copyName + "-" + Date.now()) as TLShapeId;
-
-    this.connectShape(id);
+    const copyName = copyHandle.name.split(".")[0]; // fetch new file name in case the file existed and was name change
 
     const w = "w" in colliding.shape.props ? colliding.shape.props.w : 0;
     const h = "h" in colliding.shape.props ? colliding.shape.props.h : 0;
-    this.editor?.createShape({
-      id,
-      type: "rect",
-      x: this.shape.x + w / 2,
-      y: this.shape.y + h / 2,
-      meta,
-      props: {
-        w: 100,
-        h: 125,
+    const shapeW = "w" in this.shape.props ? this.shape.props.w : 0;
+    const shapeH = "h" in this.shape.props ? this.shape.props.h : 0;
+    const coords = {
+      x: this.shape.x + shapeW / 2,
+      y: this.shape.y + shapeH / 2,
+    };
+
+    const connectedConveyor = this.editor
+      ?.getArrowsBoundTo(this.shape.id)
+      .map(({ arrowId, handleId }) => {
+        if (handleId !== "start") return;
+        const shape: TLArrowShape = this.editor?.getShape(
+          arrowId
+        ) as TLArrowShape;
+        if (shape?.isLocked) return;
+        const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+        return plugin?.id === "conveyor" ? shape : undefined;
+      })[0];
+
+    if (connectedConveyor && this.editor) {
+      const {
+        coords: [{ x: startX, y: startY }],
+        origin,
+      } = getArrowCoordinates(connectedConveyor, this.editor);
+      const { x, y } = Vec.Add(origin, { x: startX, y: startY });
+      coords.x = x;
+      coords.y = y;
+    }
+
+    const id = `shape:${copyName}-${Date.now()}` as TLShapeId;
+    this.connectShape(id);
+    await folderPlugin.spawnFile({
+      coords,
+      extension,
+      name: copyName,
+      options: {
+        h,
+        w,
+        id,
       },
     });
+
+    if (connectedConveyor && this.editor && id) {
+      const { plugin: conveyorPlugin } =
+        PluginUtil.unwrapShape(connectedConveyor) ?? {};
+      conveyorPlugin?.connectShape(id);
+    }
   }
   public async onCollisionEnd(
     data: CollectorData | undefined,
@@ -117,7 +146,6 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
       data?: JsonObject;
     }
   ): Promise<void> {
-
     this.disconnectShape(colliding.shape.id);
   }
 

@@ -32,6 +32,7 @@ export default class TrashPlugin extends BasePlugin<TrashData> {
 
     const parentDirectoryHandle = folderPlugin?.handles?.directory;
     await parentDirectoryHandle?.removeEntry(`${name}.${extension}`);
+    this.editor?.deleteShape(colliding.shape);
   }
   public async onCollisionEnd(): Promise<void> {}
 }

@@ -27,33 +27,40 @@ const Component: PluginComponent<ImageEditorData, ImageEditorPlugin> = ({ shape,
     useEffect(() => {
         editor.bringForward([shape]);
         (async () => {
+            if (file) return;
             const { sourceShape, extension, name } = fileData ?? {};
+            const isImage = !!extension && getMimeType(extension) === 'image';
+            if (!isImage) return;
+
             const folderPlugin = (sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape));
             const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
 
-            const file = await fileHandle?.getFile();
-            setFile(file);
+            const _file = await fileHandle?.getFile();
+            setFile(_file);
         })();
 
         const unsub = plugin && [
             plugin.on<FileData>('file', (data) => {
                 if (!fileData) setFileData(data);
             }),
-            plugin.on<FileData>('end', setFileData),
+            plugin.on<FileData>('end', () => {
+                setFileData(undefined);
+                setFile(undefined);
+            }),
         ]
         return () => {
             unsub?.forEach((f) => f())
         }
-    }, [setFile, editor, shape, fileData, plugin])
+    }, [setFile, editor, shape, fileData, plugin, file])
 
-    if (!file) return <p>Drag an image file here to edit it</p>;
+    if (!file && !fileData) return <p>Drag an image file here to edit it</p>;
     if (!fileData?.extension || getMimeType(fileData.extension) !== 'image') return <p>{`${fileData?.extension} file extension is not supported!`}</p>;
 
     return <div
-        className={`m-8`}
+        className={`m-8 w-full h-full`}
         onPointerDown={(e) => e.stopPropagation()}
     >
-        <ReactPhotoEditor file={file} open={!!file} onSaveImage={async (editedFile) => {
+        <ReactPhotoEditor canvasHeight={'auto'} canvasWidth={'auto'} file={file} open={!!file} onSaveImage={async (editedFile) => {
             {
                 debouncedSave(editedFile);
             }

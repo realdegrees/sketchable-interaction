@@ -12,8 +12,12 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
     super(props, shape);
     this.unsubTick = this.moveConnectedShapes.bind(this);
     this.on("tick", this.unsubTick);
+    this.onEditorSet((editor) => {
+      editor.updateShape({...shape, props: {}} as TLArrowShape)
+    })
   }
 
+  
   public override onShapeUpdate(shape: TLArrowShape) {
     if (shape.props.bend !== 0) {
       // Disables the ability to bend conveyors

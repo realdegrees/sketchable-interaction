@@ -5,6 +5,7 @@ import { FileData } from "../file/config";
 import { PluginUtil } from "@/util/pluginUtil";
 import FilePlugin from "../file/plugin";
 import { transferFileWithWebWorker } from "@/util/fileTransfer";
+import { SpawnFileArgs } from "./component";
 
 export default class FolderPlugin extends BasePlugin<FolderData> {
   public async onCollisionEnd(
@@ -79,9 +80,14 @@ export default class FolderPlugin extends BasePlugin<FolderData> {
         fileHandle,
         sourceDir: collidingDirectoryHandle,
         targetDir: selfDirectoryHandle,
-      }).then((success) => {
-      });
+      }).then((success) => {});
+  }
 
+  public spawnFile(args: SpawnFileArgs): Promise<TLShapeId | undefined> {
+    return new Promise((res) => {
+      this.emit("spawnfile", args);
+      this.on("filespawncallback", res);
+    });
   }
 
   public async registerHandles(

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useEditor } from "tldraw";
 import { getMimeType } from "@/util/getMimeType";
 import Image from "next/image";
@@ -13,7 +13,7 @@ import { FolderData } from "../folder/config";
 import FolderPlugin from "@/plugins/folder/plugin";
 import { FileData } from "../file/config";
 
-
+const supportedMimeTypes = ['image', 'video', 'text', 'audio'];
 const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, plugin }) => {
 
     const [file, setFile] = useState<File>();
@@ -24,16 +24,23 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
 
     useEffect(() => {
         (async () => {
+            if(file) return;
+
             const { sourceShape, extension, name } = fileData ?? {};
+            const mimeType = extension && getMimeType(extension);
+            const isFileSupported = mimeType && supportedMimeTypes.includes(mimeType);
+
+            if (!isFileSupported) return;
+
             const folderPlugin = sourceShape && PluginUtil.getPlugin<FolderPlugin>(sourceShape);
 
             const fileHandle = sourceShape && folderPlugin?.handles?.files.find(({ name: fname }) => fname === `${name}.${extension}`);
 
-            const file = await fileHandle?.getFile();
-            const dataUrl = file && await toDataUrl(file);
-            const text = file && await file.text();
-            setFile(file);
+            const _file = await fileHandle?.getFile();
+            setFile(_file);
+            const dataUrl = _file && await toDataUrl(_file);
             setDataUrl(dataUrl);
+            const text = _file && await _file.text();
             setText(text);
         })();
 
@@ -41,12 +48,17 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
             plugin.on<FileData>('file', (data) => {
                 if (!fileData) setFileData(data);
             }),
-            plugin.on<FileData>('end', setFileData),
+            plugin.on<FileData>('end', () => {
+                setFileData(undefined);
+                setFile(undefined);
+                setText(undefined);
+                setDataUrl(undefined);
+            }),
         ];
         return () => {
             unsub?.forEach((f) => f())
         }
-    }, [setFile, editor, shape, fileData, plugin])
+    }, [setFile, editor, shape, fileData, plugin, file])
 
     if (!fileData || !fileData.name || !fileData.extension) return <p>Drag a file here to view its content</p>;
     if (!file || !dataUrl) return <LoadingIcon className="w-1/2 h-1/2" />;
@@ -55,18 +67,18 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
     const content = (() => {
         switch (mimeType) {
             case 'image': {
-                return <Image src={dataUrl} alt={fileData.name} width={500} height={500} />;
+                return <Image className={'w-full h-full pointer-events-none'} src={dataUrl} alt={fileData.name} width={500} height={500} />;
             }
             case 'text': {
-                return <p>{text}</p>;
+                return <p className="w-full h-full overflow-hidden">{text}</p>;
             }
             case 'audio': {
-                return <audio src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
+                return <audio className={'w-full h-full pointer-events-none'} src={dataUrl} autoPlay={true} onPlay={({ currentTarget }) => {
                     currentTarget.volume = 0.03;
                 }} />;
             }
             case 'video': {
-                return <video src={dataUrl} onPointerDown={(e) => e.stopPropagation()} autoPlay={true} onPlay={({ currentTarget }) => {
+                return <video className={'w-full h-full pointer-events-none'} src={dataUrl} autoPlay={true} onPlay={({ currentTarget }) => {
                     currentTarget.volume = 0.03;
                 }} >
                     <LoadingIcon className="w-1/2 h-1/2" />
@@ -82,15 +94,16 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
     })();
 
     return <div
-        className={`flex items-center justify-center flex-col relative !p-8`}
+        className={`flex items-center justify-center flex-col relative h-full p-4`}
     >
-        <p>{`${fileData.dir}/${fileData.name}.${fileData.extension}`}</p>
-        <hr className="h-1 w-full mb-0 mt-2"></hr>
-        <div className="h-full w-full">
-            <ErrorBoundary fallback={<p>Display Error</p>}>{content}</ErrorBoundary>
+        <p className="mb-1">{`${fileData.dir}/${fileData.name}.${fileData.extension}`}</p>
+        <hr className="h-1 w-full mb-0"></hr>
+        <div className="aspect-auto w-full h-full">
+            <Suspense fallback={<LoadingIcon className="w-1/2 h-1/2" />}>
+                <ErrorBoundary fallback={<p>Display Error</p>}>{content}</ErrorBoundary>
+            </Suspense>
         </div>
 
     </div>
-
 }
 export default Component;
