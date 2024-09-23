@@ -6,7 +6,7 @@ export const InputRow = ({ label, value, onChange }: { label: string, value: str
                 className="w-full text-black"
                 id={label}
                 value={value}
-                placeholder={`Enter ${label}`}
+                placeholder={`${label}`}
                 onChange={({ currentTarget: { value } }) => {
                     onChange(value);
                 }}
