@@ -12,4 +12,5 @@ export const COLORS = [
   "sky",
   "teal",
   "emerald",
+  "zinc"
 ];

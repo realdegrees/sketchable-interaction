@@ -3,7 +3,6 @@ import BasePlugin from "../base";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import { PluginUtil } from "@/util/pluginUtil";
-import FilePlugin from "../file/plugin";
 import { transferFileWithWebWorker } from "@/util/fileTransfer";
 import { SpawnFileArgs } from "./component";
 

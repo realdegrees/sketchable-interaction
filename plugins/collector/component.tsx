@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {  useEditor } from "tldraw";
-import ArrowDown from '~icons/mingcute/down-fill.jsx';
-import Edit from '~icons/material-symbols/edit-outline';
+import ArrowDown from '~icons/mdi/keyboard-arrow-down.jsx';
+import Edit from '~icons/mdi/edit.jsx';
 import { InputRow } from "./inputRow";
 import { PluginComponent } from "@/stores/plugin";
 import { CollectorData } from "./config";

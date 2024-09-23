@@ -4,6 +4,7 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./plugins/**/*.{js,ts,jsx,tsx,mdx}",
     "./node_modules/react-photo-editor/dist/*.js", // Only relevant for https://www.npmjs.com/package/react-photo-editor
   ],
   mode: "jit",

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileSystem } from "@/hooks/useFileSystem";
-import AlertIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
+import AlertIcon from '~icons/mdi/progress-alert.jsx';
 import { TLArrowShape, TLShape, TLShapeId, useEditor, Vec } from "tldraw";
 import FolderPlugin from "./plugin";
 import { MetaPayload, PluginUtil } from "@/util/pluginUtil";
 import { DefaultExtensionType, defaultStyles, FileIcon } from "react-file-icon";
-import FolderIcon from '~icons/ic/twotone-folder';
+import FolderIcon from '~icons/mdi/folder.jsx';
 import { getArrowCoordinates } from "@/util/collision";
 import PlusIcon from '~icons/mdi/plus.jsx';
 import { COLORS } from "@/util/constants";
@@ -13,7 +13,6 @@ import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import SimpleFileIcon from '~icons/mdi/file-outline.jsx';
-import deepEqual from "deep-equal";
 
 export type SpawnFileArgs = { name: string, extension: string, coords: { x: number, y: number }, options?: { selectOnSpawn?: boolean, w?: number, h?: number, id?: TLShapeId } };
 type DetachedItem = { shapeId: TLShapeId, attachment: FileData };

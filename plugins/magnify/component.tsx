@@ -4,7 +4,7 @@ import { getMimeType } from "@/util/getMimeType";
 import Image from "next/image";
 import { toDataUrl } from "@/util/blob";
 import { ErrorBoundary } from "react-error-boundary";
-import LoadingIcon from '~icons/line-md/alert-circle-twotone-loop.jsx';
+import LoadingIcon from '~icons/mdi/loading.jsx';
 import { PluginComponent, usePluginStore } from "@/stores/plugin";
 import MagnifyPlugin from "./plugin";
 import { MagnifyData } from "./config";
@@ -81,7 +81,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
                 return <video className={'w-full h-full pointer-events-none'} src={dataUrl} autoPlay={true} onPlay={({ currentTarget }) => {
                     currentTarget.volume = 0.03;
                 }} >
-                    <LoadingIcon className="w-1/2 h-1/2" />
+                    <LoadingIcon className="w-1/2 h-1/2 animate-spin" />
                 </video>;
             }
             case 'model': {
@@ -99,7 +99,7 @@ const Component: PluginComponent<MagnifyData, MagnifyPlugin> = ({ shape, data, p
         <p className="mb-1">{`${fileData.dir}/${fileData.name}.${fileData.extension}`}</p>
         <hr className="h-1 w-full mb-0"></hr>
         <div className="aspect-auto w-full h-full">
-            <Suspense fallback={<LoadingIcon className="w-1/2 h-1/2" />}>
+            <Suspense fallback={<LoadingIcon className="w-1/2 h-1/2 animate-spin" />}>
                 <ErrorBoundary fallback={<p>Display Error</p>}>{content}</ErrorBoundary>
             </Suspense>
         </div>
