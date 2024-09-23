@@ -1,6 +1,5 @@
-# Source: https://pnpm.io/docker
-
-FROM node:18-slim AS base
+# Base image with Node.js and pnpm enabled
+FROM node:20-slim AS base
 
 # Set pnpm environment variables
 ENV PNPM_HOME="/pnpm"
@@ -26,16 +25,23 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
 
 # Final stage: production image
-FROM node:18-slim AS production
+FROM node:20-slim AS production
 
 # Set pnpm environment variables again in the final stage
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-# Copy only the built app and production dependencies
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# Re-enable corepack to ensure pnpm is available in production
+RUN corepack enable
+
+# Set the working directory
 WORKDIR /app
+
+# Copy only the built app and production dependencies
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/.next /app/.next
+COPY --from=build /app/plugins /app/plugins
 COPY package.json ./
 
 # Expose port 3000 for the application
