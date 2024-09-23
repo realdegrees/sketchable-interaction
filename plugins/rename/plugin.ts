@@ -26,7 +26,6 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
     if (!name || !extension || !sourceShape || !dir) return;
 
     const folderPlugin = PluginUtil.getPlugin<FolderPlugin>(sourceShape);
-    console.log(folderPlugin);
 
     const folderHandle = folderPlugin?.handles?.directory;
     const originalFileHandle = folderPlugin?.handles?.files.find(
