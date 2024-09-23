@@ -386,7 +386,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
     }
     return <div className="flex justify-center items-center w-full h-full">
         {rootHandle &&
-            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center scrollbar-thin scrollbar-track-zinc-800 scrollbar-thumb-zinc-300">
+            <div className="overflow-y-auto w-full h-full flex flex-col justify-start items-center">
                 <p className="m-2 font-bold text-3xl">{rootHandle.name}</p>
                 <hr className={`w-full min-h-1 bg-${color.current}-500`}></hr>
                 {<p className="text-start w-full p-2 pb-0 font-bold">Folders</p>}

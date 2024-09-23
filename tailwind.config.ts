@@ -16,7 +16,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwind-scrollbar")],
   safelist: [
     ...COLORS.map((c) => ({
       pattern: new RegExp(`bg-${c}-500`),
