@@ -19,8 +19,8 @@ export type PluginConstructor<PluginType = BasePlugin> = new (
 ) => PluginType;
 
 export type UnwrappedShape<
-  PluginType = BasePlugin,
-  PluginData = JsonObject
+  PluginData = JsonObject,
+  PluginType = BasePlugin<PluginData>
 > = PluginStore<PluginType> & {
   data?: PluginData;
 } & {
@@ -81,7 +81,7 @@ export class PluginUtil {
     options?: {
       omit?: (keyof UnwrappedShape)[];
     }
-  ): UnwrappedShape<PluginType, PluginData> | undefined {
+  ): UnwrappedShape<PluginData, PluginType> | undefined {
     if (!shape) return;
 
     const { getPlugin, isRegistered, getConstructor, getPluginConfig } =
@@ -154,6 +154,6 @@ export class PluginUtil {
     >;
     options?.omit &&
       options?.omit.forEach((key) => delete filteredUnwrappedShape[key]);
-    return filteredUnwrappedShape as unknown as UnwrappedShape;
+    return filteredUnwrappedShape as unknown as UnwrappedShape<PluginData, PluginType>;
   }
 }

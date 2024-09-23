@@ -1,6 +1,6 @@
 # Source: https://pnpm.io/docker
 
-FROM node:18-alpine AS base
+FROM node:18-slim AS base
 
 # Set pnpm environment variables
 ENV PNPM_HOME="/pnpm"
@@ -12,26 +12,31 @@ RUN corepack enable
 # Set the working directory
 WORKDIR /app
 
-# Copy all files from the current directory to /app in the container
-COPY . .
+# Copy only package.json and pnpm-lock.yaml to leverage caching
+COPY package.json pnpm-lock.yaml ./
 
-# Install only production dependencies
+# Install production dependencies first to cache them
 FROM base AS prod-deps
-# Use the cache for pnpm store to speed up installation
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
 
-# Build the application
+# Install all dependencies and build the app
 FROM base AS build
-# Install all dependencies (including dev dependencies) and build the app
+COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
 
-# Final production stage
-FROM base
-# Copy over the node_modules from the production dependencies stage
+# Final stage: production image
+FROM node:18-slim AS production
+
+# Set pnpm environment variables again in the final stage
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+# Copy only the built app and production dependencies
+WORKDIR /app
 COPY --from=prod-deps /app/node_modules /app/node_modules
-# Copy over the built files from the build stage
 COPY --from=build /app/.next /app/.next
+COPY package.json ./
 
 # Expose port 3000 for the application
 EXPOSE 3000

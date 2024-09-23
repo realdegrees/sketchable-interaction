@@ -18,4 +18,3 @@ This project can be built with the provided docker image or by running `pnpm run
 
 ## Known Issues
 - Avoid introducing large video files to the canvas as the loading can quickly stall the app
-- The application slows down significantly when around 30 or more file shapes are present on a canvas due to an issue with rerender of the parent folder to avoid this you can build smaller workflows where files are processed quickly and don't live on the canvas for long.
