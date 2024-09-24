@@ -96,7 +96,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             }
         });
 
-        plugin?.connectShape(id, true);
+        plugin?.connectShape(id);
         options?.selectOnSpawn && editor.setSelectedShapes([id]);
         setDetached([
             ...detached,
@@ -144,7 +144,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             }
         });
 
-        plugin?.connectShape(id, true);
+        plugin?.connectShape(id);
         options?.selectOnSpawn && editor.setSelectedShapes([id]);
 
         setDetached([

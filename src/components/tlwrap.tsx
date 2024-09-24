@@ -143,15 +143,16 @@ const Tlwrap = () => {
         const unboundConnectorArrows = editor.getCurrentPageShapes().filter(({ props, isLocked }) => {
             return isLocked && ('end' in props && props.end.type === 'point' || 'start' in props && props.start.type === 'point')
         });
+        const unlockedArrows = unboundConnectorArrows
+            .filter((shape): shape is TLArrowShape => !!shape)
+            .map((shape) => ({
+                ...shape,
+                isLocked: false
+            }));
 
         editor
-            .updateShapes(unboundConnectorArrows
-                .filter((shape): shape is TLArrowShape => !!shape)
-                .map((shape) => ({
-                    ...shape,
-                    isLocked: false
-                })))
-            .deleteShapes(unboundConnectorArrows);
+            .updateShapes(unlockedArrows)
+            .deleteShapes(unlockedArrows);
     }
 
     const initCollision = (editor: Editor, shape: TLShape): void => {
@@ -314,8 +315,7 @@ const Tlwrap = () => {
                             if (!poly) continue;
                             collisionSystem.remove(poly);
                             updateCollision(editor, { id: id as TLShapeId, meta });
-                            id && editor.deleteShapes((editor.getArrowsBoundTo(id as TLShapeId).map(({arrowId}) => arrowId)))
-                            //cleanup(editor);
+                            cleanup(editor);
                             plugin.onDelete();
                             usePluginStore.getState().unregisterInstance(id as TLShapeId);
                         }

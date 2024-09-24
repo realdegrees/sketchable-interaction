@@ -18,4 +18,5 @@ This project can be built with the provided docker image or by running `pnpm run
 
 ## Known Issues
 - Avoid introducing large video files to the canvas as the loading can quickly stall the app
-- When snapping conveyor belts to shapes the anchor point is the pointer position at the time of letting go of Mouse 1. This results in the arrow visually being in the center when it snaps while the connection anchor is elsewhere. To prevent this keep dragging around the mouse after entering the shape and the conveyor will snap back to your pointer. Tldraw currently does expose any options to prevent this as of now.
+- Due to an issue with indicator arrows not being cleaned up after being disconnected this feature was disabled on the final version
+(It is still available to use in the framework but disabled in for the sample plugins)
