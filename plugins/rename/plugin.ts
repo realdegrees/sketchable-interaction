@@ -16,6 +16,7 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
     }
   ): Promise<void> {
     if (!data?.pattern || colliding.plugin.id !== "file") return; // Only switch editor UI when colliding with files
+    if(this.connectedShapes.has(colliding.shape.id)) return;
 
     const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
       colliding.data
@@ -72,7 +73,7 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
       .join(".");
 
     const writeable = await copyHandle.createWritable();
-    writeable.write(file).then(() => writeable.close());
+    await writeable.write(file).then(() => writeable.close());
     // Delete the old file
     await folderHandle.removeEntry(`${name}.${extension}`);
     this.editor?.deleteShape(colliding.shape.id);
@@ -107,6 +108,7 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
     }
 
     const id = `shape:${copyName}-${extension}-${Date.now()}` as TLShapeId;
+    this.connectShape(id);
     await folderPlugin.spawnFile({
       coords,
       extension,
