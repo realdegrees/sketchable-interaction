@@ -230,12 +230,13 @@ const Tlwrap = () => {
                     editor.sideEffects.registerBeforeChangeHandler('shape', (prev, next) => {
                         if (editor.isShapeOfType<TLArrowShape>(prev, 'arrow') &&
                             editor.isShapeOfType<TLArrowShape>(next, 'arrow')) {
+                            if (next.isLocked) return next;
                             if (next.props.start.type !== 'binding') return next;
                             const isPrecise = next.props.start.isPrecise;
                             if (!isPrecise) { return prev }
 
                             const isBent = next.props.bend > 0;
-                            if(isBent) return prev;
+                            if (isBent) return prev;
                         }
                         return next;
                     })
