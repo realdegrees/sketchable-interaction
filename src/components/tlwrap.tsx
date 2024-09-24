@@ -314,7 +314,8 @@ const Tlwrap = () => {
                             if (!poly) continue;
                             collisionSystem.remove(poly);
                             updateCollision(editor, { id: id as TLShapeId, meta });
-                            cleanup(editor);
+                            id && editor.deleteShapes((editor.getArrowsBoundTo(id as TLShapeId).map(({arrowId}) => arrowId)))
+                            //cleanup(editor);
                             plugin.onDelete();
                             usePluginStore.getState().unregisterInstance(id as TLShapeId);
                         }
