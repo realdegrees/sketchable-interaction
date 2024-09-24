@@ -1,12 +1,44 @@
-import { JsonObject, TLShape, TLShapeId } from "tldraw";
-import BasePlugin from "../base";
+import { JsonObject, TLArrowShape, TLShape, TLShapeId, Vec } from "tldraw";
+import BasePlugin, { PluginConfig } from "../base";
 import { FolderData } from "./config";
 import { FileData } from "../file/config";
 import { PluginUtil } from "@/util/pluginUtil";
 import { transferFileWithWebWorker } from "@/util/fileTransfer";
 import { SpawnFileArgs } from "./component";
+import { getArrowCoordinates } from "@/util/collision";
 
 export default class FolderPlugin extends BasePlugin<FolderData> {
+  public constructor(config: PluginConfig, shape: TLShape) {
+    super(config, shape);
+
+    this.on("tick", () => {
+      if (!this.editor) return;
+
+      const selectedShapes = this.editor.getSelectedShapes();
+      const isFolderSelected = selectedShapes?.find(
+        ({ id }) => id === shape.id
+      );
+      // Don't act if the folder shape is currently selected
+      if (isFolderSelected) return;
+
+      const connectedConveyor = this.editor
+        .getArrowsBoundTo(shape.id)
+        .find(({ arrowId, handleId }) => {
+          const plugin = PluginUtil.getPlugin(arrowId);
+          return plugin?.id === 'conveyor' && handleId === "start";
+        });
+      const isConveyorSelected =
+        connectedConveyor &&
+        selectedShapes?.find(({ id }) => id === connectedConveyor.arrowId);
+
+      // Don't act if the conveyor is selected
+      if (!connectedConveyor || isConveyorSelected) return;
+
+      this.emit("spawnFile", {
+        connectedConveyorId: connectedConveyor?.arrowId,
+      });
+    });
+  }
   public async onCollisionEnd(
     data: FolderData | undefined,
     colliding: {

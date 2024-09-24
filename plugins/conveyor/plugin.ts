@@ -12,9 +12,6 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
     super(props, shape);
     this.unsubTick = this.moveConnectedShapes.bind(this);
     this.on("tick", this.unsubTick);
-    this.onEditorSet((editor) => {
-      editor.updateShape({...shape, props: {}} as TLArrowShape)
-    })
   }
 
   

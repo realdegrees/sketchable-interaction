@@ -225,6 +225,20 @@ const Tlwrap = () => {
                         return meta;
                     }
 
+                    // https://tldraw.dev/examples/editor-api/prevent-shape-change
+                    // This is used to prevent conveyor bends and snaps
+                    editor.sideEffects.registerBeforeChangeHandler('shape', (prev, next) => {
+                        if (editor.isShapeOfType<TLArrowShape>(prev, 'arrow') &&
+                            editor.isShapeOfType<TLArrowShape>(next, 'arrow')) {
+                            if (next.props.start.type !== 'binding') return next;
+                            const isPrecise = next.props.start.isPrecise;
+                            if (!isPrecise) { return prev }
+
+                            const isBent = next.props.bend > 0;
+                            if(isBent) return prev;
+                        }
+                        return next;
+                    })
                     /* https://tldraw.dev/examples/editor-api/store-events */
                     editor.store.listen(({ changes: { updated, removed, added } }) => {
 

@@ -208,21 +208,8 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
             setDetached([...detached.filter(({ shapeId }) => !reattachQueue.includes(shapeId)), ...onCanvas]);
         })
 
-        const tickSubscription = plugin?.on('tick', () => {
-            const selectedShapes = editor.getSelectedShapes();
-            const isFolderSelected = selectedShapes.find(({ id }) => id === shape.id);
-            // Don't act if the folder shape is currently selected
-            if (isFolderSelected) return;
-            const connectedConveyor = editor.getArrowsBoundTo(shape.id).map(({ arrowId, handleId }) => {
-                if (handleId !== 'start') return;
-                const shape: TLArrowShape = editor.getShape(arrowId) as TLArrowShape;
-                if (shape?.isLocked) return;
-                const plugin = PluginUtil.getPlugin(shape.id);
-                return plugin?.id === 'conveyor' ? shape : undefined;
-            })[0];
-            const isConveyorSelected = connectedConveyor && selectedShapes.find(({ id }) => id === connectedConveyor.id);
-            if (isConveyorSelected) return;
-
+        const pluginSpawnFileSubscription = plugin?.on<{ connectedConveyorId?: TLShapeId }>('spawnFile', (data) => {
+            const connectedConveyor = data?.connectedConveyorId && (editor.getShape(data.connectedConveyorId) as TLArrowShape);
             if (!connectedConveyor || !rootHandle) return;
             const { coords: [{ x, y }], origin } = getArrowCoordinates(connectedConveyor, editor);
             const coords = Vec.Add(origin, { x, y });
@@ -249,7 +236,7 @@ const Component: PluginComponent<FolderData, FolderPlugin> = ({ shape, data, plu
         });
 
         return () => {
-            tickSubscription?.();
+            pluginSpawnFileSubscription?.();
             externalFileSpawnSubscription?.();
             unsubscribeEditor();
             if (!editor.getShape(shape.id)) {
