@@ -173,7 +173,7 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
             arrowId
           ) as TLArrowShape;
           if (shape?.isLocked) return;
-          const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+          const plugin  = PluginUtil.getPlugin(shape.id);
           return plugin?.id === "conveyor" ? shape : undefined;
         })
         .filter((shape): shape is TLArrowShape => !!shape);
@@ -223,8 +223,7 @@ export default class CollectorPlugin extends BasePlugin<CollectorData> {
       data?: JsonObject;
     }
   ): Promise<void> {
-    const plugin = PluginUtil.unwrapShape(colliding.shape)?.plugin;
-    if (plugin?.id === this.id) {
+    if (colliding.plugin?.id === this.id) {
       this.disconnectShape(colliding.shape.id);
       colliding.plugin.disconnectShape(this.shape.id);
       // Calculate state and cache it

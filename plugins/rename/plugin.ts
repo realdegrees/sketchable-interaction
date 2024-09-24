@@ -92,7 +92,7 @@ export default class RenamePlugin extends BasePlugin<RenameData> {
           arrowId
         ) as TLArrowShape;
         if (shape?.isLocked) return;
-        const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+        const plugin = PluginUtil.getPlugin(shape.id);
         return plugin?.id === "conveyor" ? shape : undefined;
       })[0];
 

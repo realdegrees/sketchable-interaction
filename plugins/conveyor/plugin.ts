@@ -73,7 +73,7 @@ export default class ConveyorPlugin extends BasePlugin<ConveyorData, TLArrowShap
       if (selectedShapes.includes(shapeId)) return;
       this.editor.bringToFront([shapeId]); // Bring shapes moving on a coneyor forward
       const shape = this.editor.getShape(shapeId);
-      const {plugin} = PluginUtil.unwrapShape(shape) ?? {};
+      const plugin = shape && PluginUtil.getPlugin(shape.id);
       if (!shape || plugin?.destroyed) {
         this.disconnectShape(shapeId);
         return;

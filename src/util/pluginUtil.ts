@@ -39,7 +39,7 @@ export class PluginUtil {
   }
 
   public static getConnectedShapes(shape: TLShape): TLShapeId[] {
-    const { plugin } = this.unwrapShape(shape) ?? {};
+    const plugin = this.getPlugin(shape.id);
     if (!plugin) return [];
     const { instances } = usePluginStore.getState();
     return Array.from(

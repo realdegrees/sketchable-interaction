@@ -180,7 +180,7 @@ const Tlwrap = () => {
 
                     pluginStoreEventEmitter.on('ready', () => {
                         editor.getCurrentPageShapes().forEach((shape) => {
-                            const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+                            const plugin = PluginUtil.getPlugin(shape.id);
                             if (!plugin) return;
 
                             plugin.setEditor(editor);
@@ -236,7 +236,7 @@ const Tlwrap = () => {
 
                         // ! Updated
                         for (const [prev, shape] of (sortedUpdate as [TLShape, TLShape][])) {
-                            const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+                            const plugin = PluginUtil.getPlugin(shape.id);
                             plugin?.onShapeUpdate(shape);
                             if (shape.type === 'arrow') {
                                 const { isLocked, props } = shape as TLArrowShape;
@@ -291,7 +291,7 @@ const Tlwrap = () => {
                         // ! Removed
                         for (const { id, meta } of sortedRemoved) {
                             // Remove instance reference in pluginStore, send onDelete event, let plugin get garbage collected
-                            const { plugin } = PluginUtil.unwrapShape({ meta, id: id as TLShapeId }) ?? {};
+                            const plugin = PluginUtil.getPlugin(id as TLShapeId);
                             if (!plugin) continue;
                             plugin.destroyed = true;
                             // Collision Handling

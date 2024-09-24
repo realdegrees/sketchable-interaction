@@ -10,7 +10,7 @@ import { Editor, TLEventInfo, TLShape } from "tldraw";
 export const useHoverEvent = (editor: Editor, shape: TLShape) => {
     const [isHovered, setHovered] = useState<boolean>(false);
     const isPointerDown = useRef(false);
-    const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+    const plugin = PluginUtil.getPlugin(shape.id);
 
     useEffect(() => {
         if (!plugin) return;

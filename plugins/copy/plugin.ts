@@ -108,7 +108,7 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
           arrowId
         ) as TLArrowShape;
         if (shape?.isLocked) return;
-        const { plugin } = PluginUtil.unwrapShape(shape) ?? {};
+        const plugin = PluginUtil.getPlugin(shape.id);
         return plugin?.id === "conveyor" ? shape : undefined;
       })[0];
 
@@ -136,8 +136,8 @@ export default class CopyPlugin extends BasePlugin<CopyData> {
     });
 
     if (connectedConveyor && this.editor && id) {
-      const { plugin: conveyorPlugin } =
-        PluginUtil.unwrapShape(connectedConveyor) ?? {};
+      const conveyorPlugin =
+        PluginUtil.getPlugin(connectedConveyor.id);
       conveyorPlugin?.connectShape(id);
     }
   }

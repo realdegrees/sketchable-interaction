@@ -14,8 +14,7 @@ export default class MagnifyPlugin extends BasePlugin<MagnifyData> {
       data?: JsonObject;
     }
   ): Promise<void> {
-    const { plugin } = PluginUtil.unwrapShape(colliding.shape) ?? {};
-    if (!plugin || plugin.id !== "file") return; // Only switch UI when colliding with files
+    if (!colliding.plugin || colliding.plugin.id !== "file") return; // Only switch UI when colliding with files
     if (this.connectedShapes.size === 1) return; // Display only the first file that collided
 
     const fileData = colliding.plugin.config.pluginDataSchema.safeParse(
